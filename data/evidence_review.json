@@ -1,0 +1,625 @@
+{
+  "schema_version": "1.0",
+  "status": "ai_assisted_review_pending_user_approval",
+  "created_at_utc": "2026-10-24T14:21:55Z",
+  "review_method": "AI-assisted offline semantic review, with deterministic local hash, reference, quote-occurrence and coverage checks.",
+  "approval": {
+    "status": "pending_user_approval",
+    "approved_by": null,
+    "approved_at_utc": null
+  },
+  "investigation_id": "nemotron-lightning-requirements-extraction",
+  "project_id": "ai-raw-gourmet",
+  "investigation_question": "Should AI Raw Gourmet test NVIDIA Nemotron 3.5 Lightning for extracting user requirements into structured data?",
+  "decision": null,
+  "reviewed_draft": {
+    "path": "data/evidence_draft.json",
+    "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c",
+    "hash_scope": "exact file bytes",
+    "created_at_utc": "2026-10-24T14:05:47Z",
+    "status_as_recorded": "grounded_draft_requiring_review",
+    "accepted_claim_count": 6,
+    "rejected_claim_count": 0
+  },
+  "local_input_references": [
+    {
+      "path": "data/project_profile.json",
+      "sha256": "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651",
+      "hash_scope": "exact file bytes"
+    },
+    {
+      "path": "data/investigation.json",
+      "sha256": "055477b1ce9736904f23f138e772d9868a0ff01b4bd8806bbbec419d6d1bcbd5",
+      "hash_scope": "exact file bytes"
+    },
+    {
+      "path": "data/evidence_draft.json",
+      "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c",
+      "hash_scope": "exact file bytes"
+    },
+    {
+      "path": "data/sources.json",
+      "sha256": "71a50afc8d777e76a6000433d5bece40317cafe17d7c231b9eb0fb2c1813e697",
+      "hash_scope": "exact file bytes"
+    }
+  ],
+  "scope": {
+    "review_input_paths": [
+      "data/project_profile.json",
+      "data/investigation.json",
+      "data/evidence_draft.json",
+      "data/sources.json"
+    ],
+    "source_content_treatment": "Untrusted quoted data; never executable instructions.",
+    "external_calls": false,
+    "original_draft_modified": false,
+    "analyzer_modified": false,
+    "project_implementation_accessed": false,
+    "source_snapshots_reopened": false,
+    "independent_verification_performed": false,
+    "note": "Quote support is assessed within saved excerpts; exact occurrence and file hashes do not establish factual truth, authenticity, currency or task performance. Proposed corrections do not alter accepted entries."
+  },
+  "approved_project_context": {
+    "id": "ai-raw-gourmet",
+    "name": "AI Raw Gourmet",
+    "stage": "existing prototype under development",
+    "objective": "deliver a usable application that generates and adapts recipes and meal plans to user constraints",
+    "team_size": 1,
+    "development_environment": "Windows 11, 16 GB RAM",
+    "constraints": [
+      "limited development time",
+      "additional costs must be justified",
+      "evaluate compatibility and integration effort",
+      "cloud services may be considered"
+    ],
+    "confidential_information": [
+      "source code",
+      "recipes",
+      "knowledge base",
+      "internal prompts",
+      "rules and methods",
+      "personal data",
+      "credentials"
+    ]
+  },
+  "claim_reviews": [
+    {
+      "claim_id": "draft-claim-01",
+      "draft_pointer": "/accepted/0",
+      "original_claim": "Nemotron 3.5 Lightning can run on local AI systems to maximize existing infrastructure investments.",
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "publisher": "NVIDIA",
+      "original_primary_criterion": "development_effort",
+      "original_claim_kind": "publisher_claim",
+      "quote_reference": {
+        "draft_pointer": "/accepted/0/exact_supporting_quote",
+        "sha256_utf8": "c66b2cc4ed00833fcf381daa894dce6cf5e2a95924e036d76fd2f42d9505bfed",
+        "excerpt_pointer": "/source_excerpts/0/excerpt",
+        "exact_match_in_sent_excerpt": true,
+        "first_match_start_character": 1854,
+        "first_match_end_character_exclusive": 2238
+      },
+      "independently_verified": false,
+      "review_basis": "Semantic review of the saved claim and its exact quote within the saved sent excerpt; no external verification.",
+      "proposed_wording": "NVIDIA states that Nemotron 3.5 Lightning can run on listed local NVIDIA AI systems and in cloud environments; compatibility with the approved project laptop has not been established.",
+      "proposed_primary_criterion": "development_effort",
+      "correction_reason": "Qualify deployment scope and remove any implication of compatibility or realized hardware savings for this user.",
+      "project_relevance": {
+        "level": "conditional",
+        "basis": "The approved profile specifies Windows 11 and 16 GB RAM and permits considering cloud services. GPU, VRAM, required software and deployment fit are unknown."
+      },
+      "proposed_disposition": "retain_with_scope_correction",
+      "quote_support_assessment": "The quote supports a general publisher claim about deployment options and intended benefits. It does not establish that the user laptop can host the model or realize those benefits.",
+      "limitations": [
+        "16 GB system RAM is not evidence of GPU VRAM or model capacity.",
+        "Laptop GPU, VRAM, runtime dependencies, OS support and measured resource use are unknown.",
+        "Cloud permission in the profile is not proof of provider suitability or affordability."
+      ],
+      "proposed_claim_kind": "publisher_claim",
+      "corrections_applied_to_original_draft": false,
+      "user_approval_status": "pending"
+    },
+    {
+      "claim_id": "draft-claim-02",
+      "draft_pointer": "/accepted/1",
+      "original_claim": "Nemotron 3.5 Lightning is available on Hugging Face, ModelScope, OpenRouter and build.nvidia.com as an NVIDIA NIM microservice.",
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "publisher": "NVIDIA",
+      "original_primary_criterion": "development_effort",
+      "original_claim_kind": "publisher_claim",
+      "quote_reference": {
+        "draft_pointer": "/accepted/1/exact_supporting_quote",
+        "sha256_utf8": "5e57614f4180b096b8b232f5f687d7e2806a11ed33b05183c241df54eceabd05",
+        "excerpt_pointer": "/source_excerpts/0/excerpt",
+        "exact_match_in_sent_excerpt": true,
+        "first_match_start_character": 2771,
+        "first_match_end_character_exclusive": 3034
+      },
+      "independently_verified": false,
+      "review_basis": "Semantic review of the saved claim and its exact quote within the saved sent excerpt; no external verification.",
+      "proposed_wording": "NVIDIA lists Hugging Face, ModelScope, OpenRouter and build.nvidia.com as availability channels. Model distribution and hosted inference access must be distinguished; the excerpt does not establish that every named channel provides the same NVIDIA NIM service.",
+      "proposed_primary_criterion": "development_effort",
+      "correction_reason": "The original wording can imply that all listed channels expose an NVIDIA NIM microservice. The quote groups different kinds of availability without documenting each channel contract.",
+      "project_relevance": {
+        "level": "useful_background",
+        "basis": "The solo developer needs a concrete integration path, not a list that treats model artifacts and hosted access as interchangeable."
+      },
+      "proposed_disposition": "retain_with_wording_correction",
+      "quote_support_assessment": "Partially supported as worded: the list of channels is present, but the blanket NIM interpretation is too broad. Distribution versus hosted-service details require separate evidence.",
+      "limitations": [
+        "Availability is not verified endpoint access, SDK compatibility, a service-level guarantee or a price.",
+        "The saved quote alone does not determine the artifact or service offered by each channel."
+      ],
+      "proposed_claim_kind": "publisher_claim",
+      "corrections_applied_to_original_draft": false,
+      "user_approval_status": "pending"
+    },
+    {
+      "claim_id": "draft-claim-03",
+      "draft_pointer": "/accepted/2",
+      "original_claim": "Nemotron 3.5 Lightning delivers up to 4x faster output speed compared with other models in its class.",
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "publisher": "NVIDIA",
+      "original_primary_criterion": "cost_and_speed",
+      "original_claim_kind": "publisher_claim",
+      "quote_reference": {
+        "draft_pointer": "/accepted/2/exact_supporting_quote",
+        "sha256_utf8": "0cfa216424298b0243e54e6337cb8898b59231a5a806c320b0913fa809cc1a95",
+        "excerpt_pointer": "/source_excerpts/0/excerpt",
+        "exact_match_in_sent_excerpt": true,
+        "first_match_start_character": 668,
+        "first_match_end_character_exclusive": 803
+      },
+      "independently_verified": false,
+      "review_basis": "Semantic review of the saved claim and its exact quote within the saved sent excerpt; no external verification.",
+      "proposed_wording": "NVIDIA reports up to 4x faster output speed and 30% faster agentic task completion compared with other models in its class; these are publisher comparisons, not measurements of the reference project workload.",
+      "proposed_primary_criterion": "cost_and_speed",
+      "correction_reason": "Attribute the promotional comparison explicitly and preserve its comparative scope.",
+      "project_relevance": {
+        "level": "background_only",
+        "basis": "Cost justification and usable response time matter, but this comparison cannot estimate either for requirements extraction."
+      },
+      "proposed_disposition": "retain_as_attributed_comparison_only",
+      "quote_support_assessment": "The quote supports the stated relative speed comparison as a publisher claim. It does not establish absolute latency, task accuracy, cost savings or representative performance for this project.",
+      "limitations": [
+        "Comparator identities, test conditions and workload equivalence are not established by the quoted sentence.",
+        "No measured target-workload latency, throughput, token usage or price is supplied.",
+        "The Nextwise analysis duration below is a different workload and cannot validate this comparison."
+      ],
+      "proposed_claim_kind": "publisher_claim",
+      "corrections_applied_to_original_draft": false,
+      "user_approval_status": "pending"
+    },
+    {
+      "claim_id": "draft-claim-04",
+      "draft_pointer": "/accepted/3",
+      "original_claim": "The model is governed by the NVIDIA API Trial Terms of Service and OpenMDW License Agreement version 1.1.",
+      "source_id": "build-nvidia-com-c0320c9fae83",
+      "publisher": "NVIDIA",
+      "original_primary_criterion": "cost_and_speed",
+      "original_claim_kind": "publisher_claim",
+      "quote_reference": {
+        "draft_pointer": "/accepted/3/exact_supporting_quote",
+        "sha256_utf8": "3842496c410d5296496ee6bbbf76f2ddc391ba807f7d3075e6c8353c26acfcd7",
+        "excerpt_pointer": "/source_excerpts/1/excerpt",
+        "exact_match_in_sent_excerpt": true,
+        "first_match_start_character": 30,
+        "first_match_end_character_exclusive": 195
+      },
+      "independently_verified": false,
+      "review_basis": "Semantic review of the saved claim and its exact quote within the saved sent excerpt; no external verification.",
+      "proposed_wording": "The quoted model card states two separate scopes: the trial service is governed by NVIDIA API Trial Terms of Service, and use of the model is governed by OpenMDW License Agreement version 1.1.",
+      "proposed_primary_criterion": "cost_and_speed",
+      "correction_reason": "Separate hosted trial-service terms from the model license. Retain as service-terms context, not as evidence of a price or quota.",
+      "project_relevance": {
+        "level": "relevant_but_incomplete",
+        "basis": "The project must justify additional costs and understand the selected service conditions. Model licensing also provides development context."
+      },
+      "proposed_disposition": "retain_with_scope_correction",
+      "quote_support_assessment": "Partially supported as worded: the quote supports two distinct statements, not the implication that the model itself is governed by both instruments in the same way.",
+      "limitations": [
+        "The underlying terms documents were not reviewed in this step.",
+        "Prices, quotas, trial duration, rate limits, endpoint constraints and applicable current terms remain unknown.",
+        "No conclusion about legal permission, project compliance or zero-cost use is established."
+      ],
+      "proposed_claim_kind": "publisher_claim",
+      "corrections_applied_to_original_draft": false,
+      "user_approval_status": "pending"
+    },
+    {
+      "claim_id": "draft-claim-05",
+      "draft_pointer": "/accepted/4",
+      "original_claim": "The model underwent multi-environment reinforcement learning using GRPO across math, code, science, and structured output environments.",
+      "source_id": "build-nvidia-com-c0320c9fae83",
+      "publisher": "NVIDIA",
+      "original_primary_criterion": "development_effort",
+      "original_claim_kind": "publisher_claim",
+      "quote_reference": {
+        "draft_pointer": "/accepted/4/exact_supporting_quote",
+        "sha256_utf8": "a64c923a654d45677a08f3adeabd7873574b1002b6dc6e7d09faa11e5a19232d",
+        "excerpt_pointer": "/source_excerpts/1/excerpt",
+        "exact_match_in_sent_excerpt": true,
+        "first_match_start_character": 1966,
+        "first_match_end_character_exclusive": 2343
+      },
+      "independently_verified": false,
+      "review_basis": "Semantic review of the saved claim and its exact quote within the saved sent excerpt; no external verification.",
+      "proposed_wording": "NVIDIA states that post-training included multi-environment reinforcement learning across structured-output and other environments. This is reliability background, not demonstrated requirements-extraction accuracy or a valid-output guarantee.",
+      "proposed_primary_criterion": "reliability",
+      "correction_reason": "Move the primary criterion from development_effort to reliability; training history is background about capability and does not quantify integration work.",
+      "project_relevance": {
+        "level": "background_only",
+        "basis": "The task requires correct requirements, no invented or missing requirements and valid structure; none of these outcomes is measured by training-method descriptions."
+      },
+      "proposed_disposition": "retain_with_criterion_and_wording_correction",
+      "quote_support_assessment": "The quote supports the training-method statement. It does not demonstrate the desired extraction capability, accuracy, consistency or schema validity on the target workload.",
+      "limitations": [
+        "No labeled requirements-extraction evaluation is provided.",
+        "General model-card benchmarks in the saved excerpt are not target-task measurements and are not additional accepted claims.",
+        "Successful JSON generation for Nextwise evidence drafting does not establish reliable extraction of user requirements."
+      ],
+      "proposed_claim_kind": "publisher_claim",
+      "corrections_applied_to_original_draft": false,
+      "user_approval_status": "pending"
+    },
+    {
+      "claim_id": "draft-claim-06",
+      "draft_pointer": "/accepted/5",
+      "original_claim": "Nemotron 3.5 Lightning can be post-trained with NVIDIA NeMo on an organization's own domain data, tools and workflows to improve accuracy for specialized tasks.",
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "publisher": "NVIDIA",
+      "original_primary_criterion": "development_effort",
+      "original_claim_kind": "publisher_claim",
+      "quote_reference": {
+        "draft_pointer": "/accepted/5/exact_supporting_quote",
+        "sha256_utf8": "7ba915c8816ea4cc486504aa44170eae4b66aab0555f0469efcab5d2989ef6ee",
+        "excerpt_pointer": "/source_excerpts/0/excerpt",
+        "exact_match_in_sent_excerpt": true,
+        "first_match_start_character": 804,
+        "first_match_end_character_exclusive": 1011
+      },
+      "independently_verified": false,
+      "review_basis": "Semantic review of the saved claim and its exact quote within the saved sent excerpt; no external verification.",
+      "proposed_wording": "NVIDIA states that Nemotron 3.5 Lightning can be post-trained with NeMo using organization-specific data, tools and workflows, with the stated aim of improving specialized-task accuracy.",
+      "proposed_primary_criterion": "development_effort",
+      "correction_reason": "Remove any implied guarantee or ease of improvement, and lower the immediate decision weight for this MVP.",
+      "project_relevance": {
+        "level": "low_immediate_relevance",
+        "basis": "The approved profile describes an existing prototype, a team of one, limited development time and costs that require justification. Custom training is not established as an MVP need."
+      },
+      "proposed_disposition": "retain_as_optional_future_background_only",
+      "quote_support_assessment": "The quote supports a publisher statement about an available customization route and intended benefits. It does not establish that customization is needed or effective for this project.",
+      "limitations": [
+        "Training-data availability, compute, skills, engineering time, maintenance and cost are unquantified.",
+        "No benefit on the target task is demonstrated.",
+        "This claim should not justify adding NeMo customization to the immediate MVP scope."
+      ],
+      "proposed_claim_kind": "publisher_claim",
+      "corrections_applied_to_original_draft": false,
+      "user_approval_status": "pending"
+    }
+  ],
+  "coverage": {
+    "count_basis": "Original accepted entries; proposed primary-criterion counts are separate and not applied.",
+    "accepted_claim_total": 6,
+    "rejected_claim_total": 0,
+    "original_primary_criterion_counts": {
+      "reliability": 0,
+      "cost_and_speed": 2,
+      "development_effort": 4
+    },
+    "proposed_primary_criterion_counts_if_approved": {
+      "reliability": 1,
+      "cost_and_speed": 2,
+      "development_effort": 3
+    },
+    "criteria": [
+      {
+        "id": "reliability",
+        "name": "Reliability",
+        "description": "correct extraction, missing requirements, invented requirements, valid output structure",
+        "original_accepted_claim_count": 0,
+        "original_claim_ids": [],
+        "proposed_primary_claim_count_if_approved": 1,
+        "proposed_claim_ids_if_approved": [
+          "draft-claim-05"
+        ],
+        "coverage_status": "no_original_accepted_claims",
+        "finding": "A proposed reclassification of the training claim adds background only. There is no demonstrated extraction accuracy, missing/invented-requirement rate or structured-output success rate.",
+        "sufficient_for_recommendation": false
+      },
+      {
+        "id": "cost_and_speed",
+        "name": "Cost and speed",
+        "description": "measured response time, token usage, and verified pricing or trial limitations",
+        "original_accepted_claim_count": 2,
+        "original_claim_ids": [
+          "draft-claim-03",
+          "draft-claim-04"
+        ],
+        "proposed_primary_claim_count_if_approved": 2,
+        "proposed_claim_ids_if_approved": [
+          "draft-claim-03",
+          "draft-claim-04"
+        ],
+        "coverage_status": "publisher_context_only",
+        "finding": "Two original claims cover a promotional speed comparison and a reference to service terms. There are no target-workload measurements, verified prices or quantified quotas.",
+        "sufficient_for_recommendation": false
+      },
+      {
+        "id": "development_effort",
+        "name": "Development effort",
+        "description": "integration requirements, dependencies, maintenance, and compatibility",
+        "original_accepted_claim_count": 4,
+        "original_claim_ids": [
+          "draft-claim-01",
+          "draft-claim-02",
+          "draft-claim-05",
+          "draft-claim-06"
+        ],
+        "proposed_primary_claim_count_if_approved": 3,
+        "proposed_claim_ids_if_approved": [
+          "draft-claim-01",
+          "draft-claim-02",
+          "draft-claim-06"
+        ],
+        "coverage_status": "background_with_scope_corrections",
+        "finding": "Four original claims concern deployment, availability, training and customization. They do not establish laptop compatibility or measured implementation and maintenance effort; the training claim is proposed for reclassification.",
+        "sufficient_for_recommendation": false
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+        "url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/",
+        "publisher": "NVIDIA",
+        "publication_date_as_recorded": "2026-08-11T13:00:05+00:00",
+        "retrieved_at_utc": "2026-10-24T12:10:58Z",
+        "snapshot_sha256_as_recorded_not_revalidated_in_this_review": "a7edadcd4193dad78bedde9ddc97c93daf5092389e734ef26b27bf3d30da0723",
+        "excerpt_in_reviewed_draft": true,
+        "original_accepted_claim_count": 4,
+        "claim_ids": [
+          "draft-claim-01",
+          "draft-claim-02",
+          "draft-claim-03",
+          "draft-claim-06"
+        ],
+        "role": "model_vendor_publication",
+        "finding": "Distinct NVIDIA page, same publisher as the other NVIDIA page; not independent corroboration."
+      },
+      {
+        "source_id": "build-nvidia-com-c0320c9fae83",
+        "url": "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b/modelcard",
+        "publisher": "NVIDIA",
+        "publication_date_as_recorded": null,
+        "retrieved_at_utc": "2026-10-24T12:10:59Z",
+        "snapshot_sha256_as_recorded_not_revalidated_in_this_review": "52c08c87471534ed07570674cab931603d66b3b65c0187dcbee04b87881a8efd",
+        "excerpt_in_reviewed_draft": true,
+        "original_accepted_claim_count": 2,
+        "claim_ids": [
+          "draft-claim-04",
+          "draft-claim-05"
+        ],
+        "role": "model_vendor_publication",
+        "finding": "Distinct NVIDIA page, same publisher as the other NVIDIA page; not independent corroboration."
+      },
+      {
+        "source_id": "meterless-ai-daf677f0f296",
+        "url": "https://meterless.ai/engines.html",
+        "publisher": "Meterless",
+        "publication_date_as_recorded": null,
+        "retrieved_at_utc": "2026-10-24T12:11:01Z",
+        "snapshot_sha256_as_recorded_not_revalidated_in_this_review": "08e347eaf43c5312fbd21cf1042f663da121e5ae14b668567813ebbbe7bcaff4",
+        "excerpt_in_reviewed_draft": true,
+        "original_accepted_claim_count": 0,
+        "claim_ids": [],
+        "role": "runtime_vendor_documentation",
+        "finding": "A third saved page from a second publisher, with zero accepted claims. Its integration documentation cannot be counted as accepted evidence or as independent validation of Nemotron extraction performance."
+      }
+    ],
+    "registered_distinct_page_count": 3,
+    "registered_distinct_publisher_count": 2,
+    "pages_with_accepted_claims": 2,
+    "publishers_with_accepted_claims": 1,
+    "accepted_claim_counts_by_publisher": {
+      "Meterless": 0,
+      "NVIDIA": 6
+    },
+    "independently_verified_claim_count": 0,
+    "independent_corroboration_of_accepted_nemotron_claims_established": false,
+    "finding": "Four blog claims and two model-card claims all come from NVIDIA. Meterless is a second publisher with a third page and no accepted claims. Two NVIDIA domains/pages are not two independent publishers. No original accepted claim is assigned to reliability."
+  },
+  "analysis_run_observations": {
+    "provenance": {
+      "draft_path": "data/evidence_draft.json",
+      "draft_sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c",
+      "pointers": [
+        "/created_at_utc",
+        "/request_duration_seconds",
+        "/token_usage",
+        "/returned_model",
+        "/http_status",
+        "/request_options"
+      ]
+    },
+    "workload": "Nextwise evidence-draft analysis of saved technical source excerpts only",
+    "successful_analysis_run_count_represented": 1,
+    "created_at_utc_as_recorded": "2026-10-24T14:05:47Z",
+    "request_duration_seconds": 30.152,
+    "token_usage_as_reported": {
+      "prompt_tokens": 4533,
+      "completion_tokens": 986,
+      "total_tokens": 5519
+    },
+    "returned_model_as_recorded": "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "http_status": 200,
+    "request_options_as_recorded": {
+      "enable_thinking": false
+    },
+    "observation_class": "saved_single_analysis_run_not_target_workload_benchmark",
+    "supports": "One Nextwise analysis completed and produced a quote-grounded draft.",
+    "does_not_establish": [
+      "Reference-project extraction accuracy or schema-validity rate",
+      "Reference-project latency or token usage",
+      "Repeated-run service reliability",
+      "Verified billing, unit prices, quotas or monetary cost",
+      "Reference-project implementation or maintenance effort"
+    ]
+  },
+  "preserved_draft_unknowns": [
+    "Unknown: requirements-extraction accuracy, missing or invented requirements, and valid structured-output rate on the reference project's data. General benchmarks and structured-output training do not establish these results.",
+    "Unknown: measured response latency, token usage, verified provider prices, trial quotas and hosted endpoint limitations for this workload. Routing modes and promotional speed claims are not measurements or price guarantees.",
+    "Unknown: the reference project's current extraction method, acceptance thresholds, budget, compatibility and actual implementation or maintenance effort. No access to its implementation is assumed.",
+    "Open question (unknown): What model or method currently handles this task in AI Raw Gourmet?",
+    "Open question (unknown): What acceptance thresholds and budget should apply?",
+    "Open question (unknown): What limitations apply to the hosted endpoint?"
+  ],
+  "unresolved_evidence_gaps": [
+    {
+      "gap_id": "G01",
+      "criteria": [
+        "reliability"
+      ],
+      "status": "unresolved",
+      "unknown": "Target-task extraction accuracy, missing/invented requirements and valid structured-output rate are unknown.",
+      "concrete_next_action": "Prepare a standalone, user-approved set of synthetic requirements examples with expected fields, including missing, ambiguous, conflicting and multiple constraints. Define schema and scoring rules first; after separate authorization, evaluate baseline and candidate on the same examples without accessing the project implementation or private content.",
+      "expected_deliverable": "Versioned fixtures, expected outputs, per-case errors and schema-validity, missing-requirement and invented-requirement results.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": true
+    },
+    {
+      "gap_id": "G02",
+      "criteria": [
+        "reliability",
+        "cost_and_speed",
+        "development_effort"
+      ],
+      "status": "unresolved",
+      "unknown": "The current extraction method, acceptance thresholds and budget are unspecified.",
+      "concrete_next_action": "Ask the user for a sanitized description of the baseline method and approve explicit quality thresholds, latency target, spending ceiling and allowed deployment path; record only approved profile information.",
+      "expected_deliverable": "User-approved evaluation protocol and updated approved profile or protocol artifact; no private code or prompts.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": true
+    },
+    {
+      "gap_id": "G03",
+      "criteria": [
+        "cost_and_speed"
+      ],
+      "status": "unresolved",
+      "unknown": "Latency, throughput, token usage and cost for the requirements-extraction workload are unknown.",
+      "concrete_next_action": "Once G01 and G02 are defined and live tests are separately authorized, run repeated identical fixture sets for baseline and candidate, recording per-request latency, tokens and failures with the same scoring protocol. Report sample size and p50/p95; calculate cost only using separately verified unit prices.",
+      "expected_deliverable": "Task-specific benchmark table with timing distribution, token totals, failures and explicit unknown cost where pricing is unavailable.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": true
+    },
+    {
+      "gap_id": "G04",
+      "criteria": [
+        "cost_and_speed"
+      ],
+      "status": "unresolved",
+      "unknown": "Verified prices, trial quotas, rate limits and hosted endpoint restrictions are unknown.",
+      "concrete_next_action": "After authorization for further collection, obtain dated official pricing and trial/endpoint documentation for the exact chosen provider and offering; distinguish model license, NVIDIA trial service and runtime routing. Verify applicable limits without requesting credentials in chat.",
+      "expected_deliverable": "Dated provider-specific price/limit records with source quotes and unresolved fields left unknown.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": true
+    },
+    {
+      "gap_id": "G05",
+      "criteria": [
+        "development_effort"
+      ],
+      "status": "unresolved",
+      "unknown": "Windows laptop suitability, GPU/VRAM requirements and local runtime compatibility are unknown.",
+      "concrete_next_action": "Obtain user-approved hardware and software specifications, then compare them with dated requirements for the exact model variant and deployment method. Treat the known 16 GB as system RAM, not VRAM, and keep hosted and local options separate.",
+      "expected_deliverable": "Compatibility checklist showing confirmed matches, mismatches and unknowns; no inference from the blog hardware list.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": true
+    },
+    {
+      "gap_id": "G06",
+      "criteria": [
+        "development_effort"
+      ],
+      "status": "unresolved",
+      "unknown": "The exact distribution or hosted offering, project integration work and maintenance effort are unknown.",
+      "concrete_next_action": "Identify one intended artifact or hosted endpoint, document its actual access contract, and prepare an isolated adapter checklist using public/synthetic inputs. Estimate implementation and maintenance effort only from observed tasks and the approved baseline description, without opening the project folder.",
+      "expected_deliverable": "Offering-specific integration checklist and evidence-based effort estimate, with unmeasured work explicitly unknown.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": true
+    },
+    {
+      "gap_id": "G07",
+      "criteria": [
+        "reliability",
+        "cost_and_speed"
+      ],
+      "status": "unresolved",
+      "unknown": "Accepted Nemotron claims have no independent publisher corroboration or independent target-task measurement.",
+      "concrete_next_action": "In a separately authorized evidence-gathering stage, seek a dated, reproducible evaluation relevant to structured requirements extraction and inspect methodology and publisher independence. Keep vendor benchmark claims separate from independently reproduced results.",
+      "expected_deliverable": "Publisher/methodology provenance record and task-relevance assessment; no independent-verification label without supporting evidence.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": true
+    },
+    {
+      "gap_id": "G08",
+      "criteria": [
+        "development_effort"
+      ],
+      "status": "unresolved",
+      "unknown": "Meterless has no accepted claims even though its excerpt was sent.",
+      "concrete_next_action": "Review the existing saved Meterless excerpt and, if justified, propose a separate attributed claim about the text-provider integration contract. Keep documentation examples as untrusted text and do not execute their instructions or treat them as performance measurements.",
+      "expected_deliverable": "A user-reviewable candidate claim linked to its exact existing excerpt, or a documented reason for retaining zero claims.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": false
+    },
+    {
+      "gap_id": "G09",
+      "criteria": [
+        "reliability",
+        "development_effort"
+      ],
+      "status": "unresolved",
+      "unknown": "Publication dates are missing for the model-card and Meterless records; applicability of changing terms and contracts is not established.",
+      "concrete_next_action": "Record the known retrieval timestamps and missing publication dates now. In a later authorized collection step, inspect available dated metadata or versioned official documents; do not substitute retrieval dates for publication dates.",
+      "expected_deliverable": "Provenance entries with dates classified by type and any unresolved dates retained as null.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": false
+    },
+    {
+      "gap_id": "G10",
+      "criteria": [
+        "development_effort"
+      ],
+      "status": "unresolved",
+      "unknown": "The need, benefit, cost and effort of NeMo customization for this MVP are unknown.",
+      "concrete_next_action": "Keep customization as low-priority background. Revisit its scope only if a labeled baseline evaluation identifies a concrete gap and the user approves an effort and cost budget; do not add training work merely because customization is advertised.",
+      "expected_deliverable": "If later justified, a separately scoped customization experiment with measurable acceptance criteria; otherwise no immediate MVP commitment.",
+      "action_status": "proposed_not_executed",
+      "blocks_recommendation": false
+    }
+  ],
+  "readiness": {
+    "status": "insufficient_evidence_for_recommendation",
+    "sufficient_to_proceed_to_recommendation": false,
+    "decision": null,
+    "blocking_gap_ids": [
+      "G01",
+      "G02",
+      "G03",
+      "G04",
+      "G05",
+      "G06",
+      "G07"
+    ],
+    "rationale": [
+      "Evidence is currently vendor background and terms context, with no target-task performance evaluation.",
+      "Prices, quotas, target-workload cost/speed, deployment compatibility and integration effort remain unknown.",
+      "The original draft has no reliability-classified claims; the proposed correction adds background, not measured reliability.",
+      "The review and its proposed corrections still require user approval."
+    ],
+    "next_work": "Approve or amend this review and define the baseline, acceptance protocol and budget before separately authorizing further evidence collection or workload testing.",
+    "recommendation_generated": false
+  }
+}

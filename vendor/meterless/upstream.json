@@ -1,0 +1,128 @@
+{
+  "repository": "https://github.com/Meterless/Meterless",
+  "commit": "1742dec56a66e58eef9dda2d2b865823758ca8cd",
+  "adaptations": [],
+  "layout_note": "engines/hmem is located at vendor/meterless/hmem; relative source and conformance paths are preserved.",
+  "files": [
+    {
+      "upstream_path": "AGENTS.md",
+      "local_path": "vendor/meterless/AGENTS.md",
+      "sha256": "ad2cfd0c48e1dc001a226baf20405ad90ad1f7fe012ce77e3fd92e99f286c6d7"
+    },
+    {
+      "upstream_path": "LICENSE",
+      "local_path": "vendor/meterless/LICENSE",
+      "sha256": "63e29fc8231b53757a77fbc371071c91d768621efa1e68b1d9ff8d1bb7c4a0ef"
+    },
+    {
+      "upstream_path": "engines/hmem/AGENTS.md",
+      "local_path": "vendor/meterless/hmem/AGENTS.md",
+      "sha256": "d0aa03cead15362d5e9baeccdc4e9a7fcfad84b6248e40d230a3801637898d25"
+    },
+    {
+      "upstream_path": "engines/hmem/LICENSE",
+      "local_path": "vendor/meterless/hmem/LICENSE",
+      "sha256": "63e29fc8231b53757a77fbc371071c91d768621efa1e68b1d9ff8d1bb7c4a0ef"
+    },
+    {
+      "upstream_path": "engines/hmem/README.md",
+      "local_path": "vendor/meterless/hmem/README.md",
+      "sha256": "a7847435143cacff4ab8c08cc0823abf0224ab2ca7a605c061a0a6d62e05c79d"
+    },
+    {
+      "upstream_path": "engines/hmem/conformance/README.md",
+      "local_path": "vendor/meterless/hmem/conformance/README.md",
+      "sha256": "cf44fd4d3c9a8af0c46157bb015dead8d4ccb2d000c2358e7da1e4cecfbc4c39"
+    },
+    {
+      "upstream_path": "engines/hmem/conformance/runner.ts",
+      "local_path": "vendor/meterless/hmem/conformance/runner.ts",
+      "sha256": "d6724860761c4846a0bce3080d25115bcb0ba1d9d0d2e933438f5683a7a9b7c5"
+    },
+    {
+      "upstream_path": "engines/hmem/conformance/vectors/vectors.json",
+      "local_path": "vendor/meterless/hmem/conformance/vectors/vectors.json",
+      "sha256": "10afb5a07233466576ba6feb0d88408488909ba2721ee9157fdb932132917029"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/README.md",
+      "local_path": "vendor/meterless/hmem/reference/README.md",
+      "sha256": "dafb231927b7785103a70caa4f320429b206d0baabe7f85dc577b65c96442591"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/package-lock.json",
+      "local_path": "vendor/meterless/hmem/reference/package-lock.json",
+      "sha256": "62bb56c945cd18e5aa4cfe74eb63659cb46b66e6b4a2c79c689d625775ca8b65"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/package.json",
+      "local_path": "vendor/meterless/hmem/reference/package.json",
+      "sha256": "982b032b671667f6c3c2f857ab0791a8f78f9574957410dcd1d0a65119cde18d"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/conflictDetection.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/conflictDetection.ts",
+      "sha256": "432e8b86ed0b5883d435e5ab4a12160d1f40d194cbdb4c119d3b710cbb0301a3"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/dreaming.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/dreaming.ts",
+      "sha256": "d12594d667ec068690c6b81e020cd62ade91671316a1ab9b529259304aceb009"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/embeddings.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/embeddings.ts",
+      "sha256": "89433327ee1075a8049bc8518cdf5cabf51ad67802e192266841cdee727b6d10"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/index.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/index.ts",
+      "sha256": "9c481889afcdd70086d3bb3470842fa2330215e4d7760d826d103accdf8c1cdf"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/memoryMining.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/memoryMining.ts",
+      "sha256": "6072693d654ea1c34a9adbf6ce80101eeb1eeb56273d264f6ceb4859ffde6562"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/memoryRetrieval.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/memoryRetrieval.ts",
+      "sha256": "4fe120b1b64fe7225b9b28fda59514c114de9e885d22c5bf0aa035788b6d629d"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/memoryStore.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/memoryStore.ts",
+      "sha256": "a1eac8de8c0fde0e503e1212f3cb98295a661c2a8bad93ad82e51985885e6fd0"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/sleepCycle.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/sleepCycle.ts",
+      "sha256": "3ce0d4f3233d0ad7c133a2cbaf39b6122467022e0aa378a160a0d463e2264cef"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/trustLedger.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/trustLedger.ts",
+      "sha256": "263253dd3342c488ce773d7e728d77aec983c1833873602b59ce1a6c7999e20e"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/src/types.ts",
+      "local_path": "vendor/meterless/hmem/reference/src/types.ts",
+      "sha256": "becb504870a67646a20a421ffe04d8732db63418393423d2186c074b182f54c7"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/test/smoke.test.ts",
+      "local_path": "vendor/meterless/hmem/reference/test/smoke.test.ts",
+      "sha256": "84e09fb08eb769b19488d68f0303c2a9ab275f37e80e986438f0099cd7c98824"
+    },
+    {
+      "upstream_path": "engines/hmem/reference/tsconfig.json",
+      "local_path": "vendor/meterless/hmem/reference/tsconfig.json",
+      "sha256": "a0e236840f54f788dec6c2a56a84b7cd737bac932848fd8808dc20f94e49d4d4"
+    },
+    {
+      "upstream_path": "llms.txt",
+      "local_path": "vendor/meterless/llms.txt",
+      "sha256": "cdb2cc569ef474224156942b358e1b6522646ffc3f0c4aea9fa74188e7f00755"
+    }
+  ]
+}
