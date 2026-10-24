@@ -1,0 +1,38 @@
+{
+  "id": "nemotron-lightning-requirements-extraction",
+  "project_id": "ai-raw-gourmet",
+  "status": "planned",
+  "question": "Should AI Raw Gourmet test NVIDIA Nemotron 3.5 Lightning for extracting user requirements into structured data?",
+  "technology": "NVIDIA Nemotron 3.5 Lightning 30B A3B",
+  "release_date": "2026-08-11",
+  "evaluation_criteria": [
+    {
+      "id": "reliability",
+      "name": "Reliability",
+      "description": "correct extraction, missing requirements, invented requirements, valid output structure"
+    },
+    {
+      "id": "cost_and_speed",
+      "name": "Cost and speed",
+      "description": "measured response time, token usage, and verified pricing or trial limitations"
+    },
+    {
+      "id": "development_effort",
+      "name": "Development effort",
+      "description": "integration requirements, dependencies, maintenance, and compatibility"
+    }
+  ],
+  "initial_source_urls": [
+    "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/",
+    "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b/modelcard",
+    "https://meterless.ai/engines.html"
+  ],
+  "open_questions": [
+    "What model or method currently handles this task in AI Raw Gourmet?",
+    "What acceptance thresholds and budget should apply?",
+    "What limitations apply to the hosted endpoint?"
+  ],
+  "decision": null,
+  "evidence": [],
+  "notes": "The source URLs are research starting points, not verified evidence."
+}

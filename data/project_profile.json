@@ -1,0 +1,23 @@
+{
+  "id": "ai-raw-gourmet",
+  "name": "AI Raw Gourmet",
+  "stage": "existing prototype under development",
+  "objective": "deliver a usable application that generates and adapts recipes and meal plans to user constraints",
+  "team_size": 1,
+  "development_environment": "Windows 11, 16 GB RAM",
+  "constraints": [
+    "limited development time",
+    "additional costs must be justified",
+    "evaluate compatibility and integration effort",
+    "cloud services may be considered"
+  ],
+  "confidential_information": [
+    "source code",
+    "recipes",
+    "knowledge base",
+    "internal prompts",
+    "rules and methods",
+    "personal data",
+    "credentials"
+  ]
+}
