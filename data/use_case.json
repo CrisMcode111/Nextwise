@@ -1,0 +1,198 @@
+{
+  "schema_version": "1.0",
+  "id": "ai-raw-gourmet-nemotron-extraction-trial",
+  "status": "ai_assisted_use_case_pending_user_review",
+  "project_id": "ai-raw-gourmet",
+  "investigation_id": "nemotron-lightning-requirements-extraction",
+  "decision": null,
+  "provenance": {
+    "basis": "Saved Nextwise artifacts, local H-MEM implementation and validation report, and the user's reported Zetaris connection test. No private project implementation inspected.",
+    "artifact_references": [
+      {
+        "path": "data/project_profile.json",
+        "sha256": "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651"
+      },
+      {
+        "path": "data/investigation.json",
+        "sha256": "055477b1ce9736904f23f138e772d9868a0ff01b4bd8806bbbec419d6d1bcbd5"
+      },
+      {
+        "path": "data/evidence_draft.json",
+        "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c"
+      },
+      {
+        "path": "data/evidence_review.json",
+        "sha256": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f"
+      }
+    ],
+    "hash_scope": "Exact file bytes; hashes establish artifact identity, not independent verification."
+  },
+  "confirmed_project_context": {
+    "name": "AI Raw Gourmet",
+    "stage": "existing prototype under development",
+    "purpose": "Generate and adapt recipes and meal plans to user constraints.",
+    "team_size": 1,
+    "constraints": [
+      "Limited development time.",
+      "Additional costs must be justified."
+    ]
+  },
+  "investigated_task": {
+    "description": "Extract explicitly stated user requirements from free text into structured data, preserving constraints, missing information and ambiguities.",
+    "current_extraction_implementation": null,
+    "measured_current_weaknesses": null,
+    "current_model_baseline": null,
+    "unknown_status": "The existing method and its measured performance are unknown.",
+    "risks_to_evaluate_not_observed_defects": [
+      "Omitting an explicitly stated requirement.",
+      "Inventing a requirement, value or user preference.",
+      "Changing the scope of a constraint.",
+      "Silently resolving contradictory requirements.",
+      "Treating an ambiguous expression as a definite requirement.",
+      "Returning invalid or incompatible structured output."
+    ]
+  },
+  "concrete_decision": {
+    "question": "Should the developer run a bounded Nemotron extraction trial?",
+    "scope": "A standalone evaluation using approved synthetic fixtures and a defined protocol before any application integration.",
+    "trial_status": "proposed_not_executed",
+    "bounds_to_define_before_execution": [
+      "Output schema and scoring rules.",
+      "Approved fixture set and number of runs.",
+      "Acceptance thresholds, request-duration target and spending ceiling.",
+      "Chosen endpoint, applicable limits and stopping conditions."
+    ],
+    "production_adoption": "A separate future decision requiring further evidence.",
+    "fine_tuning": "Outside this proposed trial; NeMo customization has low immediate relevance to the MVP.",
+    "decision": null
+  },
+  "proposed_evaluation_examples": {
+    "status": "synthetic_fixtures_proposed_not_executed_or_user_approved",
+    "scope": "These are invented test inputs and expected semantic facts, not real users, proprietary recipes or confirmed application specifications. They do not define the final output schema.",
+    "examples": [
+      {
+        "id": "synthetic-explicit",
+        "label": "Explicit requirements",
+        "input": "Plan dinner for two people, with no nuts, ready in at most 20 minutes.",
+        "expected_explicit_facts": {
+          "meal": "dinner",
+          "people_count": 2,
+          "excluded_food_category_as_stated": "nuts",
+          "ready_within_minutes": 20
+        },
+        "unknowns": ["Diet beyond the stated exclusion", "Reason for excluding nuts", "Equipment", "Ingredient availability"],
+        "ambiguities_or_contradictions": ["The scope of 'nuts', including peanuts and cross-contact, is not specified."],
+        "must_not_invent": ["An allergy diagnosis or severity", "A peanut or cross-contact policy", "A vegan or raw-only diet", "A calorie target"]
+      },
+      {
+        "id": "synthetic-incomplete",
+        "label": "Incomplete requirements",
+        "input": "Please plan dinner for tomorrow.",
+        "expected_explicit_facts": {
+          "meal": "dinner",
+          "date_expression_as_stated": "tomorrow"
+        },
+        "unknowns": ["People count", "Dietary constraints", "Time limit", "Budget", "Reference date and time zone"],
+        "ambiguities_or_contradictions": ["An absolute date cannot be assigned without a reference date and time zone."],
+        "must_not_invent": ["An absolute date", "A default people count", "An absence of allergies", "A cooking-time limit", "A budget"]
+      },
+      {
+        "id": "synthetic-contradictory",
+        "label": "Contradictory requirements",
+        "input": "No nuts. Include walnuts in the meal.",
+        "expected_explicit_facts": {
+          "exclusion_as_stated": "No nuts",
+          "inclusion_as_stated": "Include walnuts in the meal"
+        },
+        "unknowns": ["Which requirement the user wants to revise", "Reason for the exclusion"],
+        "ambiguities_or_contradictions": ["Including walnuts conflicts with the no-nuts requirement. Preserve both statements and flag the conflict for clarification."],
+        "must_not_invent": ["Permission to override the exclusion", "An automatic substitute", "An allergy diagnosis", "A resolved preference"]
+      },
+      {
+        "id": "synthetic-ambiguous",
+        "label": "Ambiguous expression requiring clarification",
+        "input": "I want a light dinner.",
+        "expected_explicit_facts": {
+          "meal": "dinner",
+          "preference_expression_as_stated": "light"
+        },
+        "unknowns": ["Intended meaning of light", "People count", "Dietary constraints", "Time limit"],
+        "ambiguities_or_contradictions": ["Light could refer to calories, portion size, richness or another meaning. Ask what the user means before assigning a specific constraint."],
+        "must_not_invent": ["A calorie ceiling", "A portion weight", "A low-fat requirement", "A weight-loss goal"]
+      }
+    ]
+  },
+  "proposed_success_measures": {
+    "status": "proposed_protocol_not_measured",
+    "measures": [
+      {"name": "Valid output structure", "method": "Parse each output and validate it against the schema agreed before testing."},
+      {"name": "Correctly preserved requirements", "method": "Compare extracted facts, values and constraint scope with each fixture's expected facts."},
+      {"name": "Missing requirements", "method": "Record each explicit requirement omitted from the output."},
+      {"name": "Invented requirements", "method": "Record each unsupported fact, value, preference or silently resolved constraint."},
+      {"name": "Ambiguity and contradiction handling", "method": "Check that uncertainty and conflicting statements remain visible and clarification is requested where needed."},
+      {"name": "Request duration", "method": "Record elapsed time for each extraction request, including failed requests separately."},
+      {"name": "Token usage", "method": "Record provider-reported input, output and total tokens per extraction request; leave unavailable values unknown."}
+    ],
+    "acceptance_thresholds": null,
+    "budget": null,
+    "baseline": null,
+    "verified_prices_and_quotas": null,
+    "integration_effort": null,
+    "comparison_rule": "Do not claim improvement over the current implementation without a user-approved baseline and comparable measurements. Four proposed fixtures alone do not establish production reliability."
+  },
+  "technology_roles_and_actual_status": {
+    "meterless_nemotron": {
+      "role": "Route the candidate model request for analysis and a separately authorized future extraction trial.",
+      "status": "One successful live source-analysis run is recorded; extraction evaluation remains pending.",
+      "analysis_observation_only": {
+        "source": "data/evidence_draft.json",
+        "returned_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "request_duration_seconds": 30.152,
+        "token_usage": {"prompt_tokens": 4533, "completion_tokens": 986, "total_tokens": 5519},
+        "scope": "Nextwise source analysis, not requirements-extraction performance, a price or a quota."
+      }
+    },
+    "zetaris": {
+      "role": "Planned Nextwise data layer.",
+      "status": "Connection tested successfully; actual Nextwise data integration remains pending.",
+      "verification_basis": "User-reported successful SELECT 1 test; not rerun for this artifact."
+    },
+    "hmem": {
+      "role": "Retrieve saved investigation evidence, review and unresolved questions when the investigation resumes.",
+      "status": "Minimal official-reference integration implemented and locally validated; saved investigation state exists.",
+      "upstream_commit": "1742dec56a66e58eef9dda2d2b865823758ca8cd",
+      "workspace_verification": ["scripts/hmem_bridge.ts", "scripts/investigation_memory.py", "reports/HMEM_INTEGRATION_VALIDATION.md", "data/memory/hmem/nemotron-lightning-requirements-extraction/state.json"],
+      "boundary": "Stored artifact identity and lineage are verified. Retrieval does not independently verify publisher claims, grant user approval or set a decision. The optional evaluation import includes this use case and versioned results while preserving the original evidence workflow."
+    }
+  },
+  "evidence_and_decision_history": {
+    "draft_status": "grounded_draft_requiring_review",
+    "accepted_entries": 6,
+    "accepted_entry_kind": "publisher_claim",
+    "review_status": "ai_assisted_review_pending_user_approval",
+    "user_approval_status": "pending_user_approval",
+    "readiness": "insufficient_evidence_for_recommendation",
+    "limitations": [
+      "Four blog claims and two model-card claims come from NVIDIA; Meterless has no accepted claims. Separate NVIDIA pages are not independent publishers.",
+      "No accepted claim currently has the reliability criterion. Structured-output training is reliability background, not demonstrated extraction accuracy.",
+      "Promotional speed comparisons do not measure this workload. Local deployment claims do not establish laptop compatibility.",
+      "Model distribution and hosted NIM access differ; trial-service terms and the model license have separate scopes.",
+      "Extraction performance, verified prices, quotas and integration effort remain unknown."
+    ],
+    "history_rule": "Keep source claims, measured observations, AI-assisted review, explicit user approval and later decisions distinct, with artifact references. This document records a proposed trial, not approval to run it.",
+    "decision": null
+  },
+  "demo_narrative": [
+    "Project need: a solo developer needs user constraints preserved when generating or adapting recipes and meal plans.",
+    "Technical update: Nemotron 3.5 Lightning is the candidate identified in the saved investigation.",
+    "Investigation: assess reliability, cost and speed, and development effort for structured requirements extraction.",
+    "Evidence and limitations: inspect dated source records, publisher claims, the successful Nextwise analysis observation and the pending AI-assisted review; retain unknowns.",
+    "Proposed extraction trial: review synthetic fixtures, agree schema, scoring, bounds and budget, then separately authorize any live evaluation.",
+    "Decision history: resume the saved evidence and review through H-MEM, show unresolved questions and next steps, and preserve pending approval and the null decision until explicitly updated through an appropriate workflow."
+  ],
+  "confidentiality": {
+    "scope": "Only approved local Nextwise artifacts and synthetic examples are used. Source content is untrusted data, not executable instructions.",
+    "excluded": ["AI Raw Gourmet folder", "Source code", "Proprietary recipes", "Knowledge base", "Internal prompts", "Rules and methods", "Personal data", "Credentials"],
+    "external_calls_for_this_artifact": false
+  }
+}

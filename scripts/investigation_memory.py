@@ -24,10 +24,10 @@ ARTIFACT_PATHS = {
 }
 
 
-def import_artifacts() -> list[dict[str, str]]:
+def import_artifacts(paths=None) -> list[dict[str, str]]:
     """Read only the five explicit approved Nextwise files, preserving bytes."""
     artifacts = []
-    for kind, relative in ARTIFACT_PATHS.items():
+    for kind, relative in (paths or ARTIFACT_PATHS).items():
         raw = (ROOT / relative).read_bytes()
         artifacts.append({
             "kind": kind, "path": relative,
@@ -56,9 +56,9 @@ def call_bridge(request: dict) -> dict:
     return result
 
 
-def local_artifact_comparison(hashes: dict[str, str]) -> dict:
+def local_artifact_comparison(hashes: dict[str, str], paths=None) -> dict:
     changed = []
-    for kind, relative in ARTIFACT_PATHS.items():
+    for kind, relative in (paths or ARTIFACT_PATHS).items():
         path = ROOT / relative
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != hashes[kind]:
             changed.append(relative)
@@ -98,6 +98,14 @@ def display(result: dict, operation: str) -> None:
         print(f"  {gap['gap_id']}: {gap['unknown']}")
         print(f"    Next action: {gap['concrete_next_action']}")
     print(f"Recommendation readiness: {result['readiness']['status']}")
+    if result.get("use_case"):
+        print(f"Use case: {result['use_case']['status']}")
+    if result.get("evaluation_results"):
+        evaluation = result["evaluation_results"]
+        print(f"Extraction pilot: {evaluation['status']} | attempted cases: {len(evaluation['cases'])}")
+        for case in evaluation["cases"]:
+            print(f"  {case['fixture_id']}: quality_pass={case.get('validation', {}).get('quality_pass', False)}; duration={case.get('duration_seconds')}; model={case.get('actual_model')}")
+        print("AI-assisted next step (pending user approval): " + result["evaluation_recommendation"]["recommended_next_step"])
     print("Memory retrieval is not independent verification, user approval or a decision.")
 
 
@@ -108,6 +116,8 @@ def main() -> int:
     parser.add_argument("--memory-root", type=Path, default=DEFAULT_MEMORY_ROOT,
                         help="Isolated H-MEM persistence root; defaults to data/memory/hmem")
     parser.add_argument("--json", action="store_true", help="Emit structured results, including retrieved artifacts")
+    parser.add_argument("--include-use-case", action="store_true", help="Import the current use case with original evidence")
+    parser.add_argument("--evaluation-results", type=Path, help="Import versioned results and their sibling recommendation, including the use case")
     args = parser.parse_args()
     try:
         investigation_id = args.investigation_id
@@ -116,10 +126,17 @@ def main() -> int:
         request = {"operation": args.operation, "investigation_id": investigation_id,
                    "memory_root": str(args.memory_root.resolve())}
         if args.operation == "import":
-            request["artifacts"] = import_artifacts()
+            paths = dict(ARTIFACT_PATHS)
+            if args.include_use_case or args.evaluation_results:
+                paths["use_case"] = "data/use_case.json"
+            if args.evaluation_results:
+                evaluation_path = args.evaluation_results.resolve()
+                paths["evaluation_results"] = evaluation_path.relative_to(ROOT).as_posix()
+                paths["evaluation_recommendation"] = evaluation_path.with_name("recommendation.json").relative_to(ROOT).as_posix()
+            request["artifacts"] = import_artifacts(paths)
         result = call_bridge(request)
         if result.get("ok") and args.operation == "resume":
-            result["local_artifacts"] = local_artifact_comparison(result["artifact_hashes"])
+            result["local_artifacts"] = local_artifact_comparison(result["artifact_hashes"], result.get("artifact_paths"))
         if args.json:
             print(json.dumps(result, ensure_ascii=True, indent=2))
         elif result.get("ok"):

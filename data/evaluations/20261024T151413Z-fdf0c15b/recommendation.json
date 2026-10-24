@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "investigation_id": "nemotron-lightning-requirements-extraction",
+  "status": "ai_assisted_recommendation_pending_user_approval",
+  "approval": {
+    "status": "pending_user_approval"
+  },
+  "decision": null,
+  "evaluation_reference": {
+    "path": "data/evaluations/20261024T151413Z-fdf0c15b/results.json",
+    "sha256": "1cd4c7a39c1670922226db69d7fbb4909fb9ecc9d7b31e4b5fa58563349bd2dd"
+  },
+  "evidence_references": [
+    {
+      "path": "data/evidence_draft.json",
+      "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c"
+    },
+    {
+      "path": "data/evidence_review.json",
+      "sha256": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f"
+    }
+  ],
+  "observations": {
+    "pilot_status": "completed_pilot",
+    "attempted_cases": 4,
+    "quality_pass_count": 1,
+    "http_success_count": 4,
+    "schema_valid_count": 4,
+    "quality_failure_count": 3,
+    "summed_request_duration_seconds": 10.378,
+    "reported_token_totals": {
+      "prompt_tokens": 2562,
+      "completion_tokens": 638,
+      "total_tokens": 3200
+    },
+    "scope": "Four synthetic extraction requests only; not production performance or monetary cost."
+  },
+  "recommended_next_step": "Review the saved pilot outputs and amend the evaluation protocol before another live evaluation: define field-specific numeric types, clarify capture of meal/date/preference facts and scope unknown categories to each input. Preserve the original pilot and its scoring. Agree quality thresholds and a spending ceiling, then separately authorize a bounded follow-up on the same fixtures plus additional representative synthetic cases. Do not proceed to production adoption or fine-tuning on this evidence.",
+  "rationale": "Four synthetic cases are diagnostic only. Publisher claims and the source-analysis run do not establish extraction performance.",
+  "remaining_unknowns": [
+    "Current extraction baseline",
+    "Acceptance thresholds",
+    "Budget",
+    "Verified prices and quotas",
+    "Production extraction reliability",
+    "Integration and maintenance effort"
+  ],
+  "production_adoption_supported": false,
+  "fine_tuning_recommended": false,
+  "evaluation_findings": [
+    {
+      "fixture_id": "synthetic-explicit",
+      "results_pointer": "/cases/0",
+      "finding": "Dinner was omitted. The people count was expressed as the string two, which preserves its ordinary meaning but failed the evaluator integer-value comparison. The time limit was extracted but also incorrectly listed as unknown. No nuts-scope clarification was supplied."
+    },
+    {
+      "fixture_id": "synthetic-incomplete",
+      "results_pointer": "/cases/1",
+      "finding": "No facts were returned, omitting dinner and the explicitly stated relative date tomorrow. No date clarification was supplied."
+    },
+    {
+      "fixture_id": "synthetic-contradictory",
+      "results_pointer": "/cases/2",
+      "finding": "Both nut exclusion and walnut inclusion were retained, with a contradiction flag and clarification question. This passed the recorded deterministic checks."
+    },
+    {
+      "fixture_id": "synthetic-ambiguous",
+      "results_pointer": "/cases/3",
+      "finding": "The meaning of light was queried, but dinner and the original preference expression were not retained as facts."
+    }
+  ],
+  "evaluator_limitations": [
+    "The schema permits string or integer values generically; the scorer expects an integer for people_count. Therefore the string two is flagged as changed/missing even though it preserves the stated quantity semantically. This is a representation mismatch, not evidence of an invented people count.",
+    "All outputs listed every unknown category. The checks detect a known time limit incorrectly marked unknown, but do not exhaustively score irrelevant unknown categories.",
+    "Quality checks use a conservative saved lexical rubric, not independent semantic verification. Four single runs supply no statistical reliability estimate or comparison with the existing application.",
+    "No scoring rule or request parameter was changed after observing this pilot; original outputs and findings remain unchanged."
+  ]
+}

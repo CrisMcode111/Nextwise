@@ -50,7 +50,7 @@ commit and all imported file hashes. Local adaptations are described in
 hook. Node.js 24.22.1 executes TypeScript using
 `--experimental-transform-types`. The existing Python interpreter is 3.11.9.
 
-The importer reads exactly five files: the approved project profile,
+The base importer reads exactly five files: the approved project profile,
 investigation, source registry, evidence draft and evidence review. Each is
 stored as a distinct H-MEM `working` record with an exact-byte base64 envelope,
 SHA-256 hash, source path and explicit provenance. The review record has
@@ -146,3 +146,14 @@ set `$env:NODE_OPTIONS = '--use-system-ca'` only in the installation shell.
   crash-recovery or production-scale qualification is implied by these tests.
 
 Actual test results are recorded in `reports/HMEM_INTEGRATION_VALIDATION.md`.
+
+## Optional extraction evaluation artifacts
+
+`import --include-use-case` adds `data/use_case.json`.
+`import --evaluation-results data/evaluations/<run-id>/results.json` additionally
+imports that version's results and its sibling `recommendation.json`. The use
+case's original input hashes, result fixture/schema hashes, exact recommendation
+reference and pending/null lifecycle are verified before storage. The complete
+manifest records every path, hash and memory ID. Resume shows pilot status,
+per-case findings and the proposed next step. Historical five-artifact manifests
+remain supported. See `docs/extraction-pilot.md` for the bounded live protocol.

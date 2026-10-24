@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic explicit requirements extraction v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "facts",
+    "unknowns",
+    "issues"
+  ],
+  "properties": {
+    "facts": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "value",
+          "evidence"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "meal",
+              "people_count",
+              "excluded_food_category_as_stated",
+              "ready_within_minutes",
+              "date_expression_as_stated",
+              "exclusion_as_stated",
+              "inclusion_as_stated",
+              "preference_expression_as_stated"
+            ]
+          },
+          "value": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "people_count",
+          "dietary_constraints",
+          "time_limit",
+          "budget",
+          "reference_date",
+          "time_zone",
+          "exclusion_reason",
+          "equipment",
+          "ingredient_availability",
+          "nuts_scope",
+          "conflict_resolution",
+          "meaning_of_light"
+        ]
+      }
+    },
+    "issues": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "evidence",
+          "clarification_question"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ambiguity",
+              "contradiction"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "clarification_question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      }
+    }
+  }
+}

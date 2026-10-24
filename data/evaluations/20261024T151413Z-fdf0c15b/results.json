@@ -1,0 +1,587 @@
+{
+  "schema_version": "1.0",
+  "run_id": "20261024T151413Z-fdf0c15b",
+  "investigation_id": "nemotron-lightning-requirements-extraction",
+  "status": "completed_pilot",
+  "approval": {
+    "status": "pending_user_approval"
+  },
+  "decision": null,
+  "created_at_utc": "2026-10-24T15:14:13.416065+00:00",
+  "request_limits": {
+    "maximum_requests": 4,
+    "max_tokens": 1024,
+    "timeout_seconds": 180,
+    "automatic_retries": 0
+  },
+  "use_case_reference": {
+    "path": "data/use_case.json",
+    "sha256": "4c18a25ae4f75cef32fad60f38984dbde75f4421926e48646de8850e4c638c02"
+  },
+  "schema_reference": {
+    "path": "data/extraction_schema.json",
+    "sha256": "5c1757ccc44cd33148016753bfe4563b4d829538599f6dc73ce7dca5e86b4f1b"
+  },
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Synthetic explicit requirements extraction v1",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "facts",
+      "unknowns",
+      "issues"
+    ],
+    "properties": {
+      "facts": {
+        "type": "array",
+        "maxItems": 16,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "field",
+            "value",
+            "evidence"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "enum": [
+                "meal",
+                "people_count",
+                "excluded_food_category_as_stated",
+                "ready_within_minutes",
+                "date_expression_as_stated",
+                "exclusion_as_stated",
+                "inclusion_as_stated",
+                "preference_expression_as_stated"
+              ]
+            },
+            "value": {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "evidence": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        }
+      },
+      "unknowns": {
+        "type": "array",
+        "maxItems": 12,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "enum": [
+            "people_count",
+            "dietary_constraints",
+            "time_limit",
+            "budget",
+            "reference_date",
+            "time_zone",
+            "exclusion_reason",
+            "equipment",
+            "ingredient_availability",
+            "nuts_scope",
+            "conflict_resolution",
+            "meaning_of_light"
+          ]
+        }
+      },
+      "issues": {
+        "type": "array",
+        "maxItems": 8,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "evidence",
+            "clarification_question"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "ambiguity",
+                "contradiction"
+              ]
+            },
+            "evidence": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            },
+            "clarification_question": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        }
+      }
+    }
+  },
+  "output_schema_sha256": "b92011fe186e2785a6bc0d8c95f8d801426314309d5688bca5da91f9014a51d4",
+  "evaluator_reference": {
+    "path": "scripts/evaluate_extraction.py",
+    "sha256": "62addf1110a2aa56a4b531a29068610dd652ff006a0f4db5fdf4e14317d2275e"
+  },
+  "evidence_references": [
+    {
+      "path": "data/evidence_draft.json",
+      "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c"
+    },
+    {
+      "path": "data/evidence_review.json",
+      "sha256": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f"
+    }
+  ],
+  "fixture_hash_scope": "SHA-256 of UTF-8 JSON with sorted keys, compact separators and ensure_ascii=False.",
+  "fixtures": [
+    {
+      "id": "synthetic-explicit",
+      "sha256": "55a24e698a47e6e50336b7e9862c9110268fb5b783e4c37ac931271ac528719e",
+      "input_sha256": "013e0cdc041fa622d8e71966038478243e87edc20dcd9095453ced17586cec19",
+      "snapshot": {
+        "id": "synthetic-explicit",
+        "label": "Explicit requirements",
+        "input": "Plan dinner for two people, with no nuts, ready in at most 20 minutes.",
+        "expected_explicit_facts": {
+          "meal": "dinner",
+          "people_count": 2,
+          "excluded_food_category_as_stated": "nuts",
+          "ready_within_minutes": 20
+        },
+        "unknowns": [
+          "Diet beyond the stated exclusion",
+          "Reason for excluding nuts",
+          "Equipment",
+          "Ingredient availability"
+        ],
+        "ambiguities_or_contradictions": [
+          "The scope of 'nuts', including peanuts and cross-contact, is not specified."
+        ],
+        "must_not_invent": [
+          "An allergy diagnosis or severity",
+          "A peanut or cross-contact policy",
+          "A vegan or raw-only diet",
+          "A calorie target"
+        ]
+      }
+    },
+    {
+      "id": "synthetic-incomplete",
+      "sha256": "564d36fa0440a310b329dc5a8e688d0a0d47515172d9967189841c887d232a4d",
+      "input_sha256": "84dbe14cde9240fd7ad9217c20b7a40fbafb18669ccd44e81923f2402d6dc0ab",
+      "snapshot": {
+        "id": "synthetic-incomplete",
+        "label": "Incomplete requirements",
+        "input": "Please plan dinner for tomorrow.",
+        "expected_explicit_facts": {
+          "meal": "dinner",
+          "date_expression_as_stated": "tomorrow"
+        },
+        "unknowns": [
+          "People count",
+          "Dietary constraints",
+          "Time limit",
+          "Budget",
+          "Reference date and time zone"
+        ],
+        "ambiguities_or_contradictions": [
+          "An absolute date cannot be assigned without a reference date and time zone."
+        ],
+        "must_not_invent": [
+          "An absolute date",
+          "A default people count",
+          "An absence of allergies",
+          "A cooking-time limit",
+          "A budget"
+        ]
+      }
+    },
+    {
+      "id": "synthetic-contradictory",
+      "sha256": "542f2e9d0a2be7ef25e73b38672b9b880357fb71b9326da7deff1a3ae67f27e5",
+      "input_sha256": "eba6674abb69aa3d1a89417ff3d72c5ae15bd90a11af1588821aa4ab4233efa6",
+      "snapshot": {
+        "id": "synthetic-contradictory",
+        "label": "Contradictory requirements",
+        "input": "No nuts. Include walnuts in the meal.",
+        "expected_explicit_facts": {
+          "exclusion_as_stated": "No nuts",
+          "inclusion_as_stated": "Include walnuts in the meal"
+        },
+        "unknowns": [
+          "Which requirement the user wants to revise",
+          "Reason for the exclusion"
+        ],
+        "ambiguities_or_contradictions": [
+          "Including walnuts conflicts with the no-nuts requirement. Preserve both statements and flag the conflict for clarification."
+        ],
+        "must_not_invent": [
+          "Permission to override the exclusion",
+          "An automatic substitute",
+          "An allergy diagnosis",
+          "A resolved preference"
+        ]
+      }
+    },
+    {
+      "id": "synthetic-ambiguous",
+      "sha256": "e58e5201b236aef9987fa0680a912bf7af24f4b72b20d8586392b625ccadea50",
+      "input_sha256": "76a91559307f5f010f373e57583fc1dd4256f79c43192a72a14260f34c040fdb",
+      "snapshot": {
+        "id": "synthetic-ambiguous",
+        "label": "Ambiguous expression requiring clarification",
+        "input": "I want a light dinner.",
+        "expected_explicit_facts": {
+          "meal": "dinner",
+          "preference_expression_as_stated": "light"
+        },
+        "unknowns": [
+          "Intended meaning of light",
+          "People count",
+          "Dietary constraints",
+          "Time limit"
+        ],
+        "ambiguities_or_contradictions": [
+          "Light could refer to calories, portion size, richness or another meaning. Ask what the user means before assigning a specific constraint."
+        ],
+        "must_not_invent": [
+          "A calorie ceiling",
+          "A portion weight",
+          "A low-fat requirement",
+          "A weight-loss goal"
+        ]
+      }
+    }
+  ],
+  "local_rubric": {
+    "synthetic-explicit": {
+      "unknowns": [
+        "dietary_constraints",
+        "exclusion_reason",
+        "equipment",
+        "ingredient_availability"
+      ],
+      "issue": "ambiguity",
+      "evidence": [
+        "nuts"
+      ]
+    },
+    "synthetic-incomplete": {
+      "unknowns": [
+        "people_count",
+        "dietary_constraints",
+        "time_limit",
+        "budget",
+        "reference_date",
+        "time_zone"
+      ],
+      "issue": "ambiguity",
+      "evidence": [
+        "tomorrow"
+      ]
+    },
+    "synthetic-contradictory": {
+      "unknowns": [
+        "conflict_resolution",
+        "exclusion_reason"
+      ],
+      "issue": "contradiction",
+      "evidence": [
+        "No nuts",
+        "walnuts"
+      ]
+    },
+    "synthetic-ambiguous": {
+      "unknowns": [
+        "meaning_of_light",
+        "people_count",
+        "dietary_constraints",
+        "time_limit"
+      ],
+      "issue": "ambiguity",
+      "evidence": [
+        "light"
+      ]
+    }
+  },
+  "scoring_protocol": "v1: case/whitespace/punctuation normalization; exclusion_as_stated aliases excluded_food_category_as_stated; No nuts normalizes to nuts in an exclusion field; Include walnuts in the meal normalizes to walnuts in the inclusion field. All other values retain exact-match scoring. Unknown and issue checks use the saved local rubric. Human semantic review remains pending.",
+  "cases": [
+    {
+      "fixture_id": "synthetic-explicit",
+      "fixture_sha256": "55a24e698a47e6e50336b7e9862c9110268fb5b783e4c37ac931271ac528719e",
+      "ok": true,
+      "http_status": 200,
+      "actual_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "token_usage": {
+        "prompt_tokens": 649,
+        "completion_tokens": 190,
+        "total_tokens": 839
+      },
+      "output": "{\n  \"facts\": [\n    {\n      \"field\": \"people_count\",\n      \"value\": \"two\",\n      \"evidence\": \"two people\"\n    },\n    {\n      \"field\": \"excluded_food_category_as_stated\",\n      \"value\": \"no nuts\",\n      \"evidence\": \"no nuts\"\n    },\n    {\n      \"field\": \"ready_within_minutes\",\n      \"value\": 20,\n      \"evidence\": \"ready in at most 20 minutes\"\n    }\n  ],\n  \"unknowns\": [\n    \"dietary_constraints\",\n    \"time_limit\",\n    \"budget\",\n    \"reference_date\",\n    \"time_zone\",\n    \"exclusion_reason\",\n    \"equipment\",\n    \"ingredient_availability\",\n    \"nuts_scope\",\n    \"conflict_resolution\",\n    \"meaning_of_light\"\n  ],\n  \"issues\": []\n}",
+      "error": null,
+      "duration_seconds": 3.596,
+      "validation": {
+        "well_formed": true,
+        "schema_errors": [],
+        "correctly_preserved_count": 2,
+        "expected_fact_count": 4,
+        "missing_requirements": [
+          "meal",
+          "people_count"
+        ],
+        "invented_or_changed_requirements": [
+          "people_count"
+        ],
+        "unsupported_evidence": [],
+        "duplicate_fact_fields": [],
+        "missing_unknown_categories": [],
+        "incorrect_unknown_categories": [
+          "time_limit"
+        ],
+        "required_issue_detected": false,
+        "unsupported_issue_evidence": [],
+        "unexpected_issue_kinds": [],
+        "scoring_limitations": "Deterministic fixture-specific wording and evidence checks; no independent semantic judge. Human review is required.",
+        "quality_pass": false
+      },
+      "parsed_output": {
+        "facts": [
+          {
+            "field": "people_count",
+            "value": "two",
+            "evidence": "two people"
+          },
+          {
+            "field": "excluded_food_category_as_stated",
+            "value": "no nuts",
+            "evidence": "no nuts"
+          },
+          {
+            "field": "ready_within_minutes",
+            "value": 20,
+            "evidence": "ready in at most 20 minutes"
+          }
+        ],
+        "unknowns": [
+          "dietary_constraints",
+          "time_limit",
+          "budget",
+          "reference_date",
+          "time_zone",
+          "exclusion_reason",
+          "equipment",
+          "ingredient_availability",
+          "nuts_scope",
+          "conflict_resolution",
+          "meaning_of_light"
+        ],
+        "issues": []
+      }
+    },
+    {
+      "fixture_id": "synthetic-incomplete",
+      "fixture_sha256": "564d36fa0440a310b329dc5a8e688d0a0d47515172d9967189841c887d232a4d",
+      "ok": true,
+      "http_status": 200,
+      "actual_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "token_usage": {
+        "prompt_tokens": 636,
+        "completion_tokens": 92,
+        "total_tokens": 728
+      },
+      "output": "{\n  \"facts\": [],\n  \"unknowns\": [\n    \"people_count\",\n    \"dietary_constraints\",\n    \"time_limit\",\n    \"budget\",\n    \"reference_date\",\n    \"time_zone\",\n    \"exclusion_reason\",\n    \"equipment\",\n    \"ingredient_availability\",\n    \"nuts_scope\",\n    \"conflict_resolution\",\n    \"meaning_of_light\"\n  ],\n  \"issues\": []\n}",
+      "error": null,
+      "duration_seconds": 1.38,
+      "validation": {
+        "well_formed": true,
+        "schema_errors": [],
+        "correctly_preserved_count": 0,
+        "expected_fact_count": 2,
+        "missing_requirements": [
+          "date_expression_as_stated",
+          "meal"
+        ],
+        "invented_or_changed_requirements": [],
+        "unsupported_evidence": [],
+        "duplicate_fact_fields": [],
+        "missing_unknown_categories": [],
+        "incorrect_unknown_categories": [],
+        "required_issue_detected": false,
+        "unsupported_issue_evidence": [],
+        "unexpected_issue_kinds": [],
+        "scoring_limitations": "Deterministic fixture-specific wording and evidence checks; no independent semantic judge. Human review is required.",
+        "quality_pass": false
+      },
+      "parsed_output": {
+        "facts": [],
+        "unknowns": [
+          "people_count",
+          "dietary_constraints",
+          "time_limit",
+          "budget",
+          "reference_date",
+          "time_zone",
+          "exclusion_reason",
+          "equipment",
+          "ingredient_availability",
+          "nuts_scope",
+          "conflict_resolution",
+          "meaning_of_light"
+        ],
+        "issues": []
+      }
+    },
+    {
+      "fixture_id": "synthetic-contradictory",
+      "fixture_sha256": "542f2e9d0a2be7ef25e73b38672b9b880357fb71b9326da7deff1a3ae67f27e5",
+      "ok": true,
+      "http_status": 200,
+      "actual_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "token_usage": {
+        "prompt_tokens": 641,
+        "completion_tokens": 234,
+        "total_tokens": 875
+      },
+      "output": "{\n  \"facts\": [\n    {\n      \"field\": \"excluded_food_category_as_stated\",\n      \"value\": \"nuts\",\n      \"evidence\": \"No nuts.\"\n    },\n    {\n      \"field\": \"inclusion_as_stated\",\n      \"value\": \"walnuts\",\n      \"evidence\": \"Include walnuts in the meal.\"\n    }\n  ],\n  \"unknowns\": [\n    \"people_count\",\n    \"dietary_constraints\",\n    \"time_limit\",\n    \"budget\",\n    \"reference_date\",\n    \"time_zone\",\n    \"exclusion_reason\",\n    \"equipment\",\n    \"ingredient_availability\",\n    \"nuts_scope\",\n    \"conflict_resolution\",\n    \"meaning_of_light\"\n  ],\n  \"issues\": [\n    {\n      \"kind\": \"contradiction\",\n      \"evidence\": [\n        \"No nuts.\",\n        \"Include walnuts in the meal.\"\n      ],\n      \"clarification_question\": \"Do you want to exclude all nuts including walnuts, or include walnuts while excluding other nuts?\"\n    }\n  ]\n}",
+      "error": null,
+      "duration_seconds": 3.528,
+      "validation": {
+        "well_formed": true,
+        "schema_errors": [],
+        "correctly_preserved_count": 2,
+        "expected_fact_count": 2,
+        "missing_requirements": [],
+        "invented_or_changed_requirements": [],
+        "unsupported_evidence": [],
+        "duplicate_fact_fields": [],
+        "missing_unknown_categories": [],
+        "incorrect_unknown_categories": [],
+        "required_issue_detected": true,
+        "unsupported_issue_evidence": [],
+        "unexpected_issue_kinds": [],
+        "scoring_limitations": "Deterministic fixture-specific wording and evidence checks; no independent semantic judge. Human review is required.",
+        "quality_pass": true
+      },
+      "parsed_output": {
+        "facts": [
+          {
+            "field": "excluded_food_category_as_stated",
+            "value": "nuts",
+            "evidence": "No nuts."
+          },
+          {
+            "field": "inclusion_as_stated",
+            "value": "walnuts",
+            "evidence": "Include walnuts in the meal."
+          }
+        ],
+        "unknowns": [
+          "people_count",
+          "dietary_constraints",
+          "time_limit",
+          "budget",
+          "reference_date",
+          "time_zone",
+          "exclusion_reason",
+          "equipment",
+          "ingredient_availability",
+          "nuts_scope",
+          "conflict_resolution",
+          "meaning_of_light"
+        ],
+        "issues": [
+          {
+            "kind": "contradiction",
+            "evidence": [
+              "No nuts.",
+              "Include walnuts in the meal."
+            ],
+            "clarification_question": "Do you want to exclude all nuts including walnuts, or include walnuts while excluding other nuts?"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "synthetic-ambiguous",
+      "fixture_sha256": "e58e5201b236aef9987fa0680a912bf7af24f4b72b20d8586392b625ccadea50",
+      "ok": true,
+      "http_status": 200,
+      "actual_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "token_usage": {
+        "prompt_tokens": 636,
+        "completion_tokens": 122,
+        "total_tokens": 758
+      },
+      "output": "{\n  \"facts\": [],\n  \"unknowns\": [\"people_count\", \"dietary_constraints\", \"time_limit\", \"budget\", \"reference_date\", \"time_zone\", \"exclusion_reason\", \"equipment\", \"ingredient_availability\", \"nuts_scope\", \"conflict_resolution\", \"meaning_of_light\"],\n  \"issues\": [\n    {\n      \"kind\": \"ambiguity\",\n      \"evidence\": [\"I want a light dinner.\"],\n      \"clarification_question\": \"What does \\\"light\\\" mean in this context?\"\n    }\n  ]\n}",
+      "error": null,
+      "duration_seconds": 1.874,
+      "validation": {
+        "well_formed": true,
+        "schema_errors": [],
+        "correctly_preserved_count": 0,
+        "expected_fact_count": 2,
+        "missing_requirements": [
+          "meal",
+          "preference_expression_as_stated"
+        ],
+        "invented_or_changed_requirements": [],
+        "unsupported_evidence": [],
+        "duplicate_fact_fields": [],
+        "missing_unknown_categories": [],
+        "incorrect_unknown_categories": [],
+        "required_issue_detected": true,
+        "unsupported_issue_evidence": [],
+        "unexpected_issue_kinds": [],
+        "scoring_limitations": "Deterministic fixture-specific wording and evidence checks; no independent semantic judge. Human review is required.",
+        "quality_pass": false
+      },
+      "parsed_output": {
+        "facts": [],
+        "unknowns": [
+          "people_count",
+          "dietary_constraints",
+          "time_limit",
+          "budget",
+          "reference_date",
+          "time_zone",
+          "exclusion_reason",
+          "equipment",
+          "ingredient_availability",
+          "nuts_scope",
+          "conflict_resolution",
+          "meaning_of_light"
+        ],
+        "issues": [
+          {
+            "kind": "ambiguity",
+            "evidence": [
+              "I want a light dinner."
+            ],
+            "clarification_question": "What does \"light\" mean in this context?"
+          }
+        ]
+      }
+    }
+  ],
+  "monetary_cost": null,
+  "verified_prices": null,
+  "unattempted_fixture_ids": []
+}

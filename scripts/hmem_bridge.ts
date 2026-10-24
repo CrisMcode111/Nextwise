@@ -12,8 +12,33 @@ const FILES: Record<string, string> = {
   evidence_draft: "data/evidence_draft.json",
   evidence_review: "data/evidence_review.json",
 };
+const BASE_KINDS = Object.keys(FILES);
+function configureOptionalFiles(paths: Record<string, string>) {
+  for (const kind of Object.keys(FILES)) if (!BASE_KINDS.includes(kind)) delete FILES[kind];
+  for (const [kind, file] of Object.entries(paths)) {
+    if (BASE_KINDS.includes(kind)) {
+      requireCondition(file === FILES[kind], "invalid_artifact", "Base artifact paths must not change.");
+      continue;
+    }
+    const allowed = kind === "use_case" ? file === "data/use_case.json" :
+      kind === "evaluation_results" ? /^data\/evaluations\/[A-Za-z0-9_-]+\/results\.json$/.test(file) :
+      kind === "evaluation_recommendation" ? /^data\/evaluations\/[A-Za-z0-9_-]+\/recommendation\.json$/.test(file) : false;
+    requireCondition(allowed, "invalid_artifact", "Optional artifact kind or path is invalid.");
+    FILES[kind] = file;
+  }
+  requireCondition(!FILES.evaluation_results || (FILES.use_case && FILES.evaluation_recommendation &&
+    path.posix.dirname(FILES.evaluation_results) === path.posix.dirname(FILES.evaluation_recommendation)),
+    "invalid_artifact", "Evaluation import requires its use case and matching recommendation.");
+  requireCondition(!FILES.evaluation_recommendation || FILES.evaluation_results,
+    "invalid_artifact", "Recommendation requires its evaluation results.");
+}
 const ACTOR = "nextwise:artifact-memory";
 const sha = (bytes: Buffer | string): string => crypto.createHash("sha256").update(bytes).digest("hex");
+const canonical = (value: any): string => JSON.stringify(sortKeys(value));
+function sortKeys(value: any): any {
+  return Array.isArray(value) ? value.map(sortKeys) : value && typeof value === "object" ?
+    Object.fromEntries(Object.keys(value).sort().map(k => [k, sortKeys(value[k])])) : value;
+}
 type Artifact = { kind: string; path: string; sha256: string; bytes_base64: string };
 type Request = { operation: "import" | "resume"; investigation_id: string; memory_root: string; artifacts?: Artifact[] };
 type Envelope = Artifact & { schema: string; investigation_id: string };
@@ -22,6 +47,7 @@ type Manifest = {
   artifact_ids: Record<string, string>; artifact_hashes: Record<string, string>;
   review_to_draft: { review_id: string; draft_id: string; reviewed_draft_sha256: string };
   approval: object; decision: null;
+  artifact_paths?: Record<string, string>;
 };
 class BridgeError extends Error {
   constructor(public code: string, message: string) { super(message); }
@@ -44,7 +70,7 @@ function decode(artifact: Artifact): { bytes: Buffer; document: any } {
 }
 function validateArtifacts(artifacts: Artifact[], investigationId: string): Record<string, any> {
   requireCondition(Array.isArray(artifacts) && artifacts.length === Object.keys(FILES).length,
-    "invalid_artifacts", "Import requires the five approved Nextwise artifact files.");
+    "invalid_artifacts", "Import requires all declared Nextwise artifact files.");
   const documents: Record<string, any> = {};
   const hashes: Record<string, string> = {};
   for (const artifact of artifacts) {
@@ -60,7 +86,7 @@ function validateArtifacts(artifacts: Artifact[], investigationId: string): Reco
   requireCondition(review.reviewed_draft?.path === FILES.evidence_draft && review.reviewed_draft?.sha256 === hashes[FILES.evidence_draft],
     "review_draft_mismatch", "The review does not reference the exact imported draft.");
   requireCondition(Array.isArray(review.local_input_references), "missing_provenance", "Review input references are missing.");
-  for (const artifact of artifacts.filter(a => a.kind !== "evidence_review")) {
+  for (const artifact of artifacts.filter(a => BASE_KINDS.includes(a.kind) && a.kind !== "evidence_review")) {
     const refs = review.local_input_references.filter((ref: any) => ref.path === artifact.path);
     requireCondition(refs.length === 1 && refs[0].sha256 === artifact.sha256,
       "review_input_mismatch", "A saved input no longer matches the provenance recorded in the review.");
@@ -74,6 +100,39 @@ function validateArtifacts(artifacts: Artifact[], investigationId: string): Reco
   requireCondition(Array.isArray(draft.accepted) && Array.isArray(draft.unknowns) &&
     Array.isArray(investigation.open_questions) && Array.isArray(review.unresolved_evidence_gaps),
     "invalid_shape", "Required evidence, unknowns or evaluation steps are missing.");
+  const useCase = documents.use_case;
+  if (useCase) {
+    requireCondition(useCase.investigation_id === investigationId && useCase.project_id === profile.id && useCase.decision === null,
+      "investigation_mismatch", "Use case must belong to this investigation with no decision.");
+    for (const kind of ["project_profile", "investigation", "evidence_draft", "evidence_review"]) {
+      requireCondition(useCase.provenance?.artifact_references?.some((ref: any) => ref.path === FILES[kind] && ref.sha256 === hashes[FILES[kind]]),
+        "missing_provenance", "Use case input provenance does not match imported artifacts.");
+    }
+  }
+  const evaluation = documents.evaluation_results, recommendation = documents.evaluation_recommendation;
+  if (evaluation) {
+    requireCondition(evaluation.investigation_id === investigationId && evaluation.decision === null &&
+      evaluation.approval?.status === "pending_user_approval" && ["incomplete", "completed_pilot"].includes(evaluation.status) &&
+      evaluation.use_case_reference?.path === FILES.use_case && evaluation.use_case_reference?.sha256 === hashes[FILES.use_case],
+      "evaluation_integrity_error", "Evaluation status or use-case provenance is inconsistent.");
+    requireCondition(recommendation.investigation_id === investigationId && recommendation.decision === null &&
+      recommendation.approval?.status === "pending_user_approval" && recommendation.status === "ai_assisted_recommendation_pending_user_approval" &&
+      recommendation.evaluation_reference?.path === FILES.evaluation_results &&
+      recommendation.evaluation_reference?.sha256 === hashes[FILES.evaluation_results],
+      "evaluation_integrity_error", "Recommendation must reference the exact results and remain pending.");
+    for (const item of [evaluation, recommendation]) for (const kind of ["evidence_draft", "evidence_review"]) {
+      requireCondition(item.evidence_references?.some((ref: any) => ref.path === FILES[kind] && ref.sha256 === hashes[FILES[kind]]),
+        "missing_provenance", "Evaluation evidence references do not match saved evidence.");
+    }
+    const fixtures = useCase.proposed_evaluation_examples?.examples;
+    requireCondition(Array.isArray(fixtures) && Array.isArray(evaluation.fixtures) && evaluation.fixtures.length === fixtures.length &&
+      evaluation.fixtures.every((f: any) => fixtures.some((original: any) => original.id === f.id &&
+        sha(canonical(original)) === f.sha256 && sha(canonical(f.snapshot)) === f.sha256 && sha(original.input) === f.input_sha256)) &&
+      sha(canonical(evaluation.output_schema)) === evaluation.output_schema_sha256 &&
+      Array.isArray(evaluation.cases) && evaluation.cases.length <= 4 &&
+      evaluation.cases.every((c: any) => evaluation.fixtures.some((f: any) => f.id === c.fixture_id && f.sha256 === c.fixture_sha256)),
+      "evaluation_integrity_error", "Evaluation fixture, case or schema hashes are inconsistent.");
+  }
   return documents;
 }
 function envelopeOf(record: any): any {
@@ -86,6 +145,9 @@ function readSnapshot(hmem: HMEM, record: any, investigationId: string) {
     "manifest_integrity_error", "Invalid investigation manifest or upstream version.");
   requireCondition(manifest.artifact_ids && manifest.artifact_hashes && manifest.review_to_draft,
     "manifest_integrity_error", "Manifest artifact references are missing.");
+  configureOptionalFiles(manifest.artifact_paths ?? Object.fromEntries(BASE_KINDS.map(k => [k, FILES[k]])));
+  requireCondition(Object.keys(manifest.artifact_ids).length === Object.keys(FILES).length,
+    "manifest_integrity_error", "Manifest paths and IDs disagree.");
   const artifacts: Artifact[] = [];
   const records = [record];
   for (const kind of Object.keys(FILES)) {
@@ -111,6 +173,10 @@ function readSnapshot(hmem: HMEM, record: any, investigationId: string) {
   const reviewMemory = records.find(r => r.id === manifest.artifact_ids.evidence_review)!;
   requireCondition(reviewMemory.derivedFrom?.includes(manifest.artifact_ids.evidence_draft),
     "missing_provenance", "Review memory lacks its draft lineage.");
+  for (const [child, parent] of [["use_case", "evidence_review"], ["evaluation_results", "use_case"], ["evaluation_recommendation", "evaluation_results"]]) {
+    if (manifest.artifact_ids[child]) requireCondition(hmem.store.get(manifest.artifact_ids[child])?.derivedFrom?.includes(manifest.artifact_ids[parent]),
+      "missing_provenance", "Optional artifact lacks its recorded lineage.");
+  }
   for (const memory of records) {
     // store.get() is an actual lookup but does not audit or persist touches.
     // Use the official services to record only the reads that just happened.
@@ -132,7 +198,7 @@ function importArtifacts(hmem: HMEM, request: Request) {
   requireCondition(manifests.length <= 1, "duplicate_manifest", "Duplicate manifests require manual inspection.");
   if (manifests.length) {
     const snapshot = readSnapshot(hmem, manifests[0], request.investigation_id);
-    return { reused: true, manifest_id: manifests[0].id, artifact_ids: snapshot.manifest.artifact_ids, artifact_hashes: hashes };
+    return { reused: true, manifest_id: manifests[0].id, artifact_ids: snapshot.manifest.artifact_ids, artifact_hashes: hashes, artifact_paths: { ...FILES } };
   }
   const ids: Record<string, string> = {};
   for (const kind of Object.keys(FILES)) {
@@ -156,13 +222,17 @@ function importArtifacts(hmem: HMEM, request: Request) {
         tags: ["project:nextwise", `investigation:${request.investigation_id}`, `artifact:${kind}`, `sha256:${artifact.sha256}`],
         provenance: { origin: "document", learnedAt: Date.now(), label: `Exact saved Nextwise ${kind}; not independent verification`,
                       refs: [artifact.path, `sha256:${artifact.sha256}`] },
-        ...(kind === "evidence_review" ? { derivedFrom: [ids.evidence_draft] } : {}),
+        ...(["evidence_review", "use_case", "evaluation_results", "evaluation_recommendation"].includes(kind) ? {
+          derivedFrom: kind === "evidence_review" ? [ids.evidence_draft] : kind === "use_case" ? [ids.evidence_draft, ids.evidence_review] :
+            kind === "evaluation_results" ? [ids.use_case, ids.evidence_draft, ids.evidence_review] : [ids.evaluation_results],
+        } : {}),
       }).id;
     }
   }
   const manifest: Manifest = {
     schema: "nextwise.hmem.manifest.v1", investigation_id: request.investigation_id, upstream_commit: COMMIT,
     revision_key: revisionKey, artifact_ids: ids, artifact_hashes: hashes,
+    artifact_paths: { ...FILES },
     review_to_draft: { review_id: ids.evidence_review, draft_id: ids.evidence_draft, reviewed_draft_sha256: hashes.evidence_draft },
     approval: documents.evidence_review.approval, decision: null,
   };
@@ -175,7 +245,7 @@ function importArtifacts(hmem: HMEM, request: Request) {
                   refs: Object.values(ids) }, derivedFrom: Object.values(ids),
   });
   readSnapshot(hmem, record, request.investigation_id);
-  return { reused: false, manifest_id: record.id, artifact_ids: ids, artifact_hashes: hashes };
+  return { reused: false, manifest_id: record.id, artifact_ids: ids, artifact_hashes: hashes, artifact_paths: { ...FILES } };
 }
 function resume(hmem: HMEM, investigationId: string) {
   const candidates = hmem.store.all().filter(r => {
@@ -189,6 +259,7 @@ function resume(hmem: HMEM, investigationId: string) {
   for (const claim of draft.accepted) claimKinds[claim.claim_kind] = (claimKinds[claim.claim_kind] ?? 0) + 1;
   return {
     manifest_id: candidates[0].id, artifact_ids: manifest.artifact_ids, artifact_hashes: manifest.artifact_hashes,
+    artifact_paths: { ...FILES },
     review_to_draft: manifest.review_to_draft, artifacts: documents,
     question: documents.investigation.question,
     evidence: { status: draft.status, accepted_count: draft.accepted.length, claim_kind_counts: claimKinds },
@@ -198,6 +269,9 @@ function resume(hmem: HMEM, investigationId: string) {
     unresolved_questions: documents.investigation.open_questions, unknowns: draft.unknowns,
     unresolved_evidence_gaps: review.unresolved_evidence_gaps.filter((g: any) => g.status === "unresolved"),
     readiness: review.readiness,
+    use_case: documents.use_case ?? null,
+    evaluation_results: documents.evaluation_results ?? null,
+    evaluation_recommendation: documents.evaluation_recommendation ?? null,
   };
 }
 async function main() {
@@ -212,7 +286,11 @@ async function main() {
   requireCondition(["import", "resume"].includes(request.operation) && typeof request.investigation_id === "string" &&
     /^[a-z0-9][a-z0-9-]{0,119}$/.test(request.investigation_id) && typeof request.memory_root === "string" && request.memory_root.length > 0,
     "invalid_request", "Provide an operation, a safe investigation ID and a memory root.");
-  if (request.operation === "import") validateArtifacts(request.artifacts!, request.investigation_id);
+  if (request.operation === "import") {
+    requireCondition(Array.isArray(request.artifacts), "invalid_artifacts", "Artifacts must be an array.");
+    configureOptionalFiles(Object.fromEntries(request.artifacts.map(a => [a.kind, a.path])));
+    validateArtifacts(request.artifacts!, request.investigation_id);
+  }
   const directory = path.resolve(request.memory_root, request.investigation_id);
   if (request.operation === "resume") {
     requireCondition(fs.existsSync(path.join(directory, "state.json")), "not_imported", "This investigation has not been imported into H-MEM.");
