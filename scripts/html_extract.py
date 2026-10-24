@@ -127,33 +127,46 @@ def _find_tags(node: Node, tag: str) -> list[Node]:
     return found
 
 
-def _find_role_main(node: Node) -> Node | None:
-    if node.attrs.get("role", "").lower() == "main":
-        return node
+def _find_content_nodes(node: Node) -> list[Node]:
+    """Find candidates without entering navigation or other page chrome.
+
+    Do not discard hidden containers: streamed server-rendered pages can store
+    their complete content there, outside an initially empty main element.
+    """
+    if is_chrome(node) or node.tag in SKIP_TAGS | {"head", "title"}:
+        return []
+    found = [node]
     for child in node.children:
         if isinstance(child, Node):
-            match = _find_role_main(child)
-            if match is not None:
-                return match
-    return None
+            found.extend(_find_content_nodes(child))
+    return found
 
 
 def select_content_root(root: Node) -> Node:
-    articles = [
-        node
-        for node in _find_tags(root, "article")
-        if not is_chrome(node) and _text_length(node) >= 200
+    nodes = _find_content_nodes(root)
+    # A main region may contain many independent article cards. Selecting just
+    # the largest card loses the rest of a catalog or documentation page.
+    mains = [
+        node for node in nodes
+        if (node.tag == "main" or node.attrs.get("role", "").lower() == "main")
+        and _text_length(node) >= 200
     ]
-    if articles:
-        return max(articles, key=_text_length)
-
-    mains = _find_tags(root, "main")
     if mains:
         return max(mains, key=_text_length)
 
-    role_main = _find_role_main(root)
-    if role_main is not None:
-        return role_main
+    articles = [node for node in nodes if node.tag == "article" and _text_length(node) >= 200]
+    if articles:
+        return max(articles, key=_text_length)
+
+    # Some streamed pages leave main empty and put the actual document in a
+    # sibling prose container. Read its static HTML without executing scripts.
+    prose = [
+        node for node in nodes
+        if "prose" in node.attrs.get("class", "").lower().split()
+        and _text_length(node) >= 200
+    ]
+    if prose:
+        return max(prose, key=_text_length)
 
     bodies = _find_tags(root, "body")
     if bodies:

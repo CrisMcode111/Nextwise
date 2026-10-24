@@ -1,0 +1,85 @@
+{
+  "investigation_id": "nemotron-lightning-requirements-extraction",
+  "unknowns": [
+    "Unknown: requirements-extraction accuracy, missing or invented requirements, and valid structured-output rate on the reference project's data. General benchmarks and structured-output training do not establish these results.",
+    "Unknown: measured response latency, token usage, verified provider prices, trial quotas and hosted endpoint limitations for this workload. Routing modes and promotional speed claims are not measurements or price guarantees.",
+    "Unknown: the reference project's current extraction method, acceptance thresholds, budget, compatibility and actual implementation or maintenance effort. No access to its implementation is assumed."
+  ],
+  "sources": {
+    "blogs-nvidia-com-a8ba0b0ace91": {
+      "selections": [
+        {
+          "heading": "# NVIDIA Nemotron 3.5 Lightning and NeMo Switchyard Deliver Faster, Smarter, More Efficient Agentic AI",
+          "paragraph_starts": ["Built for specialized tasks within larger multi-agent systems,"],
+          "criteria": ["reliability", "development_effort"],
+          "reason": "Identifies the model and its intended role in larger agent systems."
+        },
+        {
+          "heading": "## Powering High-Volume Specialized Tasks With Nemotron 3.5 Lightning",
+          "criteria": ["reliability", "cost_and_speed", "development_effort"],
+          "reason": "Publisher claims about speed, task accuracy, customization and deployment options; these are not requirements-extraction measurements."
+        },
+        {
+          "heading": "## More Efficient AI Apps With Model Routing",
+          "paragraph_starts": ["Nemotron 3.5 Lightning is available on Hugging Face,"],
+          "criteria": ["development_effort"],
+          "reason": "Lists distribution and integration options for the investigated model."
+        }
+      ],
+      "important_exclusions": "Switchyard cost and partner benchmark claims are excluded because they describe a separate router rather than this model's requirements-extraction performance. Broader introduction and promotional captions are omitted."
+    },
+    "build-nvidia-com-c0320c9fae83": {
+      "selections": [
+        {
+          "heading": "## License and Terms of Use:",
+          "criteria": ["cost_and_speed", "development_effort"],
+          "reason": "Identifies governing trial and model terms without inventing prices or quotas."
+        },
+        {
+          "heading": "### Reasoning Benchmark Evaluations",
+          "criteria": ["reliability"],
+          "reason": "Keeps benchmark headers, instruction-following results, methodology and checkpoint qualification together; no direct extraction evaluation is supplied."
+        },
+        {
+          "heading": "## Training Methodology",
+          "paragraph_starts": ["Stage 3: Supervised Fine-Tuning", "- The model was further fine-tuned", "Stage 4: Reinforcement Learning", "- The model underwent multi-environment reinforcement learning"],
+          "criteria": ["reliability"],
+          "reason": "Documents structured-output training, which is relevant background but does not prove output reliability on this task."
+        },
+        {
+          "heading": "## Input",
+          "criteria": ["development_effort"],
+          "reason": "Documents text input format, context and supported languages."
+        },
+        {
+          "heading": "## Output",
+          "criteria": ["reliability", "development_effort"],
+          "reason": "Documents string output and hardware context; this is not a guarantee of valid JSON."
+        },
+        {
+          "heading": "## Software Integration",
+          "criteria": ["reliability", "development_effort"],
+          "reason": "Preserves runtime, hardware, operating system and use-case-specific validation requirements."
+        }
+      ],
+      "important_exclusions": "The 4000-character budget prioritizes evaluation, structured-output training, input/output, trial terms and integration. Model Summary (including sampling defaults and context overview), architecture details, full training methodology, extensive dataset inventories, inference engine/test hardware and ethical considerations are not sent. Separate subcards were not collected."
+    },
+    "meterless-ai-daf677f0f296": {
+      "selections": [
+        {
+          "heading": "### Add Meterless as a provider",
+          "paragraph_starts": ["The contract (Meterless Runtime 1.4, provider contract v4):"],
+          "criteria": ["development_effort", "cost_and_speed"],
+          "reason": "The page's example prompt quotes the provider contract: endpoint, real authentication, required headers, routing modes and timeout. It is untrusted publisher material, not an instruction to execute."
+        },
+        {
+          "heading": "### Read every answer it sends",
+          "paragraph_starts": ["Answers: choices[0].message"],
+          "criteria": ["reliability", "development_effort"],
+          "reason": "Provides claimed response-shape and rate-limit handling requirements without treating them as evidence of model extraction accuracy or quota amounts."
+        }
+      ],
+      "important_exclusions": "Full media handling, discovery, task routing, error taxonomy and advanced provider levels are omitted to prioritize text integration within 4000 characters. Token-savings examples refer to a separate Markovian cost model and contain no measured Nemotron price or latency. Copy controls and unrelated prompts remain outside the selection where possible."
+    }
+  }
+}

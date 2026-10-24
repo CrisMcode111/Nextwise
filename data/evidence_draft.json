@@ -1,0 +1,263 @@
+{
+  "status": "grounded_draft_requiring_review",
+  "investigation_id": "nemotron-lightning-requirements-extraction",
+  "investigation_question": "Should AI Raw Gourmet test NVIDIA Nemotron 3.5 Lightning for extracting user requirements into structured data?",
+  "decision": null,
+  "note": "Accepted entries are a grounded draft requiring review. They are not verified evidence and not a recommendation. The investigation decision remains unset.",
+  "created_at_utc": "2026-10-24T14:05:47Z",
+  "accepted": [
+    {
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "claim": "Nemotron 3.5 Lightning can run on local AI systems to maximize existing infrastructure investments.",
+      "exact_supporting_quote": "Nemotron 3.5 Lightning also gives organizations control over privacy and deployment. It can run on local AI systems — including NVIDIA RTX PCs, NVIDIA DGX Spark, NVIDIA DGX Station and NVIDIA Jetson — to help users maximize existing infrastructure investments, or scale across edge AI devices, NVIDIA RTX PRO workstations, data centers and cloud environments for enterprise use cases.",
+      "relevance_to_criterion": "development_effort",
+      "limitations": "Does not specify the exact local hardware requirements or compatibility constraints for specific user systems.",
+      "claim_kind": "publisher_claim",
+      "source_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/"
+    },
+    {
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "claim": "Nemotron 3.5 Lightning is available on Hugging Face, ModelScope, OpenRouter and build.nvidia.com as an NVIDIA NIM microservice.",
+      "exact_supporting_quote": "Nemotron 3.5 Lightning is available on Hugging Face, ModelScope, OpenRouter and build.nvidia.com as an NVIDIA NIM microservice as well as through a broad ecosystem of NVIDIA Cloud Partners, post-training platforms, inference platforms and cloud service providers.",
+      "relevance_to_criterion": "development_effort",
+      "limitations": "Does not detail integration steps or SDK requirements for each platform.",
+      "claim_kind": "publisher_claim",
+      "source_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/"
+    },
+    {
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "claim": "Nemotron 3.5 Lightning delivers up to 4x faster output speed compared with other models in its class.",
+      "exact_supporting_quote": "The model delivers up to 4x faster output speed, leading to 30% faster agentic task completion compared with other models in its class.",
+      "relevance_to_criterion": "cost_and_speed",
+      "limitations": "The speed claim is relative to other models in its class; absolute latency measurements or token usage figures are not provided.",
+      "claim_kind": "publisher_claim",
+      "source_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/"
+    },
+    {
+      "source_id": "build-nvidia-com-c0320c9fae83",
+      "claim": "The model is governed by the NVIDIA API Trial Terms of Service and OpenMDW License Agreement version 1.1.",
+      "exact_supporting_quote": "GOVERNING TERMS: The trial service is governed by the NVIDIA API Trial Terms of Service. Use of this model is governed by the OpenMDW License Agreement, version 1.1.",
+      "relevance_to_criterion": "cost_and_speed",
+      "limitations": "Does not specify trial quotas, pricing per token, or endpoint limitations for the user's workload.",
+      "claim_kind": "publisher_claim",
+      "source_url": "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b/modelcard"
+    },
+    {
+      "source_id": "build-nvidia-com-c0320c9fae83",
+      "claim": "The model underwent multi-environment reinforcement learning using GRPO across math, code, science, and structured output environments.",
+      "exact_supporting_quote": "The model underwent multi-environment reinforcement learning using GRPO (Group Relative Policy Optimization) across math, code, science, instruction following, multi-step tool use, multi-turn conversations, and structured output environments. It utilized an asynchronous RL architecture that decouples training from inference and leverages MTP to accelerate rollout generation.",
+      "relevance_to_criterion": "development_effort",
+      "limitations": "Describes training methodology; does not verify that the model reliably produces structured output for the user's specific extraction task.",
+      "claim_kind": "publisher_claim",
+      "source_url": "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b/modelcard"
+    },
+    {
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "claim": "Nemotron 3.5 Lightning can be post-trained with NVIDIA NeMo on an organization's own domain data, tools and workflows to improve accuracy for specialized tasks.",
+      "exact_supporting_quote": "And because it’s open and customizable, Nemotron 3.5 Lightning can be easily post-trained with NVIDIA NeMo on an organization’s own domain data, tools and workflows to improve accuracy for specialized tasks.",
+      "relevance_to_criterion": "development_effort",
+      "limitations": "Post-training requirements and effort are not quantified; results depend on the organization's data and workflows.",
+      "claim_kind": "publisher_claim",
+      "source_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/"
+    }
+  ],
+  "rejected": [],
+  "unknowns": [
+    "Unknown: requirements-extraction accuracy, missing or invented requirements, and valid structured-output rate on the reference project's data. General benchmarks and structured-output training do not establish these results.",
+    "Unknown: measured response latency, token usage, verified provider prices, trial quotas and hosted endpoint limitations for this workload. Routing modes and promotional speed claims are not measurements or price guarantees.",
+    "Unknown: the reference project's current extraction method, acceptance thresholds, budget, compatibility and actual implementation or maintenance effort. No access to its implementation is assumed.",
+    "Open question (unknown): What model or method currently handles this task in AI Raw Gourmet?",
+    "Open question (unknown): What acceptance thresholds and budget should apply?",
+    "Open question (unknown): What limitations apply to the hosted endpoint?"
+  ],
+  "source_excerpts": [
+    {
+      "id": "blogs-nvidia-com-a8ba0b0ace91",
+      "title": "NVIDIA Nemotron 3.5 Lightning and NeMo Switchyard Deliver Faster, Smarter, More Efficient Agentic AI | NVIDIA Blog",
+      "requested_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/",
+      "final_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/",
+      "publication_date": "2026-08-11T13:00:05+00:00",
+      "excerpt": "# NVIDIA Nemotron 3.5 Lightning and NeMo Switchyard Deliver Faster, Smarter, More Efficient Agentic AI\n\nBuilt for specialized tasks within larger multi-agent systems, Nemotron 3.5 Lightning, a 30-billion-parameter mixture-of-experts model, helps create smarter and more efficient agentic applications.\n\n## Powering High-Volume Specialized Tasks With Nemotron 3.5 Lightning\n\nNVIDIA Nemotron 3.5 Lightning is a fully customizable open model built for high-volume tasks powering always-on agents. It was developed with contributions from the Nemotron Coalition, whose members provided evaluation methodologies, inference software and datasets to help advance the model.\n\nThe model delivers up to 4x faster output speed, leading to 30% faster agentic task completion compared with other models in its class. And because it’s open and customizable, Nemotron 3.5 Lightning can be easily post-trained with NVIDIA NeMo on an organization’s own domain data, tools and workflows to improve accuracy for specialized tasks.\n\nPinchBench benchmarks demonstrate that Nemotron 3.5 Lightning delivers faster agentic task completion with frontier-level accuracy compared to other models in its class.\n\nAI leaders across industries are customizing Nemotron 3.5 Lightning for their workloads, including CrowdStrike for cybersecurity, Harvey with Trajectory for legal services and CodeRabbit with Baseten for code review, helping improve accuracy for domain-specific agentic tasks. Additionally, Lila Sciences is helping to improve reasoning capabilities for agentic tasks across physical and life sciences, and Fastino Labs customized the model and is seeing leading accuracies for software development, finance and healthcare workloads.\n\nEnterprises have customized Nemotron 3.5 Lightning to achieve leading accuracy for their specialized task in their agentic workflows.\n\nNemotron 3.5 Lightning also gives organizations control over privacy and deployment. It can run on local AI systems — including NVIDIA RTX PCs, NVIDIA DGX Spark, NVIDIA DGX Station and NVIDIA Jetson — to help users maximize existing infrastructure investments, or scale across edge AI devices, NVIDIA RTX PRO workstations, data centers and cloud environments for enterprise use cases. And Nemotron 3.5 Lightning can run locally or on premises for high-volume, specialized tasks that require fast responses.\n\nAlso, as with every Nemotron launch, NVIDIA publishes as much of the training data and techniques as licensing permits, which allows for traceability, auditing and training of other models. Alongside Lightning, NVIDIA is releasing Nemotron-RL-Agentic-Terminal-Pivot, an agentic reinforcement learning dataset used to post-train it for coding agent capabilities.\n\n## More Efficient AI Apps With Model Routing\n\nNemotron 3.5 Lightning is available on Hugging Face, ModelScope, OpenRouter and build.nvidia.com as an NVIDIA NIM microservice as well as through a broad ecosystem of NVIDIA Cloud Partners, post-training platforms, inference platforms and cloud service providers. NeMo Switchyard is available on GitHub and coming to partner platforms soon."
+    },
+    {
+      "id": "build-nvidia-com-c0320c9fae83",
+      "title": "nemotron-3.5-lightning-30b-a3b Model by NVIDIA | NVIDIA NIM",
+      "requested_url": "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b/modelcard",
+      "final_url": "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b/modelcard",
+      "publication_date": null,
+      "excerpt": "## License and Terms of Use:\n\nGOVERNING TERMS: The trial service is governed by the NVIDIA API Trial Terms of Service. Use of this model is governed by the OpenMDW License Agreement, version 1.1.\n\n### Reasoning Benchmark Evaluations\n\nWe evaluated our model on the following benchmarks:\n\nTask | Nemotron-3.5-Lightning-30B-A3B-BF16 | Nemotron-3.5-Lightning-30B-A3B-NVFP4\n\nGeneral Knowledge\n\nMMLU Pro | 81.94 | 81.62\n\nAA-Omniscience | 17.50 | 16.63\n\nReasoning\n\nGPQA Diamond (no tools) | 75.44 | 75.57\n\nHLE (text-only, no tools) | 11.72 | 10.47\n\nSciCode | 32.60 | 31.38\n\nCoding & Agentic\n\nSWE-bench Verified | 51.56 | 52.80\n\nSWE-bench Multilingual | 39.33 | 36.47\n\nTerminal-Bench 2.1 | 24.58 | 23.46\n\nPinchBench | 85.37 | 83.43\n\nBrowseComp | 36.97 | 36.81\n\nτ³-bench (Banking) | 9.28 | 9.48\n\nGDPval-AA-V2 | 832 | 865\n\nInstruction Following\n\nIFBench (loose) | 71.88 | 72.88\n\nLong Context\n\nAA-LCR | 52.00 | 49.19\n\nFor reproducibility, the evaluation recipes, installation instructions, and commands for NVIDIA Nemotron 3.5 Lightning were collected and published in NeMo Gym. The reported results cover the release evaluation suite, including knowledge and reasoning, instruction following, coding, agentic, tool-use, and long-context. Most evaluations use NeMo Gym-native harnesses while a small subset, including SWE-Bench and Terminal-Bench, used NeMo Evaluator natively. The published recipes specify the benchmark-specific containers, prompts, inference parameters, parser configurations, and scoring settings used to produce the results.\n\n> These numbers were measured with and apply to the official NVFP4 checkpoint\n\n## Training Methodology\n\nStage 3: Supervised Fine-Tuning\n\n- The model was further fine-tuned on synthetic code, math, science, tool calling, instruction following, structured outputs, and general knowledge data. This stage incorporated data designed to support long-range retrieval and multi-document aggregation.\n\nStage 4: Reinforcement Learning\n\n- The model underwent multi-environment reinforcement learning using GRPO (Group Relative Policy Optimization) across math, code, science, instruction following, multi-step tool use, multi-turn conversations, and structured output environments. It utilized an asynchronous RL architecture that decouples training from inference and leverages MTP to accelerate rollout generation.\n\n## Input\n\n- Input Type(s): Text\n\n- Input Format(s): String\n\n- Input Parameters: One-Dimensional (1D): Sequences\n\n- Other Properties Related to Input: Maximum context length up to 1M tokens. Supported languages include English, Spanish, French, German, Italian, and Japanese.\n\n## Output\n\n- Output Type(s): Text\n\n- Output Format: String\n\n- Output Parameters: One-Dimensional (1D): Sequences\n\n- Other Properties Related to Output: Maximum context length up to 1M tokens\n\nOur AI models are designed and/or optimized to run on NVIDIA GPU-accelerated systems. By leveraging NVIDIA's hardware (e.g. GPU cores) and software frameworks (e.g., CUDA libraries), the model achieves faster training and inference times compared to CPU-only solutions.\n\n## Software Integration\n\n- Runtime Engine(s): PyTorch\n\n- Supported Hardware Microarchitecture Compatibility: NVIDIA Blackwell; NVIDIA Hopper (NVFP4 / W4A16); NVIDIA Ampere (W4A16)\n\n- Preferred/Supported Operating System(s): Linux\n\nThe integration of foundation and fine-tuned models into AI systems requires additional testing using use-case-specific data to ensure safe and effective deployment. Following the V-model methodology, iterative testing and validation at both unit and system levels are essential to mitigate risks, meet technical and functional requirements, and ensure compliance with safety and ethical standards before deployment."
+    },
+    {
+      "id": "meterless-ai-daf677f0f296",
+      "title": "Engines · Meterless",
+      "requested_url": "https://meterless.ai/engines.html",
+      "final_url": "https://meterless.ai/engines.html",
+      "publication_date": null,
+      "excerpt": "### Add Meterless as a provider\n\nThe contract (Meterless Runtime 1.4, provider contract v4):\n- Provider id meterless, name Meterless Runtime, default base URL http://127.0.0.1:8088/v1. Accept a pasted URL with or without a scheme, /v1, /v1/chat/completions, /v1/models or /healthz, and normalise it to <host>/v1. Never produce /v1/v1.\n- Auth is real. Send Authorization: Bearer <token> on every call. The runtime writes the token to <stateDir>/proxy-token. Store it under the key meterless_runtime_token. The placeholder rt-local is rejected.\n- Send meterless-app: <a stable lowercase id for this app> on every request, and meterless-scope: user on chat.\n- Model ids are routing modes, not models: meterless/<disposition> (auto, fast, deep, cheap, local, fusion), meterless/<class> and meterless/<class>.<disposition>. Read them from GET /v1/models and keep any meterless/* id you don't recognise.\n- GET /healthz only proves the process is up. GET /v1/models decides: 401 or 403 is \"unauthorized\" (show a field to paste the token), 200 with meterless ids is \"online\", anything else is \"offline\".\n- Auto Detect tries ports 8088, 8090, 8787 and 11434 on 127.0.0.1, localhost and [::1], and saves the first online or unauthorized hit.\n- Plain text requests stay a string, exactly like OpenAI. Use a 180 s timeout, because a model load can take minutes.\n- If the user pastes a connect link (http://<host>:<port>/connect#k=<key>), take the base URL from its origin + /v1 and the key from k. Never log it.\n\n### Read every answer it sends\n\nAnswers: choices[0].message can carry content as a string; content as an array of parts (text, image_url, audio or output_audio with url or data, input_audio, audio_url, video_url); message.audio beside a string content; or top-level meterless.artifacts[]. Read all of them. Turn bare base64 into a data: URL and the format wav into audio/wav.\n- Choose the reader from the response Content-Type, not from the request. A stream: true request can come back as application/json, so parse it as one body. Without res.body.getReader, fall back to res.json().\n- SSE: join delta.content strings, read an array delta.content as parts, and send frames carrying meterless.progress to onProgress. Send meterless-trace: on only when something shows progress.\n- Code that only reads strings gets a flattened answer: the text, then one \"Image: <url>\" or \"Audio: <url>\" line per artifact, with the original parts kept on message.meterless_parts.\n- A text answer to a media request is an error (text_instead_of_media). It is never accepted as media.\n- A 429 or quota error retries after 2 s, 4 s and 8 s, then surfaces."
+    }
+  ],
+  "excerpt_truncation": {
+    "blogs-nvidia-com-a8ba0b0ace91": {
+      "truncated": true,
+      "original_chars": 7988,
+      "excerpt_chars": 3111,
+      "selection_method": "reviewed_sections_and_whole_paragraphs",
+      "selected_sections": [
+        {
+          "heading": "# NVIDIA Nemotron 3.5 Lightning and NeMo Switchyard Deliver Faster, Smarter, More Efficient Agentic AI",
+          "paragraph_starts": [
+            "Built for specialized tasks within larger multi-agent systems,"
+          ],
+          "criteria": [
+            "reliability",
+            "development_effort"
+          ],
+          "reason": "Identifies the model and its intended role in larger agent systems.",
+          "selected_characters": 301
+        },
+        {
+          "heading": "## Powering High-Volume Specialized Tasks With Nemotron 3.5 Lightning",
+          "criteria": [
+            "reliability",
+            "cost_and_speed",
+            "development_effort"
+          ],
+          "reason": "Publisher claims about speed, task accuracy, customization and deployment options; these are not requirements-extraction measurements.",
+          "selected_characters": 2420
+        },
+        {
+          "heading": "## More Efficient AI Apps With Model Routing",
+          "paragraph_starts": [
+            "Nemotron 3.5 Lightning is available on Hugging Face,"
+          ],
+          "criteria": [
+            "development_effort"
+          ],
+          "reason": "Lists distribution and integration options for the investigated model.",
+          "selected_characters": 386
+        }
+      ],
+      "important_exclusions": "Switchyard cost and partner benchmark claims are excluded because they describe a separate router rather than this model's requirements-extraction performance. Broader introduction and promotional captions are omitted.",
+      "requested_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/",
+      "snapshot_path": "data/collected/snapshots/blogs-nvidia-com-a8ba0b0ace91_20261024T121058Z.html",
+      "original_text_path_preserved": "data/collected/texts/blogs-nvidia-com-a8ba0b0ace91_20261024T121058Z.txt"
+    },
+    "build-nvidia-com-c0320c9fae83": {
+      "truncated": true,
+      "original_chars": 51550,
+      "excerpt_chars": 3731,
+      "selection_method": "reviewed_sections_and_whole_paragraphs",
+      "selected_sections": [
+        {
+          "heading": "## License and Terms of Use:",
+          "criteria": [
+            "cost_and_speed",
+            "development_effort"
+          ],
+          "reason": "Identifies governing trial and model terms without inventing prices or quotas.",
+          "selected_characters": 195
+        },
+        {
+          "heading": "### Reasoning Benchmark Evaluations",
+          "criteria": [
+            "reliability"
+          ],
+          "reason": "Keeps benchmark headers, instruction-following results, methodology and checkpoint qualification together; no direct extraction evaluation is supplied.",
+          "selected_characters": 1417
+        },
+        {
+          "heading": "## Training Methodology",
+          "paragraph_starts": [
+            "Stage 3: Supervised Fine-Tuning",
+            "- The model was further fine-tuned",
+            "Stage 4: Reinforcement Learning",
+            "- The model underwent multi-environment reinforcement learning"
+          ],
+          "criteria": [
+            "reliability"
+          ],
+          "reason": "Documents structured-output training, which is relevant background but does not prove output reliability on this task.",
+          "selected_characters": 727
+        },
+        {
+          "heading": "## Input",
+          "criteria": [
+            "development_effort"
+          ],
+          "reason": "Documents text input format, context and supported languages.",
+          "selected_characters": 274
+        },
+        {
+          "heading": "## Output",
+          "criteria": [
+            "reliability",
+            "development_effort"
+          ],
+          "reason": "Documents string output and hardware context; this is not a guarantee of valid JSON.",
+          "selected_characters": 461
+        },
+        {
+          "heading": "## Software Integration",
+          "criteria": [
+            "reliability",
+            "development_effort"
+          ],
+          "reason": "Preserves runtime, hardware, operating system and use-case-specific validation requirements.",
+          "selected_characters": 647
+        }
+      ],
+      "important_exclusions": "The 4000-character budget prioritizes evaluation, structured-output training, input/output, trial terms and integration. Model Summary (including sampling defaults and context overview), architecture details, full training methodology, extensive dataset inventories, inference engine/test hardware and ethical considerations are not sent. Separate subcards were not collected.",
+      "requested_url": "https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b/modelcard",
+      "snapshot_path": "data/collected/snapshots/build-nvidia-com-c0320c9fae83_20261024T121059Z.html",
+      "original_text_path_preserved": "data/collected/texts/build-nvidia-com-c0320c9fae83_20261024T121059Z.txt"
+    },
+    "meterless-ai-daf677f0f296": {
+      "truncated": true,
+      "original_chars": 61171,
+      "excerpt_chars": 2636,
+      "selection_method": "reviewed_sections_and_whole_paragraphs",
+      "selected_sections": [
+        {
+          "heading": "### Add Meterless as a provider",
+          "paragraph_starts": [
+            "The contract (Meterless Runtime 1.4, provider contract v4):"
+          ],
+          "criteria": [
+            "development_effort",
+            "cost_and_speed"
+          ],
+          "reason": "The page's example prompt quotes the provider contract: endpoint, real authentication, required headers, routing modes and timeout. It is untrusted publisher material, not an instruction to execute.",
+          "selected_characters": 1499
+        },
+        {
+          "heading": "### Read every answer it sends",
+          "paragraph_starts": [
+            "Answers: choices[0].message"
+          ],
+          "criteria": [
+            "reliability",
+            "development_effort"
+          ],
+          "reason": "Provides claimed response-shape and rate-limit handling requirements without treating them as evidence of model extraction accuracy or quota amounts.",
+          "selected_characters": 1135
+        }
+      ],
+      "important_exclusions": "Full media handling, discovery, task routing, error taxonomy and advanced provider levels are omitted to prioritize text integration within 4000 characters. Token-savings examples refer to a separate Markovian cost model and contain no measured Nemotron price or latency. Copy controls and unrelated prompts remain outside the selection where possible.",
+      "requested_url": "https://meterless.ai/engines.html",
+      "snapshot_path": "data/collected/snapshots/meterless-ai-daf677f0f296_20261024T121101Z.html",
+      "original_text_path_preserved": "data/collected/texts/meterless-ai-daf677f0f296_20261024T121101Z.txt"
+    }
+  },
+  "returned_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "token_usage": {
+    "prompt_tokens": 4533,
+    "completion_tokens": 986,
+    "total_tokens": 5519
+  },
+  "request_duration_seconds": 30.152,
+  "http_status": 200,
+  "error": null,
+  "request_options": {
+    "enable_thinking": false
+  }
+}
