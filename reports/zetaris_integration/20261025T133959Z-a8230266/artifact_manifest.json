@@ -1,0 +1,47 @@
+{
+  "snapshot_id": "20261024T151413Z-fdf0c15b-csv-5fa0db458643",
+  "status": "PASS",
+  "query_rows": 3,
+  "artifacts": {
+    "investigation.sql": {
+      "sha256": "af434c00de67231905ce8c6d97fa09ed88793b9f3a20cf65f97845189750ac32",
+      "bytes": 4008
+    },
+    "numeric_evaluation_cases.sql": {
+      "sha256": "51ee3415c1c4ac62c8fd43e95c771fc76ce511c8e694c3cb4fe54f73f9521ea6",
+      "bytes": 783
+    },
+    "numeric_project_profiles.sql": {
+      "sha256": "6bfb59c587080f3daf2d92ddb62d95472239fbf701103d8b9b583b0a762feeac",
+      "bytes": 138
+    },
+    "query_results.json": {
+      "sha256": "98b545ded8b8283307cec5dc7343318dbdc2baf69d7ef7583372265c0e9243d5",
+      "bytes": 6586
+    },
+    "register_evaluation_cases.sql": {
+      "sha256": "601f9e01daa13a0bef49e1a8d446c4e99e626d10527579ba0095c0a2ced00a2e",
+      "bytes": 221
+    },
+    "register_evidence_claims.sql": {
+      "sha256": "a7de397298cf550f172aea7f8ad1fdf5a1e588d253d622b2fd951854b988b158",
+      "bytes": 219
+    },
+    "register_evidence_reviews.sql": {
+      "sha256": "6a469899e65b9a293fd243e99eae3849c5a6052cbe34d6cd68e9e9ac14f6e1a1",
+      "bytes": 221
+    },
+    "register_investigations.sql": {
+      "sha256": "4e0c0bc158774c48fc48e3a06402efbcee3ced04cc37a21af93d292cb0d29a49",
+      "bytes": 217
+    },
+    "register_sources.sql": {
+      "sha256": "56c31209925fba84a1045d7da433e7c9458833d693de5f1404381a901adde4c2",
+      "bytes": 203
+    },
+    "validation.json": {
+      "sha256": "4738c9e8f935fe4b4aadbd3e2a5ac709ca478492d1d1b66bbc26acabea8e7219",
+      "bytes": 11698
+    }
+  }
+}

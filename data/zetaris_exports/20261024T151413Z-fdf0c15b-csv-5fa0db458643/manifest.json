@@ -1,0 +1,214 @@
+{
+  "format_version": 1,
+  "snapshot_id": "20261024T151413Z-fdf0c15b-csv-5fa0db458643",
+  "evaluation_run_id": "20261024T151413Z-fdf0c15b",
+  "exporter": {
+    "path": "scripts/export_zetaris.py",
+    "sha256": "56f00cf457708474785aed2017a7d6d6fadaa4f32e7a3b3d1f1ab0ece6c8ae53"
+  },
+  "inputs": [
+    {
+      "path": "data/project_profile.json",
+      "sha256": "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651"
+    },
+    {
+      "path": "data/investigation.json",
+      "sha256": "055477b1ce9736904f23f138e772d9868a0ff01b4bd8806bbbec419d6d1bcbd5"
+    },
+    {
+      "path": "data/sources.json",
+      "sha256": "71a50afc8d777e76a6000433d5bece40317cafe17d7c231b9eb0fb2c1813e697"
+    },
+    {
+      "path": "data/evidence_draft.json",
+      "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c"
+    },
+    {
+      "path": "data/evidence_review.json",
+      "sha256": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f"
+    },
+    {
+      "path": "data/use_case.json",
+      "sha256": "4c18a25ae4f75cef32fad60f38984dbde75f4421926e48646de8850e4c638c02"
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/results.json",
+      "sha256": "1cd4c7a39c1670922226db69d7fbb4909fb9ecc9d7b31e4b5fa58563349bd2dd"
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/recommendation.json",
+      "sha256": "f8d992d6922f5024462baa66d892f0d0e45cd93ea3ea199e5c8fdeb03a7550f7"
+    }
+  ],
+  "csv": {
+    "encoding": "UTF-8 (no BOM)",
+    "header": true,
+    "delimiter": ",",
+    "quotechar": "\"",
+    "doublequote": true,
+    "line_terminator": "CRLF",
+    "json_null": "null",
+    "numeric_null": "\\N",
+    "multiline": true
+  },
+  "tables": {
+    "project_profiles": {
+      "filename": "project_profiles.csv",
+      "sha256": "58a505f942c1e1f931aafedb68fea62f3d42ba0a7d3a5e50e32da2717425361f",
+      "row_count": 1,
+      "primary_key": [
+        "project_id"
+      ],
+      "columns": {
+        "project_id": "STRING",
+        "project_name": "STRING",
+        "stage": "STRING",
+        "objective": "STRING",
+        "team_size": "BIGINT",
+        "constraints_json": "STRING",
+        "artifact_path": "STRING",
+        "artifact_sha256": "STRING",
+        "record_json": "STRING"
+      }
+    },
+    "investigations": {
+      "filename": "investigations.csv",
+      "sha256": "3e07a834c28c7332177d96288c5c211ba89b9779eef64ab509f40a0aa8d451d5",
+      "row_count": 1,
+      "primary_key": [
+        "investigation_id"
+      ],
+      "columns": {
+        "investigation_id": "STRING",
+        "project_id": "STRING",
+        "question": "STRING",
+        "status": "STRING",
+        "decision_json": "STRING",
+        "artifact_path": "STRING",
+        "artifact_sha256": "STRING",
+        "record_json": "STRING"
+      }
+    },
+    "sources": {
+      "filename": "sources.csv",
+      "sha256": "2eed55b7d3c4433b012094ad509abc6fdd88a5358022eb3eb47eee6c8bb3ab15",
+      "row_count": 3,
+      "primary_key": [
+        "investigation_id",
+        "source_id"
+      ],
+      "columns": {
+        "investigation_id": "STRING",
+        "source_id": "STRING",
+        "title": "STRING",
+        "requested_url": "STRING",
+        "final_url": "STRING",
+        "retrieved_at_utc": "STRING",
+        "publication_date_json": "STRING",
+        "artifact_path": "STRING",
+        "artifact_sha256": "STRING",
+        "record_json": "STRING"
+      }
+    },
+    "evidence_claims": {
+      "filename": "evidence_claims.csv",
+      "sha256": "b31053c881033073db7e872ca6621a3a1f160fc111efa021c22a7be79a809f2c",
+      "row_count": 6,
+      "primary_key": [
+        "draft_sha256",
+        "claim_pointer"
+      ],
+      "columns": {
+        "investigation_id": "STRING",
+        "draft_sha256": "STRING",
+        "claim_pointer": "STRING",
+        "source_id": "STRING",
+        "claim": "STRING",
+        "exact_supporting_quote": "STRING",
+        "claim_kind": "STRING",
+        "relevance_to_criterion": "STRING",
+        "limitations": "STRING",
+        "draft_status": "STRING",
+        "created_at_utc": "STRING",
+        "artifact_path": "STRING",
+        "artifact_sha256": "STRING",
+        "record_json": "STRING"
+      }
+    },
+    "evidence_reviews": {
+      "filename": "evidence_reviews.csv",
+      "sha256": "3403cd049edfde6bc855be51bfe0126ebc91915724d877bd536f2eb36953391d",
+      "row_count": 1,
+      "primary_key": [
+        "investigation_id",
+        "artifact_sha256"
+      ],
+      "columns": {
+        "investigation_id": "STRING",
+        "project_id": "STRING",
+        "review_status": "STRING",
+        "reviewed_draft_sha256": "STRING",
+        "approval_status": "STRING",
+        "decision_json": "STRING",
+        "readiness_status": "STRING",
+        "gaps_json": "STRING",
+        "claim_reviews_json": "STRING",
+        "artifact_path": "STRING",
+        "artifact_sha256": "STRING",
+        "record_json": "STRING"
+      }
+    },
+    "evaluation_cases": {
+      "filename": "evaluation_cases.csv",
+      "sha256": "b3d4830469e40b9bc7b6bce09c17f90f4badb6e7b106a72239471037883df972",
+      "row_count": 4,
+      "primary_key": [
+        "investigation_id",
+        "run_id",
+        "fixture_id"
+      ],
+      "columns": {
+        "investigation_id": "STRING",
+        "run_id": "STRING",
+        "evaluation_status": "STRING",
+        "draft_sha256": "STRING",
+        "use_case_sha256": "STRING",
+        "fixture_id": "STRING",
+        "fixture_sha256": "STRING",
+        "actual_model": "STRING",
+        "http_status": "BIGINT",
+        "duration_seconds": "DOUBLE",
+        "schema_valid": "BIGINT",
+        "quality_pass": "BIGINT",
+        "prompt_tokens": "BIGINT",
+        "completion_tokens": "BIGINT",
+        "total_tokens": "BIGINT",
+        "duration_seconds_json": "STRING",
+        "token_usage_json": "STRING",
+        "output": "STRING",
+        "output_json": "STRING",
+        "validation_json": "STRING",
+        "approval_json": "STRING",
+        "decision_json": "STRING",
+        "monetary_cost_json": "STRING",
+        "verified_prices_json": "STRING",
+        "created_at_utc": "STRING",
+        "scoring_protocol": "STRING",
+        "recommendation_artifact_path": "STRING",
+        "recommendation_artifact_sha256": "STRING",
+        "recommendation_json": "STRING",
+        "artifact_path": "STRING",
+        "artifact_sha256": "STRING",
+        "record_json": "STRING"
+      }
+    }
+  },
+  "validation": {
+    "input_hashes_and_references": "passed",
+    "fixture_snapshots": "passed",
+    "row_counts_and_unique_keys": "passed",
+    "csv_and_json_round_trip": "passed",
+    "quotes_multiline_unicode_probe": "passed",
+    "input_files_unchanged": "passed"
+  }
+}

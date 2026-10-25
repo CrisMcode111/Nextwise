@@ -1,0 +1,68 @@
+{
+  "observed_at_utc": "2026-10-25T13:06:27.869171+00:00",
+  "table": "nextwise.project_profiles",
+  "sql": "SELECT * FROM nextwise.project_profiles",
+  "export_path": "C:\\Users\\crist\\Desktop\\Nextwise\\data\\zetaris_exports\\20261024T151413Z-fdf0c15b-csv-5fa0db458643\\project_profiles.csv",
+  "status": "FAIL",
+  "export_sha256": "58a505f942c1e1f931aafedb68fea62f3d42ba0a7d3a5e50e32da2717425361f",
+  "returned_row_count": 1,
+  "checks": [
+    {
+      "check": "column names and order",
+      "result": "MATCH"
+    },
+    {
+      "check": "row count (expected 1)",
+      "result": "MATCH"
+    },
+    {
+      "check": "column project_id: exact exported value",
+      "result": "MATCH"
+    },
+    {
+      "check": "column project_name: exact exported value",
+      "result": "MATCH"
+    },
+    {
+      "check": "column stage: exact exported value",
+      "result": "MATCH"
+    },
+    {
+      "check": "column objective: exact exported value",
+      "result": "MATCH"
+    },
+    {
+      "check": "column team_size: exact exported value",
+      "result": "MATCH"
+    },
+    {
+      "check": "column constraints_json: exact exported value",
+      "result": "MISMATCH"
+    },
+    {
+      "check": "column constraints_json: JSON content and quote preservation",
+      "result": "MISMATCH"
+    },
+    {
+      "check": "column artifact_path: exact exported value",
+      "result": "MISMATCH"
+    },
+    {
+      "check": "column artifact_sha256: exact exported value",
+      "result": "MISMATCH"
+    },
+    {
+      "check": "column record_json: exact exported value",
+      "result": "MISMATCH"
+    },
+    {
+      "check": "column record_json: JSON content and quote preservation",
+      "result": "MISMATCH"
+    },
+    {
+      "check": "project ID ai-raw-gourmet",
+      "result": "MATCH"
+    }
+  ],
+  "schema_note": "inferSchema=false: numeric text accepted; numeric SQL typing not established."
+}

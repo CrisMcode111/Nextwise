@@ -1,0 +1,86 @@
+[
+  {
+    "id": "baseline",
+    "sql": "SELECT * FROM nextwise.project_profiles",
+    "compare": true
+  },
+  {
+    "id": "definition",
+    "sql": "SHOW CREATE TABLE nextwise.project_profiles"
+  },
+  {
+    "id": "describe",
+    "sql": "DESC nextwise.project_profiles"
+  },
+  {
+    "id": "engine",
+    "sql": "SELECT version() AS engine_version"
+  },
+  {
+    "id": "extended_definition",
+    "sql": "DESCRIBE EXTENDED nextwise.project_profiles"
+  },
+  {
+    "id": "table_properties",
+    "sql": "SHOW TBLPROPERTIES nextwise.project_profiles"
+  },
+  {
+    "id": "sql_quote_literal",
+    "sql": "SELECT '\"' AS quote_character, length('\"') AS quote_length"
+  },
+  {
+    "id": "stop_initial_session",
+    "action": "stop"
+  },
+  {
+    "id": "registration_before",
+    "action": "registration"
+  },
+  {
+    "id": "create_escape_probe",
+    "sql": "CREATE FILESTORE SESSION TABLE nw_profile_csv_probe_20261025 FORMAT csv OPTIONS (path 'dffs://nextwise/project_profiles.csv', delimiter ',', header 'true', inferSchema 'false', multiLine 'true', escape '\"')"
+  },
+  {
+    "id": "validate_escape_probe",
+    "sql": "SELECT * FROM SESSION.nw_profile_csv_probe_20261025",
+    "compare": true
+  },
+  {
+    "id": "apply_verified_escape",
+    "action": "patch_registration",
+    "body": {
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/project_profiles.csv",
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null,
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "header": "true",
+        "escape": "\""
+      }
+    }
+  },
+  {
+    "id": "registration_after",
+    "action": "registration"
+  },
+  {
+    "id": "exact_validator_after",
+    "action": "validate"
+  },
+  {
+    "id": "types_after",
+    "sql": "DESC nextwise.project_profiles"
+  },
+  {
+    "id": "drop_escape_probe",
+    "sql": "DROP TABLE SESSION.nw_profile_csv_probe_20261025"
+  },
+  {
+    "id": "close_private_session",
+    "action": "stop"
+  }
+]

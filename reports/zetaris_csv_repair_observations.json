@@ -1,0 +1,467 @@
+[
+  {
+    "id": "baseline",
+    "sql": "SELECT * FROM nextwise.project_profiles",
+    "columns": [
+      "project_id",
+      "project_name",
+      "stage",
+      "objective",
+      "team_size",
+      "constraints_json",
+      "artifact_path",
+      "artifact_sha256",
+      "record_json"
+    ],
+    "rows": [
+      [
+        "ai-raw-gourmet",
+        "AI Raw Gourmet",
+        "existing prototype under development",
+        "deliver a usable application that generates and adapts recipes and meal plans to user constraints",
+        "1",
+        "\"[\"\"limited development time\"\"",
+        "\"\"additional costs must be justified\"\"",
+        "\"\"evaluate compatibility and integration effort\"\"",
+        "\"\"cloud services may be considered\"\"]\""
+      ]
+    ],
+    "types": null,
+    "checks": [
+      {
+        "check": "column names and order",
+        "result": "MATCH"
+      },
+      {
+        "check": "row count (expected 1)",
+        "result": "MATCH"
+      },
+      {
+        "check": "column project_id: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column project_name: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column stage: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column objective: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column team_size: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column constraints_json: exact exported value",
+        "result": "MISMATCH"
+      },
+      {
+        "check": "column constraints_json: JSON content and quote preservation",
+        "result": "MISMATCH"
+      },
+      {
+        "check": "column artifact_path: exact exported value",
+        "result": "MISMATCH"
+      },
+      {
+        "check": "column artifact_sha256: exact exported value",
+        "result": "MISMATCH"
+      },
+      {
+        "check": "column record_json: exact exported value",
+        "result": "MISMATCH"
+      },
+      {
+        "check": "column record_json: JSON content and quote preservation",
+        "result": "MISMATCH"
+      },
+      {
+        "check": "project ID ai-raw-gourmet",
+        "result": "MATCH"
+      }
+    ],
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "definition",
+    "sql": "SHOW CREATE TABLE nextwise.project_profiles",
+    "error": "HTTP 400; body suppressed"
+  },
+  {
+    "id": "describe",
+    "sql": "DESC nextwise.project_profiles",
+    "columns": [
+      "col_name",
+      "data_type",
+      "comment"
+    ],
+    "rows": [
+      [
+        "project_id",
+        "string",
+        null
+      ],
+      [
+        "project_name",
+        "string",
+        null
+      ],
+      [
+        "stage",
+        "string",
+        null
+      ],
+      [
+        "objective",
+        "string",
+        null
+      ],
+      [
+        "team_size",
+        "string",
+        null
+      ],
+      [
+        "constraints_json",
+        "string",
+        null
+      ],
+      [
+        "artifact_path",
+        "string",
+        null
+      ],
+      [
+        "artifact_sha256",
+        "string",
+        null
+      ],
+      [
+        "record_json",
+        "string",
+        null
+      ]
+    ],
+    "types": null,
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "engine",
+    "sql": "SELECT version() AS engine_version",
+    "columns": [
+      "engine_version"
+    ],
+    "rows": [
+      [
+        "3.5.3 32232e9ed33bb16b93ad58cfde8b82e0f07c0970"
+      ]
+    ],
+    "types": null,
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "extended_definition",
+    "sql": "DESCRIBE EXTENDED nextwise.project_profiles",
+    "columns": [
+      "col_name",
+      "data_type",
+      "comment"
+    ],
+    "rows": [
+      [
+        "project_id",
+        "string",
+        null
+      ],
+      [
+        "project_name",
+        "string",
+        null
+      ],
+      [
+        "stage",
+        "string",
+        null
+      ],
+      [
+        "objective",
+        "string",
+        null
+      ],
+      [
+        "team_size",
+        "string",
+        null
+      ],
+      [
+        "constraints_json",
+        "string",
+        null
+      ],
+      [
+        "artifact_path",
+        "string",
+        null
+      ],
+      [
+        "artifact_sha256",
+        "string",
+        null
+      ],
+      [
+        "record_json",
+        "string",
+        null
+      ]
+    ],
+    "types": null,
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "table_properties",
+    "sql": "SHOW TBLPROPERTIES nextwise.project_profiles",
+    "columns": [
+      "key",
+      "value"
+    ],
+    "rows": [],
+    "types": null,
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "sql_quote_literal",
+    "sql": "SELECT '\"' AS quote_character, length('\"') AS quote_length",
+    "columns": [
+      "quote_character",
+      "quote_length"
+    ],
+    "rows": [
+      [
+        "\"",
+        "1"
+      ]
+    ],
+    "types": null,
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "registration_before",
+    "action": "registration",
+    "http_status": 200,
+    "registration": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/project_profiles.csv",
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null,
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "header": "true"
+      }
+    }
+  },
+  {
+    "id": "create_escape_probe",
+    "sql": "CREATE FILESTORE SESSION TABLE nw_profile_csv_probe_20261025 FORMAT csv OPTIONS (path 'dffs://nextwise/project_profiles.csv', delimiter ',', header 'true', inferSchema 'false', multiLine 'true', escape '\"')",
+    "columns": [
+      "Result"
+    ],
+    "rows": [],
+    "types": null,
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "validate_escape_probe",
+    "sql": "SELECT * FROM SESSION.nw_profile_csv_probe_20261025",
+    "columns": [
+      "project_id",
+      "project_name",
+      "stage",
+      "objective",
+      "team_size",
+      "constraints_json",
+      "artifact_path",
+      "artifact_sha256",
+      "record_json"
+    ],
+    "rows": [
+      [
+        "ai-raw-gourmet",
+        "AI Raw Gourmet",
+        "existing prototype under development",
+        "deliver a usable application that generates and adapts recipes and meal plans to user constraints",
+        "1",
+        "[\"limited development time\",\"additional costs must be justified\",\"evaluate compatibility and integration effort\",\"cloud services may be considered\"]",
+        "data/project_profile.json",
+        "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651",
+        "{\"id\":\"ai-raw-gourmet\",\"name\":\"AI Raw Gourmet\",\"stage\":\"existing prototype under development\",\"objective\":\"deliver a usable application that generates and adapts recipes and meal plans to user constraints\",\"team_size\":1,\"development_environment\":\"Windows 11, 16 GB RAM\",\"constraints\":[\"limited development time\",\"additional costs must be justified\",\"evaluate compatibility and integration effort\",\"cloud services may be considered\"],\"confidential_information\":[\"source code\",\"recipes\",\"knowledge base\",\"internal prompts\",\"rules and methods\",\"personal data\",\"credentials\"]}"
+      ]
+    ],
+    "types": null,
+    "checks": [
+      {
+        "check": "column names and order",
+        "result": "MATCH"
+      },
+      {
+        "check": "row count (expected 1)",
+        "result": "MATCH"
+      },
+      {
+        "check": "column project_id: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column project_name: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column stage: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column objective: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column team_size: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column constraints_json: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column constraints_json: JSON content and quote preservation",
+        "result": "MATCH"
+      },
+      {
+        "check": "column artifact_path: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column artifact_sha256: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column record_json: exact exported value",
+        "result": "MATCH"
+      },
+      {
+        "check": "column record_json: JSON content and quote preservation",
+        "result": "MATCH"
+      },
+      {
+        "check": "project ID ai-raw-gourmet",
+        "result": "MATCH"
+      }
+    ],
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "apply_verified_escape",
+    "action": "patch_registration",
+    "http_status": 200
+  },
+  {
+    "id": "registration_after",
+    "action": "registration",
+    "http_status": 200,
+    "registration": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/project_profiles.csv",
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null,
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "header": "true",
+        "escape": "\""
+      }
+    }
+  },
+  {
+    "id": "exact_validator_after",
+    "action": "validate",
+    "validator_exit_code": 0
+  },
+  {
+    "id": "types_after",
+    "sql": "DESC nextwise.project_profiles",
+    "columns": [
+      "col_name",
+      "data_type",
+      "comment"
+    ],
+    "rows": [
+      [
+        "project_id",
+        "string",
+        null
+      ],
+      [
+        "project_name",
+        "string",
+        null
+      ],
+      [
+        "stage",
+        "string",
+        null
+      ],
+      [
+        "objective",
+        "string",
+        null
+      ],
+      [
+        "team_size",
+        "string",
+        null
+      ],
+      [
+        "constraints_json",
+        "string",
+        null
+      ],
+      [
+        "artifact_path",
+        "string",
+        null
+      ],
+      [
+        "artifact_sha256",
+        "string",
+        null
+      ],
+      [
+        "record_json",
+        "string",
+        null
+      ]
+    ],
+    "types": null,
+    "transport": "HTTP 200"
+  },
+  {
+    "id": "drop_escape_probe",
+    "sql": "DROP TABLE SESSION.nw_profile_csv_probe_20261025",
+    "columns": [
+      "Result"
+    ],
+    "rows": [],
+    "types": null,
+    "transport": "HTTP 200"
+  }
+]

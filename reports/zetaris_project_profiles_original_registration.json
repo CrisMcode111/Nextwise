@@ -1,0 +1,18 @@
+{
+  "table": "nextwise.project_profiles",
+  "original_registration": {
+    "format": "csv",
+    "storageType": "NdpFs",
+    "path": "dffs://nextwise/project_profiles.csv",
+    "description": null,
+    "scanType": null,
+    "pathGlobFilter": null,
+    "delimiter": ",",
+    "parameters": {
+      "multiLine": "true",
+      "inferSchema": "false",
+      "header": "true"
+    }
+  },
+  "recovery_method": "PATCH the saved original_registration fields (excluding format) to /api/v1.0/lightning-database/databases/nextwise/file-store-tables/project_profiles; do not drop the table or uploaded file."
+}
