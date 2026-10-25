@@ -1,0 +1,42 @@
+{
+  "checked_at_utc": "2026-10-25T16:55:18.282493+00:00",
+  "mode": "Real live Zetaris and official H-MEM; read only, no decision submission",
+  "checks": [
+    {
+      "check": "Live investigation loads with all three sections and confirmed decision history",
+      "passed": true
+    },
+    {
+      "check": "Real investigation remains undecided with no preselected choice or typed fixture text",
+      "passed": true
+    },
+    {
+      "check": "Human panel appears beside original pending AI proposal",
+      "passed": true
+    },
+    {
+      "check": "All six live tables and official H-MEM lineage reconciled",
+      "passed": true
+    },
+    {
+      "check": "Original decision and review approval remain unchanged",
+      "passed": true
+    },
+    {
+      "check": "Saved pilot score remains 1 of 4",
+      "passed": true
+    },
+    {
+      "check": "Existing internal evidence links resolve",
+      "passed": true
+    },
+    {
+      "check": "Live mobile layout has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "No uncaught browser JavaScript errors",
+      "passed": true
+    }
+  ]
+}

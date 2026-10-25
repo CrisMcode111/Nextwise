@@ -1,0 +1,120 @@
+{
+  "checked_at_utc": "2026-10-25T16:57:43.447860+00:00",
+  "git_candidate_file_count": 166,
+  "text_files_scanned": 126,
+  "tracked_or_unignored_private_paths": [],
+  "candidate_secret_locations": [],
+  "scope": "Current Git candidates only; no credential files or Git history read; pattern scan is not a proof of absence",
+  "original_input_hashes": [
+    {
+      "path": "data/project_profile.json",
+      "matches": true
+    },
+    {
+      "path": "data/investigation.json",
+      "matches": true
+    },
+    {
+      "path": "data/sources.json",
+      "matches": true
+    },
+    {
+      "path": "data/evidence_draft.json",
+      "matches": true
+    },
+    {
+      "path": "data/evidence_review.json",
+      "matches": true
+    },
+    {
+      "path": "data/use_case.json",
+      "matches": true
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/results.json",
+      "matches": true
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/recommendation.json",
+      "matches": true
+    }
+  ],
+  "upstream_files_checked": 24,
+  "upstream_byte_identical": true,
+  "csv_hashes": [
+    {
+      "path": "data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643/project_profiles.csv",
+      "matches": true
+    },
+    {
+      "path": "data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643/investigations.csv",
+      "matches": true
+    },
+    {
+      "path": "data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643/sources.csv",
+      "matches": true
+    },
+    {
+      "path": "data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643/evidence_claims.csv",
+      "matches": true
+    },
+    {
+      "path": "data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643/evidence_reviews.csv",
+      "matches": true
+    },
+    {
+      "path": "data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643/evaluation_cases.csv",
+      "matches": true
+    }
+  ],
+  "ignore_rules_verified": [
+    ".env",
+    "data/memory/",
+    "node_modules/",
+    ".venv/",
+    "__pycache__/",
+    "data/collected/"
+  ],
+  "backend_results": {
+    "test_nextwise_app": {
+      "passed": 8,
+      "failed": 0
+    },
+    "test_decision_workflow": {
+      "passed": 6,
+      "failed": 0
+    },
+    "javascript_syntax": "PASS"
+  },
+  "broken_readiness_links": [],
+  "browser_results": {
+    "initial_interface": {
+      "report": "interface/browser_checks.json",
+      "passed": 28,
+      "failed": 1
+    },
+    "corrected_interface": {
+      "report": "interface_after_recovery_fix/browser_checks.json",
+      "passed": 30,
+      "failed": 0
+    },
+    "isolated_decisions": {
+      "report": "decisions/browser_checks.json",
+      "passed": 19,
+      "failed": 0
+    },
+    "live_read_only_decisions": {
+      "report": "live/live_browser_checks.json",
+      "passed": 9,
+      "failed": 0
+    }
+  },
+  "delivery_file_hashes": {
+    "README.md": "c8950ca755ec92940377d83a7ef9fe0cb3e80f9799b6930f88fe3e427d91c8b5",
+    "docs/demo-readiness.md": "959f504aaea88738205b8382189b48aa12f0b07a06b01bbf3cde2d6a024adb9f",
+    "web/app.js": "6965e587f0f49bbbc26d4aefdaeb297211e69b8d01827d4a47746ca911d91a05",
+    "scripts/nextwise_app.py": "a28ab84ac2a071f0d1c2809751584f45bc13f52a8e4ef4ba8d6ff4d4f3a43cf5",
+    "scripts/hmem_bridge.ts": "23ee06d3ec611653bb3300e91b4d60a1a9e8aeb89b53259402eeb69e659a0976",
+    "scripts/decision_records.ts": "207f7326486907e7ef24870c8ce1efc1936ac48e37cd628dcb6c15dabed51028"
+  }
+}

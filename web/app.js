@@ -276,7 +276,19 @@ function showState(code,message) {
 async function load() {
   if(loading||decisionSaving)return; loading=true; refresh.disabled=true;
   showState('loading','Reading live Zetaris tables, retrieving persisted H-MEM artifacts, and checking investigation identity and evidence links. This may take a moment.');
-  try { const response=await fetch('/api/load',{method:'POST',credentials:'same-origin'});const d=await response.json(); if(!response.ok)showState(d.code,d.message);else render(d); }
+  try {
+    // A previous document's history read can briefly hold the server lock after
+    // reload. Retry only that explicit busy response; decision writes never retry here.
+    for(let attempt=0;attempt<10;attempt++){
+      const response=await fetch('/api/load',{method:'POST',credentials:'same-origin'}),d=await response.json();
+      if(response.status===409&&d.code==='loading'){
+        if(attempt===9){showState('service','Another local request is still finishing. Wait a moment and try again.');break;}
+        await new Promise(resolve=>setTimeout(resolve,1000));continue;
+      }
+      if(!response.ok)showState(d.code,d.message);else render(d);
+      break;
+    }
+  }
   catch(_){showState('network','Check that the local Nextwise server is still running, then retry. No cached report is displayed.');}
   finally{loading=false;refresh.disabled=false;readDecisions();}
 }
