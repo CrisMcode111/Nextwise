@@ -26,8 +26,10 @@ The browser checker uses the already installed `websocket-client` package and
 installed Chrome only as test tools; neither is required to run the app. It
 launches a separate headless browser with an isolated temporary profile.
 
-This first interface is for one local founder and the pinned existing
-investigation/run. It displays saved content and queries; it does not edit
+This interface is for one local founder and the pinned existing
+investigation/run. It displays saved content and queries, and records explicit
+human decisions as separate official H-MEM records; see [Human decisions](human-decisions.md).
+It does not edit
 evidence, create recommendations, approve reviews, register tables, trigger
 experiments, call models or access the separate AI Raw Gourmet implementation.
 

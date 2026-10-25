@@ -2,6 +2,94 @@
 const $ = s => document.querySelector(s);
 const content = $('#content'), state = $('#state'), refresh = $('#refresh');
 let loading = false;
+let decisionState=null, decisionContext=null, decisionSaving=false, decisionMessage='', decisionError='';
+let decisionDraft={choice:'',rationale:'',next_action:'',request_id:null,expected_head:null,editing:false,started:false};
+const decisionPanel=$('#decision-panel');
+function parkDecisionPanel(){if(decisionPanel.parentElement!==$('#decision-home'))$('#decision-home').append(decisionPanel);}
+function paintDecisionRecord(record,parent){
+  const card=el('div','saved-decision',null,parent);pill(`Your ${record.choice} decision · Version ${record.version}`,card);
+  paragraph(`${record.created_at_utc} · Recorded by the local user`,card,'meta');
+  paragraph(record.rationale,card,'human-text');
+  if(record.next_action){label('Your next action / reconsideration condition',card);paragraph(record.next_action,card,'human-text');}
+  if(record.needs_review){pill('Needs review · Referenced evidence changed or is unavailable',card,'pending');list(record.integrity_issues,card);}
+  const refs=details('Evidence used for this decision',card);
+  record.evidence_references.forEach(ref=>{
+    const p=el('div','decision-reference',null,refs);
+    link(ref.kind.replaceAll('_',' '),`/api/decision-evidence?id=${encodeURIComponent(record.decision_id)}&kind=${encodeURIComponent(ref.kind)}`,p);
+    paragraph(`${ref.memory_id} · SHA-256 ${ref.sha256}`,p,'meta');
+  });
+  paragraph(`Record ${record.decision_id}`,refs,'meta');
+}
+async function readDecisions(){
+  try{
+    const response=await fetch('/api/decisions',{credentials:'same-origin'}),result=await response.json();
+    if(!response.ok)throw new Error(result.message||'Decision history is unavailable.');
+    decisionState=result;decisionError='';paintDecisionPanel();
+  }catch(error){decisionError=error.message||'Decision history is unavailable. Your typed text is kept.';paintDecisionPanel();}
+}
+function paintDecisionPanel(){
+  decisionPanel.replaceChildren();el('h3','','Your decision',decisionPanel);
+  paragraph('Your choice is separate from the AI proposal. It does not approve reviews, verify claims, or authorize model calls, experiments or deployment.',decisionPanel,'decision-boundary');
+  const notice=el('p','decision-message',decisionError||decisionMessage,decisionPanel);notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
+  if(decisionError)notice.classList.add('notice');
+  if(!decisionState){
+    paragraph('Decision history has not been confirmed. Nothing is shown as undecided or saved until the store responds.',decisionPanel,'muted');
+    const retry=el('button','button quiet','Retry history',decisionPanel);retry.onclick=readDecisions;return;
+  }
+  const history=decisionState.history,head=history.at(-1);
+  if(head)paintDecisionRecord(head,decisionPanel);else paragraph('No human decision has been recorded.',decisionPanel,'muted');
+  if(decisionDraft.started && decisionDraft.expected_head!==(head?.decision_id??null)){
+    paragraph('History changed while you were writing. Read the latest decision before linking your amendment to it.',decisionPanel,'notice');
+    const reconcile=el('button','button quiet','I reviewed the latest version · Keep my draft',decisionPanel);
+    reconcile.disabled=decisionSaving;
+    reconcile.onclick=()=>{decisionDraft.expected_head=head?.decision_id??null;decisionDraft.request_id=null;decisionDraft.editing=true;decisionError='';paintDecisionPanel();};
+  }
+  if(head&&!decisionDraft.editing){
+    const amend=el('button','button quiet','Amend my decision',decisionPanel);amend.id='amend-decision';
+    amend.onclick=()=>{decisionDraft={choice:'',rationale:'',next_action:'',request_id:null,expected_head:head.decision_id,editing:true,started:true};decisionMessage='';paintDecisionPanel();};
+  }else{
+    const form=el('form','decision-form',null,decisionPanel);form.id='decision-form';
+    const fields=el('fieldset','decision-choices',null,form);fields.disabled=decisionSaving;el('legend','','Choose one · No default selection',fields);
+    ['Adopt','Test','Defer','Reject'].forEach(choice=>{
+      const lab=el('label','',null,fields),input=el('input','',null,lab);input.type='radio';input.name='decision-choice';input.value=choice;input.required=true;input.checked=decisionDraft.choice===choice;lab.append(document.createTextNode(choice));
+    });
+    const rl=el('label','','Your rationale (required)',form);rl.htmlFor='decision-rationale';
+    const rationale=el('textarea','',null,form);rationale.id='decision-rationale';rationale.required=true;rationale.maxLength=8000;rationale.rows=3;rationale.value=decisionDraft.rationale;rationale.disabled=decisionSaving;
+    const nl=el('label','','Next action or condition for reconsideration (optional)',form);nl.htmlFor='decision-next-action';
+    const next=el('textarea','',null,form);next.id='decision-next-action';next.maxLength=4000;next.rows=2;next.value=decisionDraft.next_action;next.disabled=decisionSaving;
+    const save=el('button','button',decisionSaving?'Saving and checking persistence…':head?'Save amendment':'Save my decision',form);save.type='submit';save.id='save-decision';
+    save.disabled=decisionSaving||!decisionContext||!decisionDraft.choice||!decisionDraft.rationale.trim();
+    if(!decisionContext)paragraph('Load and reconcile the live investigation before saving. Your typed text stays here.',form,'muted');
+    form.addEventListener('input',()=>{
+      if(!decisionDraft.started){decisionDraft.expected_head=head?.decision_id??null;decisionDraft.started=true;}
+      decisionDraft.choice=form.querySelector('input:checked')?.value||'';
+      decisionDraft.rationale=rationale.value;decisionDraft.next_action=next.value;decisionDraft.request_id=null;
+      save.disabled=decisionSaving||!decisionContext||!decisionDraft.choice||!decisionDraft.rationale.trim();
+    });
+    form.addEventListener('submit',saveDecision);
+  }
+  const past=details(`Decision history (${history.length} version${history.length===1?'':'s'})`,decisionPanel,'decision-history');
+  if(!history.length)paragraph('No records yet.',past,'muted');
+  [...history].reverse().forEach(record=>paintDecisionRecord(record,past));
+  const retry=el('button','button quiet','Refresh decision history',past);retry.onclick=readDecisions;
+}
+async function saveDecision(event){
+  event.preventDefault();if(decisionSaving||!decisionContext||!decisionDraft.choice||!decisionDraft.rationale.trim())return;
+  decisionSaving=true;refresh.disabled=true;decisionMessage='';decisionError='';decisionDraft.request_id ||= crypto.randomUUID();
+  const body={explicit_action:'record_human_decision',choice:decisionDraft.choice,rationale:decisionDraft.rationale,
+    next_action:decisionDraft.next_action.trim()?decisionDraft.next_action:null,request_id:decisionDraft.request_id,
+    expected_head:decisionDraft.expected_head,context:decisionContext};
+  paintDecisionPanel();
+  try{
+    const response=await fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.message||'Save not confirmed. Your typed text is kept for retry.');
+    if(!result.ok||!Array.isArray(result.history))throw new Error('Persistence could not be confirmed. Keep your text and retry.');
+    decisionState=result;decisionDraft={choice:'',rationale:'',next_action:'',request_id:null,expected_head:null,editing:false,started:false};
+    decisionMessage=result.reused?'The saved decision was confirmed. No duplicate version was added.':'Your decision was saved in H-MEM and read back from disk.';
+  }catch(error){decisionError=error.message||'Save not confirmed. Your typed text is kept for retry.';}
+  finally{decisionSaving=false;refresh.disabled=loading;paintDecisionPanel();}
+}
 // External artifact content is always inserted as text, never HTML or executable markup.
 function el(tag, cls, text, parent) {
   const node = document.createElement(tag);
@@ -13,6 +101,7 @@ function el(tag, cls, text, parent) {
 function link(text, href, parent) {
   const a = el('a', '', text, parent);
   if (href.startsWith('#')) a.href = href;
+  else if(href.startsWith('/api/decision-evidence?')) { a.href=href; a.target='_blank'; a.rel='noopener noreferrer'; }
   else {
     try { const url = new URL(href); if (['https:', 'http:'].includes(url.protocol)) { a.href = url.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; } } catch (_) { /* Unsafe links stay text. */ }
   }
@@ -73,16 +162,20 @@ function openHash() {
 }
 window.addEventListener('hashchange', openHash);
 function render(d) {
+  parkDecisionPanel();
   content.replaceChildren();
   const brief=el('div','card investigation-brief',null,content);brief.id='investigation-brief';
   label('Current investigation',brief);el('h2','brief-question',d.investigation.question,brief);
-  const next=el('div','brief-next',null,brief);label('Existing proposed next action',next);
+  const columns=el('div','brief-columns',null,brief);
+  const next=el('div','brief-next',null,columns);label('Existing proposed next action',next);
   paragraph(recommendationSummary(d.recommendation),next,'next-summary');
   const briefStatus=el('div','inline-status',null,next);pill('AI-assisted proposal · Pending approval',briefStatus,'pending');
-  pill(d.investigation.decision===null?'Decision: not set':String(d.investigation.decision),briefStatus,'neutral');
+  pill(d.investigation.decision===null?'Original investigation · Decision: not set':String(d.investigation.decision),briefStatus,'neutral');
   const original=details('Read the full original recommendation',next,'original-recommendation');
   paragraph(d.recommendation.recommended_next_step,original);paragraph(d.recommendation.rationale,original,'explanation');
   const earlyLinks=el('div','reason-links',null,next);link('Inspect pilot findings ↗','#pilot',earlyLinks);link('Read qualified publisher claims ↗','#claims',earlyLinks);
+  decisionContext=Object.fromEntries(['manifest_id','artifact_hashes','run_id'].map(key=>[key,d.diagnostics[key]]));
+  columns.append(decisionPanel);paintDecisionPanel();
   const project = section('project', '01', 'My project', 'Approved project context');
   const grid = el('div', 'grid', null, project), p = el('div', 'card', null, grid);
   label('The project', p); el('h3', 'large', d.profile.name, p); paragraph(d.profile.objective, p);
@@ -170,6 +263,7 @@ function render(d) {
   if(location.hash) requestAnimationFrame(openHash);
 }
 function showState(code,message) {
+  parkDecisionPanel();decisionContext=null;paintDecisionPanel();
   content.hidden=true; content.replaceChildren(); state.hidden=false; state.replaceChildren(); state.className=`state ${code==='loading'?'loading':'error'}`;
   const titles={authentication:'Connect your investigation',loading:'Retrieving your investigation',empty:'No investigation data yet',memory:'Investigation memory unavailable',integrity:'The evidence could not be linked safely',zetaris:'Live data is unavailable',service:'Unable to load this investigation',network:'Cannot reach the local app'};
   el('h2','',titles[code]||'Unable to continue',state); paragraph(message,state);
@@ -180,12 +274,12 @@ function showState(code,message) {
   if(code!=='loading') $('#connection').textContent=code==='authentication'?'Not connected':'Connection needs attention';
 }
 async function load() {
-  if(loading)return; loading=true; refresh.disabled=true;
+  if(loading||decisionSaving)return; loading=true; refresh.disabled=true;
   showState('loading','Reading live Zetaris tables, retrieving persisted H-MEM artifacts, and checking investigation identity and evidence links. This may take a moment.');
   try { const response=await fetch('/api/load',{method:'POST',credentials:'same-origin'});const d=await response.json(); if(!response.ok)showState(d.code,d.message);else render(d); }
   catch(_){showState('network','Check that the local Nextwise server is still running, then retry. No cached report is displayed.');}
-  finally{loading=false;refresh.disabled=false;}
+  finally{loading=false;refresh.disabled=false;readDecisions();}
 }
 refresh.onclick=load;
-$('#disconnect').onclick=async()=>{if(loading)return;try{const r=await fetch('/api/disconnect',{method:'POST'});if(!r.ok)return;$('#disconnect').hidden=true;showState('authentication','The server has released the key. Enter a key in the private console to reconnect.');}catch(_){showState('network','The local server is unavailable.');}};
-fetch('/api/status').then(r=>r.json()).then(d=>{if(d.authenticated)load();else showState('authentication','Your local app is ready. Enter the Zetaris API key at the hidden prompt in PowerShell, then connect here.');}).catch(()=>showState('network','Start the local Nextwise server and reload this page.'));
+$('#disconnect').onclick=async()=>{if(loading||decisionSaving)return;try{const r=await fetch('/api/disconnect',{method:'POST'});if(!r.ok)return;$('#disconnect').hidden=true;showState('authentication','The server has released the key. Enter a key in the private console to reconnect.');}catch(_){showState('network','The local server is unavailable.');}};
+fetch('/api/status').then(r=>r.json()).then(d=>{if(d.authenticated)load();else {showState('authentication','Your local app is ready. Enter the Zetaris API key at the hidden prompt in PowerShell, then connect here.');readDecisions();}}).catch(()=>{showState('network','Start the local Nextwise server and reload this page.');readDecisions();});

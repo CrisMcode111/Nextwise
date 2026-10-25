@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { HMEM } from "../vendor/meterless/hmem/reference/src/index.ts";
+import { DecisionError, decisionHistory, decisionEvidence, saveDecision } from "./decision_records.ts";
 
 const COMMIT = "1742dec56a66e58eef9dda2d2b865823758ca8cd";
 const FILES: Record<string, string> = {
@@ -40,7 +41,7 @@ function sortKeys(value: any): any {
     Object.fromEntries(Object.keys(value).sort().map(k => [k, sortKeys(value[k])])) : value;
 }
 type Artifact = { kind: string; path: string; sha256: string; bytes_base64: string };
-type Request = { operation: "import" | "resume"; investigation_id: string; memory_root: string; artifacts?: Artifact[] };
+type Request = { operation: "import" | "resume" | "decision_save" | "decision_history" | "decision_evidence"; investigation_id: string; memory_root: string; artifacts?: Artifact[]; decision?: any; decision_id?: string; kind?: string };
 type Envelope = Artifact & { schema: string; investigation_id: string };
 type Manifest = {
   schema: string; investigation_id: string; upstream_commit: string; revision_key: string;
@@ -283,7 +284,7 @@ async function main() {
     chunks.push(Buffer.from(chunk));
   }
   const request = parseObject(Buffer.concat(chunks).toString("utf8")) as Request;
-  requireCondition(["import", "resume"].includes(request.operation) && typeof request.investigation_id === "string" &&
+  requireCondition(["import", "resume", "decision_save", "decision_history", "decision_evidence"].includes(request.operation) && typeof request.investigation_id === "string" &&
     /^[a-z0-9][a-z0-9-]{0,119}$/.test(request.investigation_id) && typeof request.memory_root === "string" && request.memory_root.length > 0,
     "invalid_request", "Provide an operation, a safe investigation ID and a memory root.");
   if (request.operation === "import") {
@@ -292,7 +293,7 @@ async function main() {
     validateArtifacts(request.artifacts!, request.investigation_id);
   }
   const directory = path.resolve(request.memory_root, request.investigation_id);
-  if (request.operation === "resume") {
+  if (request.operation !== "import") {
     requireCondition(fs.existsSync(path.join(directory, "state.json")), "not_imported", "This investigation has not been imported into H-MEM.");
   } else fs.mkdirSync(directory, { recursive: true });
   const lockPath = path.join(directory, "nextwise.lock");
@@ -305,7 +306,11 @@ async function main() {
   try {
     fs.writeFileSync(lock, JSON.stringify({ pid: process.pid, actor: ACTOR, created_at: new Date().toISOString() }));
     const hmem = new HMEM({ persistDir: directory, actor: ACTOR });
-    const result = request.operation === "import" ? importArtifacts(hmem, request) : resume(hmem, request.investigation_id);
+    const read = () => resume(hmem, request.investigation_id);
+    const result = request.operation === "import" ? importArtifacts(hmem, request) : request.operation === "resume" ? read() :
+      request.operation === "decision_save" ? saveDecision(hmem, request.investigation_id, request, read, directory) :
+      request.operation === "decision_evidence" ? decisionEvidence(hmem, request.investigation_id, request.decision_id!, request.kind!) :
+      decisionHistory(hmem, request.investigation_id, read);
     process.stdout.write(JSON.stringify({ ok: true, investigation_id: request.investigation_id, upstream_commit: COMMIT, ...result }) + "\n");
   } finally {
     fs.closeSync(lock);
@@ -313,7 +318,7 @@ async function main() {
   }
 }
 main().catch((error: any) => {
-  const known = error instanceof BridgeError;
+  const known = error instanceof BridgeError || error instanceof DecisionError;
   process.stdout.write(JSON.stringify({ ok: false, error: {
     code: known ? error.code : "storage_error",
     message: known ? error.message : "H-MEM operation failed; inspect storage and runtime compatibility without exposing artifact contents.",

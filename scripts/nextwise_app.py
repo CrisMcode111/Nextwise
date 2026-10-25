@@ -9,7 +9,7 @@ from pathlib import Path
 import secrets
 import re
 import threading
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
 import warnings
 
 import export_zetaris as exporter
@@ -34,10 +34,10 @@ def need(condition, message):
         raise AppError("integrity", message, 409)
 
 
-def retrieve_memory():
+def retrieve_memory(root=memory.DEFAULT_MEMORY_ROOT):
     try:
         result = memory.call_bridge({"operation": "resume", "investigation_id": INVESTIGATION,
-                                    "memory_root": str(memory.DEFAULT_MEMORY_ROOT)})
+                                    "memory_root": str(root)})
     except Exception:
         raise AppError("memory", "Investigation memory is unavailable. Check the local Node runtime and H-MEM store.") from None
     if not result.get("ok"):
@@ -154,16 +154,43 @@ def load_investigation(client, retrieve=retrieve_memory):
 
 
 class State:
-    def __init__(self):
+    def __init__(self, memory_root=None):
         self.key = None
         self.lock = threading.Lock()
         self.need_key = threading.Event()
         self.need_key.set()
         self.cookie = secrets.token_urlsafe(32)
+        self.memory_root = Path(memory_root or memory.DEFAULT_MEMORY_ROOT).resolve()
+        self.context = None
+        self.evidence_warning = False
 
 
-def make_handler(state, loader=load_investigation):
+def decision_call(state, operation, **fields):
+    try:
+        result = memory.call_bridge({"operation": operation, "investigation_id": INVESTIGATION,
+                                     "memory_root": str(state.memory_root), **fields})
+    except Exception:
+        raise AppError("decision_storage", "Decision storage is unavailable. Your typed text has been kept for retry.") from None
+    if not result.get("ok"):
+        error = result.get("error", {})
+        code = error.get("code", "decision_storage")
+        allowed = {"invalid_decision", "idempotency_conflict", "decision_conflict", "evidence_changed", "decision_integrity",
+                   "missing_evidence", "evidence_mismatch", "persistence_unconfirmed", "memory_locked", "decision_missing"}
+        if code not in allowed:
+            raise AppError("decision_storage", "The decision could not be confirmed. Your text has been kept. Check H-MEM storage and retry.")
+        raise AppError(code, error["message"], 400 if code == "invalid_decision" else 409)
+    if "history" in result and state.evidence_warning:
+        for record in result["history"]:
+            record["needs_review"] = True
+            record["integrity_issues"].append("Live evidence could not be reconciled with the referenced snapshot")
+    return result
+
+
+def make_handler(state, loader=None):
+    loader = loader or (lambda client: load_investigation(client, lambda: retrieve_memory(state.memory_root)))
     class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"  # Length-framed responses avoid truncated bodies on Windows close.
+
         def log_message(self, *args):
             pass  # No URLs, headers, request bodies, credentials or external content in logs.
 
@@ -197,6 +224,25 @@ def make_handler(state, loader=load_investigation):
         def do_GET(self):
             if not self.allowed():
                 return
+            route = urlsplit(self.path)
+            if route.path in ("/api/decisions", "/api/decision-evidence"):
+                if not self.allowed(session=True):
+                    return
+                if not state.lock.acquire(blocking=False):
+                    self.respond(409, {"code": "loading", "message": "The investigation is loading. Retry decision history in a moment."})
+                    return
+                try:
+                    if route.path == "/api/decisions":
+                        self.respond(200, decision_call(state, "decision_history"))
+                    else:
+                        params = parse_qs(route.query)
+                        result = decision_call(state, "decision_evidence", decision_id=params.get("id", [""])[0], kind=params.get("kind", [""])[0])
+                        self.respond(200, json.dumps(result, ensure_ascii=False, indent=2).encode("utf-8"), "text/plain; charset=utf-8")
+                except AppError as exc:
+                    self.respond(exc.status, {"code": exc.code, "message": exc.message})
+                finally:
+                    state.lock.release()
+                return
             paths = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                      "/style.css": ("style.css", "text/css; charset=utf-8")}
             if self.path in paths:
@@ -222,7 +268,7 @@ def make_handler(state, loader=load_investigation):
                     state.lock.release()
                 self.respond(200, {"disconnected": True})
                 return
-            if self.path != "/api/load":
+            if self.path not in ("/api/load", "/api/decision"):
                 self.respond(404, {"code": "missing", "message": "Action not found."})
                 return
             if state.key is None:
@@ -232,13 +278,36 @@ def make_handler(state, loader=load_investigation):
                 self.respond(409, {"code": "loading", "message": "The investigation is already loading. Please wait."})
                 return
             try:
+                body = None
+                if self.path == "/api/decision":
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                        if not 0 < length <= 65536 or self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+                            raise ValueError()
+                        body = json.loads(self.rfile.read(length).decode("utf-8"))
+                        if not isinstance(body, dict):
+                            raise ValueError()
+                        if body.get("choice") not in ("Adopt", "Test", "Defer", "Reject") or not isinstance(body.get("rationale"), str) or not body["rationale"].strip():
+                            raise ValueError()
+                    except (ValueError, UnicodeError):
+                        raise AppError("invalid_decision", "Choose a decision and enter a written rationale. Text must fit within the form limits.", 400)
+                state.context = None
                 client = integration.Client(state.key)
                 try:
                     payload = loader(client)
-                    self.respond(200, payload)
+                    state.context = {key: payload["diagnostics"][key] for key in ("manifest_id", "artifact_hashes", "run_id")} if "diagnostics" in payload else None
+                    state.evidence_warning = False
+                    if self.path == "/api/decision":
+                        if state.context is None or body.get("context") != state.context:
+                            raise AppError("evidence_changed", "The evidence context changed. Reload and review it before saving. Your text has been kept.", 409)
+                        self.respond(200, decision_call(state, "decision_save", decision=body))
+                    else:
+                        self.respond(200, payload)
                 finally:
                     client._key = None
             except AppError as exc:
+                if exc.code in ("integrity", "evidence_changed"):
+                    state.evidence_warning = True
                 self.respond(exc.status, {"code": exc.code, "message": exc.message})
             except ValueError as exc:
                 if "HTTP 401" in str(exc) or "HTTP 403" in str(exc):

@@ -1,0 +1,83 @@
+{
+  "checked_at_utc": "2026-10-25T15:57:36.083791+00:00",
+  "storage": "Isolated OS temporary directory; explicit test fixtures only",
+  "browser": "Installed Chrome, headless, isolated profile, real HTTP",
+  "checks": [
+    {
+      "check": "All three sections load against labelled offline SQL fixtures and official H-MEM",
+      "passed": true
+    },
+    {
+      "check": "No default choice; save requires both choice and rationale",
+      "passed": true
+    },
+    {
+      "check": "Clean reload 1 receives complete response bodies",
+      "passed": true
+    },
+    {
+      "check": "Clean reload 2 receives complete response bodies",
+      "passed": true
+    },
+    {
+      "check": "Choice alone cannot save",
+      "passed": true
+    },
+    {
+      "check": "Typing never persists",
+      "passed": true
+    },
+    {
+      "check": "Save waits for confirmation and prevents concurrent edits",
+      "passed": true
+    },
+    {
+      "check": "Failed save keeps exact typed rationale and offers retry, without success",
+      "passed": true
+    },
+    {
+      "check": "Explicit retry succeeds; double submission creates one record",
+      "passed": true
+    },
+    {
+      "check": "Stored rationale is plain text with exact quotes, newlines and Unicode",
+      "passed": true
+    },
+    {
+      "check": "Evidence links retrieve exact referenced artifacts as text/plain",
+      "passed": true
+    },
+    {
+      "check": "Page reload recovers saved rationale from H-MEM",
+      "passed": true
+    },
+    {
+      "check": "Amendment starts with no selected choice",
+      "passed": true
+    },
+    {
+      "check": "Amendment adds version two and keeps original version accessible",
+      "passed": true
+    },
+    {
+      "check": "Full Python and Node process restart recovers both versions and evidence links",
+      "passed": true
+    },
+    {
+      "check": "Decision panel fits mobile viewport",
+      "passed": true
+    },
+    {
+      "check": "Missing evidence visibly flags saved decisions without changing choice or rationale",
+      "passed": true
+    },
+    {
+      "check": "Evidence failure blocks new saves while preserving decision history",
+      "passed": true
+    },
+    {
+      "check": "No uncaught browser JavaScript errors",
+      "passed": true
+    }
+  ]
+}
