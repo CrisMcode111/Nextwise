@@ -1,0 +1,262 @@
+{
+  "checked_at_utc": "2026-10-25T14:55:02.003985+00:00",
+  "browser": "Installed Chrome, isolated temporary profile, headless CDP",
+  "checks": [
+    {
+      "check": "Local page title",
+      "passed": true
+    },
+    {
+      "check": "Private console authentication available",
+      "passed": true
+    },
+    {
+      "check": "Live investigation rendered",
+      "passed": true
+    },
+    {
+      "check": "Clear loading state and disabled refresh",
+      "passed": true
+    },
+    {
+      "check": "All three connected sections",
+      "passed": true
+    },
+    {
+      "check": "Investigation question appears before project section",
+      "passed": true
+    },
+    {
+      "check": "Concise next action is an excerpt of the saved proposal",
+      "passed": true
+    },
+    {
+      "check": "Full original recommendation is available unchanged and initially collapsed",
+      "passed": true
+    },
+    {
+      "check": "Pending approval and unset decision remain visible in early brief",
+      "passed": true
+    },
+    {
+      "check": "Distribution and licensing qualifications visible beside draft before expansion",
+      "passed": true
+    },
+    {
+      "check": "Displayed figures reconcile with live SQL",
+      "passed": true
+    },
+    {
+      "check": "Every internal evidence link resolves",
+      "passed": true
+    },
+    {
+      "check": "Source links resolve to saved URLs",
+      "passed": true
+    },
+    {
+      "check": "Quotation link opens exact source quotation",
+      "passed": true
+    },
+    {
+      "check": "Pilot case opens original synthetic input and model output",
+      "passed": true
+    },
+    {
+      "check": "Every pilot case has a fixture-derived comparison before raw JSON",
+      "passed": true
+    },
+    {
+      "check": "Explicit meal omission distinguished from preserved quantity meaning",
+      "passed": true
+    },
+    {
+      "check": "Explicit no-nuts output and conflicting time unknown are inspectable",
+      "passed": true
+    },
+    {
+      "check": "Extra unknown categories do not assert irrelevance or cause",
+      "passed": true
+    },
+    {
+      "check": "Original evaluator findings and quality flags remain unchanged",
+      "passed": true
+    },
+    {
+      "check": "H-MEM persisted artifact retrieval demonstrated",
+      "passed": true
+    },
+    {
+      "check": "External HTML is rendered as inert text",
+      "passed": true
+    },
+    {
+      "check": "Mobile viewport has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "Browser failure state: authentication",
+      "passed": true
+    },
+    {
+      "check": "Browser failure state: memory",
+      "passed": true
+    },
+    {
+      "check": "Browser failure state: empty",
+      "passed": true
+    },
+    {
+      "check": "Browser failure state: integrity",
+      "passed": true
+    },
+    {
+      "check": "Browser failure state: zetaris",
+      "passed": true
+    },
+    {
+      "check": "Fresh live recovery after browser failure fixtures",
+      "passed": false
+    }
+  ],
+  "live_data": {
+    "aggregate": {
+      "project_id": "ai-raw-gourmet",
+      "project_name": "AI Raw Gourmet",
+      "stage": "existing prototype under development",
+      "team_size": "1",
+      "constraints_json": "[\"limited development time\",\"additional costs must be justified\",\"evaluate compatibility and integration effort\",\"cloud services may be considered\"]",
+      "investigation_id": "nemotron-lightning-requirements-extraction",
+      "question": "Should AI Raw Gourmet test NVIDIA Nemotron 3.5 Lightning for extracting user requirements into structured data?",
+      "investigation_decision_json": "null",
+      "review_status": "ai_assisted_review_pending_user_approval",
+      "approval_status": "pending_user_approval",
+      "review_decision_json": "null",
+      "readiness_status": "insufficient_evidence_for_recommendation",
+      "reviewed_draft_sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c",
+      "source_id": "blogs-nvidia-com-a8ba0b0ace91",
+      "requested_url": "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/",
+      "retrieved_at_utc": "2026-10-24T12:10:58Z",
+      "publication_date_json": "\"2026-08-11T13:00:05+00:00\"",
+      "accepted_publisher_claim_count": "4",
+      "run_id": "20261024T151413Z-fdf0c15b",
+      "actual_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "evaluation_status": "completed_pilot",
+      "pilot_approval_json": "{\"status\":\"pending_user_approval\"}",
+      "pilot_decision_json": "null",
+      "pilot_monetary_cost_json": "null",
+      "attempted_cases": "4",
+      "schema_valid_cases": "4",
+      "quality_pass_cases": "1",
+      "request_seconds": "10.378000",
+      "reported_prompt_tokens": "2562",
+      "reported_completion_tokens": "638",
+      "reported_total_tokens": "3200"
+    },
+    "memory": {
+      "loaded_at": "2026-10-25T14:55:31.124810+00:00",
+      "run_id": "20261024T151413Z-fdf0c15b",
+      "investigation_id": "nemotron-lightning-requirements-extraction",
+      "manifest_id": "mem-10",
+      "memory_ids": {
+        "project_profile": "mem-1",
+        "investigation": "mem-2",
+        "sources": "mem-3",
+        "evidence_draft": "mem-4",
+        "evidence_review": "mem-5",
+        "use_case": "mem-7",
+        "evaluation_results": "mem-8",
+        "evaluation_recommendation": "mem-9"
+      },
+      "artifact_hashes": {
+        "project_profile": "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651",
+        "investigation": "055477b1ce9736904f23f138e772d9868a0ff01b4bd8806bbbec419d6d1bcbd5",
+        "sources": "71a50afc8d777e76a6000433d5bece40317cafe17d7c231b9eb0fb2c1813e697",
+        "evidence_draft": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c",
+        "evidence_review": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f",
+        "use_case": "4c18a25ae4f75cef32fad60f38984dbde75f4421926e48646de8850e4c638c02",
+        "evaluation_results": "1cd4c7a39c1670922226db69d7fbb4909fb9ecc9d7b31e4b5fa58563349bd2dd",
+        "evaluation_recommendation": "f8d992d6922f5024462baa66d892f0d0e45cd93ea3ea199e5c8fdeb03a7550f7"
+      },
+      "upstream_commit": "1742dec56a66e58eef9dda2d2b865823758ca8cd",
+      "table_checks": {
+        "project_profiles": {
+          "status": "PASS",
+          "rows": 1,
+          "unique_keys": 1,
+          "cells": 9,
+          "quoted_text_cells": 2,
+          "multiline_cells": 0,
+          "numeric_null_cells": 0,
+          "json_cells": 2,
+          "json_null_cells": 0
+        },
+        "investigations": {
+          "status": "PASS",
+          "rows": 1,
+          "unique_keys": 1,
+          "cells": 8,
+          "quoted_text_cells": 1,
+          "multiline_cells": 0,
+          "numeric_null_cells": 0,
+          "json_cells": 2,
+          "json_null_cells": 1
+        },
+        "sources": {
+          "status": "PASS",
+          "rows": 3,
+          "unique_keys": 3,
+          "cells": 30,
+          "quoted_text_cells": 4,
+          "multiline_cells": 0,
+          "numeric_null_cells": 0,
+          "json_cells": 6,
+          "json_null_cells": 2
+        },
+        "evidence_claims": {
+          "status": "PASS",
+          "rows": 6,
+          "unique_keys": 6,
+          "cells": 84,
+          "quoted_text_cells": 6,
+          "multiline_cells": 0,
+          "numeric_null_cells": 0,
+          "json_cells": 6,
+          "json_null_cells": 0
+        },
+        "evidence_reviews": {
+          "status": "PASS",
+          "rows": 1,
+          "unique_keys": 1,
+          "cells": 12,
+          "quoted_text_cells": 3,
+          "multiline_cells": 0,
+          "numeric_null_cells": 0,
+          "json_cells": 4,
+          "json_null_cells": 1
+        },
+        "evaluation_cases": {
+          "status": "PASS",
+          "rows": 4,
+          "unique_keys": 4,
+          "cells": 128,
+          "quoted_text_cells": 28,
+          "multiline_cells": 4,
+          "numeric_null_cells": 0,
+          "json_cells": 40,
+          "json_null_cells": 12
+        }
+      },
+      "query_rows": 3,
+      "lineage": "Live rows match exact H-MEM artifact identities; numeric casts and aggregate joins reconciled."
+    },
+    "case_count": 4,
+    "claim_count": 6
+  },
+  "failure_ui": {
+    "state": "Cannot reach the local appCheck that the local Nextwise server is still running, then retry. No cached report is displayed.Try again",
+    "contentHidden": true
+  },
+  "status": "FAIL",
+  "failure": "AssertionError: Fresh live recovery after browser failure fixtures"
+}

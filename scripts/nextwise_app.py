@@ -1,0 +1,284 @@
+"""Local Nextwise interface. Python stdlib + existing official H-MEM bridge only."""
+import csv
+from datetime import datetime, timezone
+import getpass
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import io
+import json
+from pathlib import Path
+import secrets
+import re
+import threading
+from urllib.parse import urlsplit
+import warnings
+
+import export_zetaris as exporter
+import integrate_zetaris as integration
+import investigation_memory as memory
+
+ROOT = Path(__file__).resolve().parents[1]
+WEB = ROOT / "web"
+INVESTIGATION = "nemotron-lightning-requirements-extraction"
+PORT = 8765
+KINDS = dict(zip(exporter.INPUTS, ("project_profile", "investigation", "sources", "evidence_draft",
+                                  "evidence_review", "use_case", "evaluation_results", "evaluation_recommendation")))
+
+
+class AppError(Exception):
+    def __init__(self, code, message, status=503):
+        self.code, self.message, self.status = code, message, status
+
+
+def need(condition, message):
+    if not condition:
+        raise AppError("integrity", message, 409)
+
+
+def retrieve_memory():
+    try:
+        result = memory.call_bridge({"operation": "resume", "investigation_id": INVESTIGATION,
+                                    "memory_root": str(memory.DEFAULT_MEMORY_ROOT)})
+    except Exception:
+        raise AppError("memory", "Investigation memory is unavailable. Check the local Node runtime and H-MEM store.") from None
+    if not result.get("ok"):
+        raise AppError("memory", "The persisted investigation could not be retrieved. No local-file substitute was used.")
+    return result
+
+
+def present_case(case, fixture, rubric, recommendation, protocol):
+    """Describe saved facts/flags, never rerun scoring or infer semantic equivalence."""
+    aliases = dict(re.findall(r"(\w+) aliases (\w+)", protocol))
+    facts = case.get("parsed_output", {}).get("facts", [])
+    validation = case["validation"]
+    rows = []
+    for field, expected in fixture["expected_explicit_facts"].items():
+        key = aliases.get(field, field)
+        recorded = [f for f in facts if aliases.get(f["field"], f["field"]) == key]
+        flags = []
+        if key in validation.get("missing_requirements", []):
+            flags.append("Listed as missing by the saved evaluator.")
+        if key in validation.get("invented_or_changed_requirements", []):
+            flags.append("Listed as changed by the saved evaluator.")
+        if not recorded:
+            flags.insert(0, "Not returned in the recorded facts.")
+        elif not flags:
+            flags.append("Returned; not flagged missing or changed by the saved evaluator.")
+        # The field/category correspondence is the existing evaluator's known_categories
+        # mapping, used only to surface an already recorded incorrect-unknown flag.
+        category = {"meal": "meal", "people_count": "people_count", "ready_within_minutes": "time_limit"}.get(key)
+        if category in validation.get("incorrect_unknown_categories", []):
+            flags.append(f"Also listed as unknown: {category}. The saved evaluator flags this as incorrect.")
+        qualifications = [text for text in recommendation["evaluator_limitations"] if key in text]
+        rows.append({"field": field, "expected": expected, "recorded": recorded,
+                     "findings": flags, "qualifications": qualifications})
+    returned = case.get("parsed_output", {}).get("unknowns", [])
+    required = rubric.get("unknowns", [])
+    return {"rows": rows, "returned_unknowns": returned, "required_unknowns": required,
+            "additional_unknowns": [v for v in returned if v not in required],
+            "incorrect_unknowns": validation.get("incorrect_unknown_categories", []),
+            "protocol": protocol}
+
+
+def load_investigation(client, retrieve=retrieve_memory):
+    """All displayed investigation rows originate in live Zetaris; memory is checked before combining."""
+    mem = retrieve()
+    need(mem.get("investigation_id") == INVESTIGATION, "Memory belongs to a different investigation.")
+    need(all(kind in mem.get("artifacts", {}) for kind in KINDS.values()), "Memory is missing the completed pilot or recommendation.")
+    docs = {name: mem["artifacts"][kind] for name, kind in KINDS.items()}
+    hashes = {exporter.INPUTS[name]: mem["artifact_hashes"][kind] for name, kind in KINDS.items()}
+    need(all(mem["artifact_paths"][kind] == exporter.INPUTS[name] for name, kind in KINDS.items()), "Memory artifact paths differ from the selected snapshot.")
+    need(docs["results"]["run_id"] == exporter.RUN_ID, "Memory and selected pilot run differ.")
+    manifest = json.loads((integration.SNAPSHOT / "manifest.json").read_text(encoding="utf-8"))
+    need({i["path"]: i["sha256"] for i in manifest["inputs"]} == hashes, "Memory and exported investigation identities differ.")
+    try:
+        exporter.validate_inputs(docs, hashes)
+    except Exception:
+        raise AppError("integrity", "The retrieved artifact relationships or hashes do not match.", 409) from None
+    projections = exporter.project(docs, hashes)
+    live, checks = {}, {}
+    for table in integration.TABLES:
+        names, rows = client.sql(f"SELECT * FROM nextwise.{table}")
+        if not rows:
+            raise AppError("empty", f"No rows were returned for {table.replace('_', ' ')}. Nothing was substituted.", 404)
+        expected = list(csv.DictReader(io.StringIO(exporter.csv_bytes(projections[table]).decode("utf-8"), newline="")))
+        try:
+            live[table], checks[table] = integration.compare_rows(table, manifest["tables"][table], expected, names, rows)
+        except Exception:
+            raise AppError("integrity", f"Live {table.replace('_', ' ')} values differ from the persisted investigation. The views were not combined.", 409) from None
+    try:
+        integration.references(live)
+        for table in ("project_profiles", "evaluation_cases"):
+            names, rows = client.sql(integration.numeric_sql(table, manifest["tables"][table]))
+            integration.validate_numeric(table, manifest["tables"][table], live[table], names, rows)
+        names, rows = client.sql(integration.QUERY.read_text(encoding="utf-8"))
+        integration.compare_join(integration.expected_join(live), names, rows)
+    except Exception:
+        raise AppError("integrity", "Numeric conversions, live references or aggregated results could not be reconciled.", 409) from None
+    joined = [dict(zip(names, row)) for row in rows]
+    profile = json.loads(live["project_profiles"][0]["record_json"])
+    investigation = json.loads(live["investigations"][0]["record_json"])
+    review = json.loads(live["evidence_reviews"][0]["record_json"])
+    claims = sorted(live["evidence_claims"], key=lambda c: int(c["claim_pointer"].split("/")[-1]))
+    source_rows = live["sources"]
+    sources = [json.loads(row["record_json"]) for row in source_rows]
+    for source in sources:
+        source["publisher_domain"] = ".".join((urlsplit(source["requested_url"]).hostname or "").split(".")[-2:])
+    cases = []
+    rec = json.loads(live["evaluation_cases"][0]["recommendation_json"])
+    for row in live["evaluation_cases"]:
+        case = json.loads(row["record_json"])
+        fixture = next(f for f in docs["results"]["fixtures"] if f["id"] == case["fixture_id"])
+        finding = next(f for f in rec["evaluation_findings"] if f["fixture_id"] == case["fixture_id"])
+        index = next(n for n,c in enumerate(docs["results"]["cases"]) if c["fixture_id"] == case["fixture_id"])
+        need(finding["results_pointer"] == f"/cases/{index}", "Recommendation finding points to a different case.")
+        case.update(input=fixture["snapshot"]["input"], label=fixture["snapshot"]["label"], finding=finding["finding"])
+        case["comparison"] = present_case(case, fixture["snapshot"], docs["results"]["local_rubric"][case["fixture_id"]],
+                                          rec, docs["results"]["scoring_protocol"])
+        cases.append(case)
+    for claim in claims:
+        index = int(claim["claim_pointer"].split("/")[-1])
+        cr = review["claim_reviews"][index]
+        excerpt = docs["draft"]["source_excerpts"][int(cr["quote_reference"]["excerpt_pointer"].split("/")[2])]["excerpt"]
+        need(claim["exact_supporting_quote"] in excerpt, "A quotation no longer matches its saved excerpt.")
+        claim["review"] = cr
+    return {"profile": profile, "investigation": investigation, "sources": sources, "claims": claims,
+            "review": review, "cases": cases, "recommendation": rec, "aggregate": joined[0],
+            "task": docs["use_case"]["investigated_task"],
+            "unknowns": docs["use_case"]["proposed_success_measures"],
+            "analysis_observation": mem["analysis_observation"],
+            "diagnostics": {"loaded_at": datetime.now(timezone.utc).isoformat(), "run_id": exporter.RUN_ID,
+                            "investigation_id": INVESTIGATION, "manifest_id": mem["manifest_id"],
+                            "memory_ids": mem["artifact_ids"], "artifact_hashes": mem["artifact_hashes"],
+                            "upstream_commit": mem["upstream_commit"], "table_checks": checks,
+                            "query_rows": len(joined), "lineage": "Live rows match exact H-MEM artifact identities; numeric casts and aggregate joins reconciled."}}
+
+
+class State:
+    def __init__(self):
+        self.key = None
+        self.lock = threading.Lock()
+        self.need_key = threading.Event()
+        self.need_key.set()
+        self.cookie = secrets.token_urlsafe(32)
+
+
+def make_handler(state, loader=load_investigation):
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass  # No URLs, headers, request bodies, credentials or external content in logs.
+
+        def respond(self, status, payload, content_type="application/json; charset=utf-8", cookie=False):
+            data = json.dumps(payload, ensure_ascii=False).encode("utf-8") if content_type.startswith("application/json") else payload
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+            if cookie:
+                self.send_header("Set-Cookie", f"nextwise={state.cookie}; HttpOnly; SameSite=Strict; Path=/")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def allowed(self, session=False, post=False):
+            hosts = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
+            if self.headers.get("Host") not in hosts or self.headers.get("Sec-Fetch-Site") == "cross-site":
+                self.respond(403, {"code": "origin", "message": "Open Nextwise directly on its local address."})
+                return False
+            if session and f"nextwise={state.cookie}" not in self.headers.get("Cookie", "").split("; "):
+                self.respond(401, {"code": "authentication", "message": "Open the local Nextwise page to begin a session."})
+                return False
+            if post and self.headers.get("Origin") not in {"http://"+host for host in hosts}:
+                self.respond(403, {"code": "origin", "message": "This request must come from the local Nextwise page."})
+                return False
+            return True
+
+        def do_GET(self):
+            if not self.allowed():
+                return
+            paths = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                     "/style.css": ("style.css", "text/css; charset=utf-8")}
+            if self.path in paths:
+                file, kind = paths[self.path]
+                self.respond(200, (WEB/file).read_bytes(), kind, cookie=self.path == "/")
+            elif self.path == "/api/status":
+                if self.allowed(session=True):
+                    self.respond(200, {"authenticated": state.key is not None})
+            else:
+                self.respond(404, {"code": "missing", "message": "Page not found."})
+
+        def do_POST(self):
+            if not self.allowed(session=True, post=True):
+                return
+            if self.path == "/api/disconnect":
+                if not state.lock.acquire(blocking=False):
+                    self.respond(409, {"code": "loading", "message": "Wait for the current load to finish."})
+                    return
+                try:
+                    state.key = None
+                    state.need_key.set()
+                finally:
+                    state.lock.release()
+                self.respond(200, {"disconnected": True})
+                return
+            if self.path != "/api/load":
+                self.respond(404, {"code": "missing", "message": "Action not found."})
+                return
+            if state.key is None:
+                self.respond(401, {"code": "authentication", "message": "Enter the masked Zetaris key in the local PowerShell console, then try again."})
+                return
+            if not state.lock.acquire(blocking=False):
+                self.respond(409, {"code": "loading", "message": "The investigation is already loading. Please wait."})
+                return
+            try:
+                client = integration.Client(state.key)
+                try:
+                    payload = loader(client)
+                    self.respond(200, payload)
+                finally:
+                    client._key = None
+            except AppError as exc:
+                self.respond(exc.status, {"code": exc.code, "message": exc.message})
+            except ValueError as exc:
+                if "HTTP 401" in str(exc) or "HTTP 403" in str(exc):
+                    state.key = None
+                    state.need_key.set()
+                    self.respond(401, {"code": "authentication", "message": "Zetaris rejected the key or its permissions. Enter a valid key in the private console."})
+                else:
+                    self.respond(503, {"code": "zetaris", "message": "Zetaris could not complete the live read. Check the service and table access, then retry."})
+            except Exception:
+                self.respond(503, {"code": "service", "message": "The investigation could not be loaded safely. Check local services and retry; no saved report was substituted."})
+            finally:
+                state.lock.release()
+    return Handler
+
+
+def main():
+    state = State()
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), make_handler(state))
+    server.daemon_threads = True
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    print(f"Nextwise is running at http://127.0.0.1:{PORT}", flush=True)
+    print("The API key stays in this process only. Ctrl+C stops the app and clears it.", flush=True)
+    try:
+        while True:
+            state.need_key.wait()
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", getpass.GetPassWarning)
+                key = getpass.getpass("Zetaris API key (hidden): ").strip()
+            if key:
+                state.key = key
+                del key
+                state.need_key.clear()
+                print("Private key ready. Load or refresh the investigation in Nextwise.", flush=True)
+    except (KeyboardInterrupt, EOFError, getpass.GetPassWarning):
+        pass
+    finally:
+        state.key = None
+        server.shutdown()
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

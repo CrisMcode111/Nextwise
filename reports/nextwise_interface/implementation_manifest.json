@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "browser_checks": 20,
+  "backend_tests": 6,
+  "files": {
+    "scripts/nextwise_app.py": "87217104088d6dbb6522503cafeea2313b706d7035be941185d36a28837673c5",
+    "web/index.html": "d30525706d047fe3489df8f7d6b82068b2379fe2626b8d5b79d51f18ba55635c",
+    "web/app.js": "f771ce3706969e9cd6506f9e667b72955e35d47e0ee2825b826c87919decd39a",
+    "web/style.css": "a023f730f5eb8b81ad3a100708eb81c811dcc8a700b9b2d4e6b54c15575b697b",
+    "tests/test_nextwise_app.py": "3894f84b094e219f33f5d8c6d2ff2e56e839c2419d0f8ad79017de5ae51f5794",
+    "scripts/check_nextwise_browser.py": "f875004a9878bb601a42e21b6a74dadc5e7cf16da7083913d11c71e4d58b1943"
+  }
+}
