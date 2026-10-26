@@ -231,19 +231,25 @@ class Store:
             return self._run(fetcher, progress, now or datetime.now(timezone.utc))
 
     def reassess(self):
-        """Policy-only migration: no fetches, source revisions, baselines or discovery events."""
+        """Refresh semantic cache visibility only. GET never calls a model."""
         with self.exclusive():
-            state=self.read(); project=context(); at=datetime.now(timezone.utc).isoformat()
-            count=sum(assess_item(item,project,at) for item in state['items'].values())
-            if count:
-                state.setdefault('reassessments',[]).append({'policy_version':RELEVANCE_POLICY,'assessed_at':at,'candidate_count':count,
-                    'reason':'Relevance policy reassessment only; no source retrieval or publication event.'})
-                state=self.save(state)
+            state=self.read()
+            if self.semantic_refresh(state):return self.save(state)
             return state
+
+    def semantic_refresh(self,state):
+        import semantic_discovery as semantic
+        try:project=semantic.project_context(self.root)
+        except (ValueError,RuntimeError):
+            error='Approved project memory or genuine Defer Version 1 could not be verified. Semantic assessment and selection are unavailable; reopen after the investigation load finishes.'
+            changed=state.get('semantic_context_error')!=error
+            state['semantic_context_error']=error
+            return changed
+        changed=state.pop('semantic_context_error',None) is not None
+        return semantic.refresh(self,state,project) or changed
 
     def _run(self, fetcher, progress, now):
         state = self.read()
-        for item in state['items'].values(): assess_item(item,context(),now.isoformat())
         run = {'id':str(uuid.uuid4()), 'retrieved_at':now.isoformat(), 'sources':[], 'events':[],
                'approval':config(), 'project_context':context()}
         folder = self.directory/'runs'/run['id']; folder.mkdir(parents=True)
@@ -286,8 +292,11 @@ class Store:
                                'first_seen':old['first_seen'] if old else now.isoformat(),
                                'guids':list(dict.fromkeys((old['guids'] if old else [])+([item['guid']] if item['guid'] else []))),
                                'revisions':(old['revisions'] if old else [])+[revision],
-                               'relevance_history':assessment_history(old) if old else []}
-                    assess_item(current,run['project_context'],now.isoformat())
+                               'relevance_history':assessment_history(old) if old else [],
+                               **({'semantic_assessment':old['semantic_assessment'],
+                                   'semantic_history':list(old.get('semantic_history',[]))} if old and old.get('semantic_assessment') else {})}
+                    # Historical rules remain inspectable but never supply current project reasoning.
+                    if old and old.get('relevance'):current['relevance']=old['relevance']
                     state['items'][key] = current
                     run['events'].append({'item_id':key,'kind':kind, 'revision_sha256':digest})
                 state['baselines'][url] = {'run_id':run['id'], 'raw_sha256':record['raw_sha256'], 'retrieved_at':now.isoformat()}
@@ -295,28 +304,33 @@ class Store:
                 record['error'] = str(exc) if isinstance(exc, ValueError) else 'Source could not be parsed; prior baseline retained'
         run['status'] = 'partial_failure' if any(s['error'] for s in run['sources']) else 'success'
         state['runs'].append(run)
+        self.semantic_refresh(state)
         (folder/'run.json').write_text(json.dumps(run,ensure_ascii=False,indent=2),encoding='utf-8')
         return self.save(state)
 
-    def select(self, item_id, reason, revision_sha256=None):
-        if not isinstance(reason,str) or not 1 <= len(reason.strip()) <= 2000: raise ValueError('Enter a selection reason (1–2000 characters).')
+    def select(self, item_id, reason=None, revision_sha256=None, assessment_cache_key=None):
+        if reason is None:reason=''
+        if not isinstance(reason,str) or len(reason)>2000:raise ValueError('Optional user note must be at most 2000 characters.')
         with self.exclusive():
             state = self.read()
             item = state['items'].get(item_id)
             if not item: raise ValueError('Candidate is no longer available; refresh discovery.')
             if revision_sha256 is not None and revision_sha256 != item['content_sha256']:
                 raise ValueError('Candidate changed since it was displayed. Reopen discovery and review its latest revision before selecting.')
-            # One durable proposal per candidate revision; retries cannot duplicate it.
-            existing = next((p for p in state['proposals'] if p['candidate_id']==item_id and p['revision_sha256']==item['content_sha256']),None)
-            if not existing:
-                state['proposals'].append({'id':str(uuid.uuid4()), 'status':'proposed_not_investigated',
-                    'candidate_id':item_id, 'revision_sha256':item['content_sha256'], 'source':item['url'],
-                    'source_publication_date':item['publication_date'], 'source_retrieved_at':item['retrieved_at'],
-                    'selected_at':datetime.now(timezone.utc).isoformat(), 'title':item['title'],
-                    'project_connection':item['relevance'], 'selection_reason':reason.strip(),
-                    'questions':['Does this address the approved recipe or requirements-extraction task?',
-                                 'What evidence establishes reliability, cost, compatibility and integration effort?',
-                                 'What limits and acceptance criteria would apply to a separately authorized test?']})
+            import semantic_discovery as semantic
+            project=semantic.project_context(self.root)
+            prepared=semantic.prepare(self,item,project)
+            assessment=item.get('semantic_assessment',{})
+            if (assessment.get('status')!='validated' or assessment.get('cache_key')!=prepared['cache_key']
+                    or (assessment_cache_key and assessment_cache_key!=prepared['cache_key'])):
+                raise ValueError('The current agent proposal is unavailable or changed. Reopen discovery and review its assessment before selecting.')
+            proposal=next((p for p in state['proposals'] if p.get('origin')=='agent' and p.get('assessment_cache_key')==prepared['cache_key']),None)
+            if not proposal:raise ValueError('No persisted agent proposal is available to review.')
+            selections=state.setdefault('proposal_selections',[])
+            if not any(s['proposal_id']==proposal['id'] for s in selections):
+                selections.append({'proposal_id':proposal['id'],'selected_at':datetime.now(timezone.utc).isoformat(),
+                    'user_note':reason.strip() or None,'action':'selected_for_investigation_review','approval':None,
+                    'assessment_cache_key':prepared['cache_key']})
                 return self.save(state)
             return state
 

@@ -1,5 +1,40 @@
 # Demo readiness
 
+## Semantic proposals — current state, 26 October 2026
+
+Nextwise now uses the existing Meterless/Nemotron path for semantic project
+reasoning, with the approved profile/use case, existing investigation, original
+pilot findings and genuine Defer Version 1. The rule policies described below
+are historical. The user no longer writes the agent's rationale: validated
+assessments automatically create persisted agent proposals, and the UI offers
+**Review and select agent proposal** plus an **Optional user note**. Selection
+is separate from approval and starts no investigation or trial.
+
+The three-request live allowance is **exhausted**. All three calls returned
+`nvidia/nemotron-3.5-lightning-30b-a3b`: 32,650 prompt tokens, 5,680 completion
+tokens, 38,330 total. Two assessments validated, both low relevance, and produced
+two agent proposals. Eleven remain uncertain because responses failed
+validation; this is **partial live semantic validation**, not a successful
+assessment of all thirteen candidates. No additional calls/retries were made.
+
+Expand a candidate for its project need, source observation and exact supporting
+quote/provenance, untested application hypothesis when justified, limitations,
+missing information, explained priority and proposed question/next step. Failed
+candidates show their failure and source coverage rather than a rule-based
+fallback. Existing-investigation sources link to the saved 1/4 pilot, its
+limitations and Defer decision; no duplicate work is launched. Paragraphs come
+from existing snapshots or available feed excerpts, not freshly fetched linked
+articles. Limited coverage and unverified suitability remain explicit.
+
+Cache replay, reopening and selection make no model call. Source/content and
+project-context changes invalidate the cache but do not reset authorization.
+All original evidence, scores, prior assessments, raw snapshots, dates, source
+events, old manifests, Defer Version 1 and registrations are preserved. Detailed
+passed, failed and unrun checks:
+[semantic verification](../reports/update_discovery/semantic_assessment/VERIFICATION.md).
+
+## Earlier discovery verification
+
 ## Update-discovery milestone — 26 October 2026
 
 Both observed blockers were corrected and verified against the authenticated

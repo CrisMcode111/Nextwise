@@ -1,0 +1,74 @@
+[
+  {
+    "check": "Authenticated live investigation and discovery load together",
+    "passed": true
+  },
+  {
+    "check": "Connection displays live data and memory linked",
+    "passed": true
+  },
+  {
+    "check": "All six live tables reconcile with eight original H-MEM artifacts",
+    "passed": true
+  },
+  {
+    "check": "Original pilot score and pending review unchanged",
+    "passed": true
+  },
+  {
+    "check": "Genuine Defer Version 1 reopens without review warnings",
+    "passed": true
+  },
+  {
+    "check": "Every candidate has an explicit semantic outcome, not a rule-based substitute",
+    "passed": true
+  },
+  {
+    "check": "Ambiguous candidate remains uncertain after its failed assessment, with no invented hypothesis",
+    "passed": true
+  },
+  {
+    "check": "Earlier assessments remain available separately from source revisions",
+    "passed": true
+  },
+  {
+    "check": "Agent questions, hypotheses, limitations, provenance and visible failures are shown",
+    "passed": true
+  },
+  {
+    "check": "2 live assessments pass exact-source/quotation validation",
+    "passed": true
+  },
+  {
+    "check": "Agent proposals are persisted before any human selection and approval remains separate",
+    "passed": true
+  },
+  {
+    "check": "Optional notes replace the mandatory rationale field",
+    "passed": true
+  },
+  {
+    "check": "All existing-investigation sources are linked to findings without duplicate proposals",
+    "passed": true
+  },
+  {
+    "check": "Actual three-request authorization is recorded with returned-model usage",
+    "passed": true
+  },
+  {
+    "check": "Reload recovers live investigation, discovery and genuine decision",
+    "passed": true
+  },
+  {
+    "check": "Reopen preserves proposals, source events and assessment checkpoints exactly",
+    "passed": true
+  },
+  {
+    "check": "Combined live view fits mobile viewport",
+    "passed": true
+  },
+  {
+    "check": "No uncaught browser JavaScript errors",
+    "passed": true
+  }
+]

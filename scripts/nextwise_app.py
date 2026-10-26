@@ -243,14 +243,23 @@ def make_handler(state, loader=None):
             route = urlsplit(self.path)
             if route.path == "/api/discovery":
                 if not self.allowed(session=True): return
+                if (state.discovery.directory/'discovery-run.lock').exists():
+                    self.respond(200,{"status":{"running":True,"message":"Discovery or bounded semantic assessment is running; the current investigation is preserved."},"scope":discovery.config()})
+                    return
                 if not state.discovery_lock.acquire(blocking=False):
                     self.respond(200, {"status": {**state.discovery_status, "running": True}, "scope": discovery.config()})
                     return
+                if not state.lock.acquire(blocking=False):
+                    state.discovery_lock.release()
+                    self.respond(200,{"status":{"running":True,"message":"Waiting for the existing investigation read before verifying semantic context."},"scope":discovery.config()})
+                    return
                 try:
-                    self.respond(200, {"status": dict(state.discovery_status), "scope": discovery.config(), "discovery": state.discovery.reassess()})
+                    self.respond(200, {"status": dict(state.discovery_status), "scope": discovery.config(), "semantic_review_supported":True,"discovery": state.discovery.reassess()})
                 except Exception:
                     self.respond(503, {"message": "Discovery memory is unavailable. Check H-MEM runtime/storage and retry; no baseline was replaced."})
-                finally: state.discovery_lock.release()
+                finally:
+                    state.lock.release()
+                    state.discovery_lock.release()
                 return
             if route.path in ("/api/decisions", "/api/decision-evidence"):
                 if not self.allowed(session=True):
@@ -312,7 +321,7 @@ def make_handler(state, loader=None):
                     self.respond(202, {"status":dict(state.discovery_status)})
                 else:
                     try:
-                        result = state.discovery.select(body['item_id'],body.get('reason'),body['revision_sha256'])
+                        result = state.discovery.select(body['item_id'],body.get('reason'),body['revision_sha256'],body.get('assessment_cache_key'))
                         self.respond(200,{"discovery":result})
                     except (ValueError, UnicodeError) as exc:
                         self.respond(400,{"message":str(exc)})

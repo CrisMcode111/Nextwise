@@ -1,16 +1,51 @@
 'use strict';
 const $ = s => document.querySelector(s);
-let discoveryBusy=false, discoveryTimer=null;
+let discoveryBusy=false, discoveryReading=false, discoveryTimer=null;
 const selectionDrafts=new Map();
 const discoveryLabels={initial_inventory:'Initial inventory of recently published items',new_article:'Newly discovered article',article_summary_changed:'Feed title/summary changed (article not fetched)',page_baseline:'Initial monitored-page baseline',monitored_page_changed:'Monitored page edited'};
+function paintSemantic(record,parent){
+  if(!record||record.status!=='validated'){
+    paragraph(record?.error||record?.explanation||'Semantic assessment pending. No project connection has been established.',parent,'notice');
+    paragraph('Uncertain. Historical deterministic rules are not used as project reasoning. Failed inputs are cached and are not retried automatically.',parent);
+    if(record?.provenance){
+      const p=record.provenance;
+      paragraph(p.coverage.description,parent,'notice');
+      const raw=details('Available source passages and provenance — no project conclusion established',parent);json(p,raw);
+      if(p.existing_investigation){paragraph('This source already belongs to the existing investigation. Its saved pilot passed 1/4 lexical quality checks, with evaluator limitations; genuine Defer Version 1 remains unchanged. No duplicate investigation is proposed.',parent,'notice');link('Review existing findings and decision','#update',parent);}
+    }
+    return;
+  }
+  const a=record.assessment,p=record.provenance;
+  paragraph(record.label,parent,'notice');
+  paragraph(`Model: ${record.model.returned_model} · Policy: ${record.policy_version} · Assessed: ${record.assessed_at}`,parent,'meta');
+  el('h4','','Project need',parent);paragraph(a.project_need,parent);
+  el('h4','','What the source describes',parent);paragraph(a.source_observation,parent);
+  a.evidence.forEach(e=>{
+    const passage=p.passages.find(x=>x.passage_id===e.passage_id);
+    const q=details('Supporting passage and provenance',parent);el('blockquote','human-text',e.exact_quote,q);
+    if(passage)paragraph(passage.text,q,'human-text');
+    link('Saved source URL',p.url,q);paragraph(`Source ${e.source_id} · Passage ${e.passage_id} · Published ${p.publication_date||'unknown'} · Retrieved ${p.retrieved_at}`,q,'meta');
+    paragraph(`Snapshot ${p.snapshot_path} · SHA-256 ${p.raw_sha256}`,q,'meta');
+  });
+  paragraph(p.coverage.description,parent,'notice');paragraph(`${p.coverage.selected_paragraphs} complete paragraph/excerpt blocks selected; ${p.coverage.omitted_paragraphs} omitted. ${p.coverage.selection}`,parent,'meta');
+  if(a.application_hypothesis){el('h4','','Potential application — hypothesis, untested',parent);paragraph(a.application_hypothesis,parent);}
+  else paragraph('No application hypothesis is established by the available evidence.',parent);
+  el('h4','','Limitations',parent);list(a.limitations,parent);el('h4','','Missing information',parent);list(a.missing_information,parent);
+  paragraph(`Priority: ${a.priority}. ${a.priority_reason}`,parent);
+  if(p.existing_investigation){paragraph('Follow-up to the existing investigation; no duplicate investigation is proposed.',parent,'notice');paragraph(a.existing_findings_connection,parent);link('Existing investigation and findings','#update',parent);}
+  el('h4','','Proposed investigation question',parent);paragraph(a.investigation_question,parent);
+  el('h4','','Proposed next step — not executed',parent);paragraph(a.next_step,parent);
+}
 function paintDiscovery(d){
   const scope=$('#discovery-scope'), target=$('#discovery-results');scope.replaceChildren();target.replaceChildren();
   const limits=details('Approved source scope and limits',scope);
   list([...d.scope.pages,d.scope.feed],limits);
   paragraph(`At most ${d.scope.item_cap} recent feed items within ${d.scope.lookback_days} days. Feed and three fixed pages only; linked articles are not fetched. Missing, invalid or future publication dates are excluded.`,limits);
   paragraph(`${d.scope.max_response_bytes} bytes/source; ${d.scope.socket_timeout_seconds}s socket timeout; ${d.scope.source_deadline_seconds}s read deadline (a blocked read can add one socket timeout); at most ${d.scope.max_redirects} redirects. ${d.scope.destinations}`,limits);
-  paragraph('Manual checks only. Public source content is untrusted; no models, scheduled monitoring or automatic investigation.',limits);
+  paragraph('Manual source checks. Semantic assessment uses a separately authorized, capped Meterless/Nemotron run; at most three requests total for this milestone and no automatic retries. No scheduled monitoring or automatic investigation.',limits);
   const saved=d.discovery, run=saved.runs.at(-1);
+  if(saved.semantic_context_error)paragraph(saved.semantic_context_error,target,'notice');
+  paragraph('Nextwise prepares agent proposals automatically from semantic assessments. Human selection is separate from approval and never launches research.',target);
   const reassessment=saved.reassessments?.at(-1);
   if(reassessment)paragraph(`Relevance reassessed under ${reassessment.policy_version} at ${reassessment.assessed_at}. Classification only; no newly published content or source change is implied.`,target,'notice');
   if(run){
@@ -23,43 +58,52 @@ function paintDiscovery(d){
   const inventory=details(`Saved candidates (${Object.keys(saved.items).length}) · includes low relevance and previous observations`,target);
   inventory.parentElement.open=true;
   Object.values(saved.items).forEach(item=>{
-    const row=details(`${item.title} · ${item.relevance.category}`,inventory);
+    const semantic=item.semantic_assessment;
+    const row=details(`${item.title} · ${semantic?.category||'uncertain relevance'}`,inventory);
     paragraph(`${events.has(item.id)?'In latest check':'Previously observed'} · ${discoveryLabels[item.kind]}`,row);
     link(item.source===d.scope.feed?'Publisher article (not fetched during discovery)':'Monitored publisher page',item.url,row);
     paragraph(`Published: ${item.publication_date||'unknown'} · First seen: ${item.first_seen} · Retrieved: ${item.retrieved_at}`,row,'meta');
-    paragraph(item.text.slice(0,1800),row);
-    paragraph(item.relevance.label,row,'notice');
-    paragraph(`Relevance policy: ${item.relevance.policy_version||'legacy-keywords-v1'}`,row,'meta');
-    item.relevance.matches.forEach(m=>paragraph(`${m.connection}: ${m.terms.join(', ')}`,row));
-    item.relevance.matches.forEach(m=>{if(m.supporting_phrase)paragraph(`Supporting source phrase: ${m.supporting_phrase}`,row);});
-    paragraph(item.relevance.explanation,row);
-    const ctx=details('Approved project context',row);json(item.relevance.project_context,ctx);
-    const assessments=details(`Relevance assessment history (${item.relevance_history?.length||1})`,row);json(item.relevance_history||[{policy_version:'legacy-keywords-v1',assessment:item.relevance}],assessments);
+    paintSemantic(semantic,row);
+    const assessments=details('Assessment history and cache provenance',row);json({current:semantic,semantic_history:item.semantic_history||[],historical_rules:item.relevance_history||[]},assessments);
     const rev=details(`Revision history (${item.revisions.length}) and exact readable differences`,row);json(item.revisions,rev);
-    const form=el('form','',null,row);const labelNode=el('label','','Why investigate this candidate?',form);
-    const reason=el('textarea','',null,labelNode);reason.maxLength=2000;reason.required=true;reason.value=selectionDrafts.get(item.id)||'';
+    const form=el('form','',null,row);const labelNode=el('label','','Optional user note',form);
+    const reason=el('textarea','',null,labelNode);reason.maxLength=2000;reason.value=selectionDrafts.get(item.id)||'';
     reason.oninput=()=>selectionDrafts.set(item.id,reason.value);
-    const save=el('button','button','Create investigation proposal',form);save.type='submit';save.disabled=discoveryBusy;
+    const save=el('button','button','Review and select agent proposal',form);save.type='submit';save.disabled=discoveryBusy||semantic?.status!=='validated'||!!saved.semantic_context_error||!d.semantic_review_supported;
     const msg=el('p','',null,form);msg.setAttribute('role','status');
-    form.onsubmit=async e=>{e.preventDefault();if(discoveryBusy)return;save.disabled=true;msg.textContent='Saving separate proposal in H-MEM…';
-      try{const r=await fetch('/api/discovery/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:item.id,revision_sha256:item.content_sha256,reason:reason.value})});const result=await r.json();if(!r.ok)throw new Error(result.message);selectionDrafts.delete(item.id);await readDiscovery();$('#discovery-status').textContent='Proposal saved. Reopen it below; research has not started.';}
+    form.onsubmit=async e=>{e.preventDefault();if(discoveryBusy)return;save.disabled=true;msg.textContent='Saving your review selection in H-MEM…';
+      try{const r=await fetch('/api/discovery/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:item.id,revision_sha256:item.content_sha256,assessment_cache_key:semantic.cache_key,reason:reason.value})});const result=await r.json();if(!r.ok)throw new Error(result.message);selectionDrafts.delete(item.id);await readDiscovery();$('#discovery-status').textContent='Agent proposal selected for investigation review. Human approval remains separate; research has not started.';}
       catch(e){msg.textContent=e.message||'Save failed; keep your reason and retry.';save.disabled=false;}};
   });
   const proposals=details(`Persisted investigation proposals (${saved.proposals.length})`,target);proposals.parentElement.open=true;
-  saved.proposals.forEach(p=>{const row=details(`${p.title} · Proposal, not a completed investigation`,proposals);paragraph(`Selected ${p.selected_at} · Published ${p.source_publication_date||'unknown'} · Retrieved ${p.source_retrieved_at}`,row);link('Source',p.source,row);paragraph(p.selection_reason,row,'human-text');paragraph(p.project_connection.label,row);p.project_connection.matches.forEach(m=>paragraph(`${m.connection}: ${m.terms.join(', ')}`,row));list(p.questions,row);paragraph('Proposed only. No research, model request, trial or replacement of the existing Nemotron investigation was launched.',row,'notice');});
+  saved.proposals.forEach(p=>{
+    const row=details(`${p.title} · ${p.origin==='agent'?'Agent-prepared proposal':'Historical human proposal'}, not a completed investigation`,proposals);
+    link('Source',p.source,row);
+    if(p.origin==='agent'){
+      paragraph(`Prepared ${p.prepared_at} · ${p.proposal_kind} · Human approval: pending`,row,'notice');
+      paintSemantic(p.assessment,row);
+      const selection=(saved.proposal_selections||[]).find(s=>s.proposal_id===p.id);
+      if(selection){paragraph(`Selected for review ${selection.selected_at}; approval remains separate.`,row);if(selection.user_note)paragraph(selection.user_note,row,'human-text');}
+    }else {paragraph(p.selection_reason||'',row,'human-text');json(p,row);}
+    paragraph('Proposal only. No investigation, trial, adoption or replacement of the existing investigation was launched.',row,'notice');
+  });
 }
 async function readDiscovery(){
   clearTimeout(discoveryTimer);
+  if(loading||decisionSaving){discoveryTimer=setTimeout(readDiscovery,1000);return;}
+  if(discoveryReading)return;
+  discoveryReading=true;
   try{const r=await fetch('/api/discovery');const d=await r.json();if(!r.ok)throw new Error(d.message);discoveryBusy=d.status.running;$('#check-updates').disabled=discoveryBusy;$('#discovery-status').textContent=d.status.message;
     // Keep the current inventory and any typed selection reason intact while polling.
     if(!discoveryBusy)paintDiscovery(d);
     if(discoveryBusy)discoveryTimer=setTimeout(readDiscovery,1000);
   }catch(e){$('#discovery-status').textContent=e.message||'Local discovery service unavailable; reopen saved discovery to retry.';$('#check-updates').disabled=false;}
+  finally{discoveryReading=false;}
 }
 $('#check-updates').onclick=async()=>{if(discoveryBusy)return;discoveryBusy=true;$('#check-updates').disabled=true;$('#discovery-status').textContent='Starting check…';try{const r=await fetch('/api/discovery/check',{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(d.message);await readDiscovery();}catch(e){discoveryBusy=false;$('#check-updates').disabled=false;$('#discovery-status').textContent=e.message;}};
 $('#reload-discovery').onclick=readDiscovery;
-// Wait until the remainder of this script has initialized its shared render helpers.
-setTimeout(readDiscovery,0);
+// Initial discovery waits for investigation/decision reads, so H-MEM context
+// verification cannot starve the authenticated investigation's startup read.
 const content = $('#content'), state = $('#state'), refresh = $('#refresh');
 let loading = false;
 let decisionState=null, decisionContext=null, decisionSaving=false, decisionMessage='', decisionError='';
@@ -82,9 +126,12 @@ function paintDecisionRecord(record,parent){
 }
 async function readDecisions(){
   try{
-    const response=await fetch('/api/decisions',{credentials:'same-origin'}),result=await response.json();
-    if(!response.ok)throw new Error(result.message||'Decision history is unavailable.');
-    decisionState=result;decisionError='';paintDecisionPanel();
+    for(let attempt=0;attempt<10;attempt++){
+      const response=await fetch('/api/decisions',{credentials:'same-origin'}),result=await response.json();
+      if(response.status===409&&result.code==='loading'&&attempt<9){await new Promise(resolve=>setTimeout(resolve,1000));continue;}
+      if(!response.ok)throw new Error(result.message||'Decision history is unavailable.');
+      decisionState=result;decisionError='';paintDecisionPanel();break;
+    }
   }catch(error){decisionError=error.message||'Decision history is unavailable. Your typed text is kept.';paintDecisionPanel();}
 }
 function paintDecisionPanel(){
@@ -335,6 +382,7 @@ function showState(code,message) {
 }
 async function load() {
   if(loading||decisionSaving)return; loading=true; refresh.disabled=true;
+  while(discoveryReading)await new Promise(resolve=>setTimeout(resolve,100));
   showState('loading','Reading live Zetaris tables, retrieving persisted H-MEM artifacts, and checking investigation identity and evidence links. This may take a moment.');
   try {
     // A previous document's history read can briefly hold the server lock after
@@ -350,8 +398,8 @@ async function load() {
     }
   }
   catch(_){showState('network','Check that the local Nextwise server is still running, then retry. No cached report is displayed.');}
-  finally{loading=false;refresh.disabled=false;readDecisions();}
+  finally{loading=false;await readDecisions();refresh.disabled=false;readDiscovery();}
 }
 refresh.onclick=load;
 $('#disconnect').onclick=async()=>{if(loading||decisionSaving)return;try{const r=await fetch('/api/disconnect',{method:'POST'});if(!r.ok)return;$('#disconnect').hidden=true;showState('authentication','The server has released the key. Enter a key in the private console to reconnect.');}catch(_){showState('network','The local server is unavailable.');}};
-fetch('/api/status').then(r=>r.json()).then(d=>{if(d.authenticated)load();else {showState('authentication','Your local app is ready. Enter the Zetaris API key at the hidden prompt in PowerShell, then connect here.');readDecisions();}}).catch(()=>{showState('network','Start the local Nextwise server and reload this page.');readDecisions();});
+fetch('/api/status').then(r=>r.json()).then(d=>{if(d.authenticated)load();else {showState('authentication','Your local app is ready. Enter the Zetaris API key at the hidden prompt in PowerShell, then connect here.');readDecisions().finally(readDiscovery);}}).catch(()=>{showState('network','Start the local Nextwise server and reload this page.');readDecisions().finally(readDiscovery);});

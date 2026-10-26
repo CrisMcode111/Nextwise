@@ -1,0 +1,37 @@
+{
+  "policy": "nemotron-grounded-discovery-v1",
+  "candidates": 13,
+  "validated": 2,
+  "failed_uncertain": 11,
+  "automatic_agent_proposals": 2,
+  "actual_requests": 3,
+  "returned_models": [
+    "nvidia/nemotron-3.5-lightning-30b-a3b"
+  ],
+  "usage": {
+    "prompt_tokens": 32650,
+    "completion_tokens": 5680,
+    "total_tokens": 38330
+  },
+  "sources_baselines_events_first_seen_and_revisions_unchanged": true,
+  "earlier_rule_assessments_preserved_exactly": true,
+  "exact_source_and_quote_validation_passed": true,
+  "unchanged_cache_no_model_call": true,
+  "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+  "project_context_provenance": {
+    "manifest_id": "mem-10",
+    "artifact_hashes": {
+      "project_profile": "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651",
+      "investigation": "055477b1ce9736904f23f138e772d9868a0ff01b4bd8806bbbec419d6d1bcbd5",
+      "sources": "71a50afc8d777e76a6000433d5bece40317cafe17d7c231b9eb0fb2c1813e697",
+      "evidence_draft": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c",
+      "evidence_review": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f",
+      "use_case": "4c18a25ae4f75cef32fad60f38984dbde75f4421926e48646de8850e4c638c02",
+      "evaluation_results": "1cd4c7a39c1670922226db69d7fbb4909fb9ecc9d7b31e4b5fa58563349bd2dd",
+      "evaluation_recommendation": "f8d992d6922f5024462baa66d892f0d0e45cd93ea3ea199e5c8fdeb03a7550f7"
+    },
+    "decision_record_sha256": "1ebe18051f77a0a385cd625f3a2b24c394f5b11e7de65eacb5d2c415b4a01a59"
+  },
+  "genuine_defer_version_1_context": true,
+  "real_human_selections": 0
+}

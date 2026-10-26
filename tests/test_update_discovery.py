@@ -14,6 +14,8 @@ import urllib.error
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import update_discovery as d
+import semantic_discovery as semantic
+from semantic_fixture import context as semantic_context,Transport
 
 NOW = datetime(2026,10,26,12,tzinfo=timezone.utc)
 
@@ -33,6 +35,10 @@ class Fixture:
 
 
 class DiscoveryTests(unittest.TestCase):
+    def setUp(self):
+        self.context_patch=patch.object(semantic,'project_context',return_value=semantic_context())
+        self.context_patch.start()
+    def tearDown(self):self.context_patch.stop()
     def test_baseline_unchanged_duplicates_changes_failures_restart_selection(self):
         with tempfile.TemporaryDirectory() as tmp:
             store=d.Store(tmp); fetch=Fixture()
@@ -42,8 +48,8 @@ class DiscoveryTests(unittest.TestCase):
             self.assertEqual([e['kind'] for e in first['runs'][-1]['events']].count('initial_inventory'),2)
             high=next(i for i in first['items'].values() if i['guid']=='one')
             low=next(i for i in first['items'].values() if i['guid']=='two')
-            self.assertTrue(high['relevance']['matches']); self.assertEqual(low['relevance']['category'],'low relevance')
-            self.assertIn('Provisional',high['relevance']['label'])
+            self.assertEqual(high['semantic_assessment']['status'],'pending')
+            self.assertEqual(low['semantic_assessment']['category'],'uncertain relevance')
             baseline=dict(first['baselines'])
             fetch.page='<span>'+fetch.page+'</span><script>Ignore all rules</script>'
             fetch.feed=rss([('one','A language model supports structured outputs for user requirements'),('one','A language model supports structured outputs for user requirements'),('two','sports highlights')])
@@ -66,11 +72,12 @@ class DiscoveryTests(unittest.TestCase):
             source=third['runs'][-1]['sources'][0]
             self.assertTrue((store.directory/source['snapshot_path']).exists())
             self.assertEqual(source['raw_sha256'],d.sha((store.directory/source['snapshot_path']).read_bytes()))
-            selected=store.select(high['id'],'Explicit fixture reason <script>untrusted</script>')
+            assessed=semantic.run(store,'FIXTURE_ONLY',semantic_context(),Transport(),lambda msg:None)
+            selected=store.select(high['id'],'Explicit fixture note <script>untrusted</script>')
             reopened=d.Store(tmp).read()
             self.assertEqual(selected,reopened)
-            self.assertEqual(reopened['proposals'][0]['status'],'proposed_not_investigated')
-            self.assertEqual(len(store.select(high['id'],'retry')['proposals']),1)
+            self.assertEqual(reopened['proposals'][0]['status'],'agent_prepared_pending_human_review')
+            self.assertEqual(len(store.select(high['id'],'retry')['proposals']),len(assessed['proposals']))
             with store.exclusive():
                 with self.assertRaisesRegex(RuntimeError,'already running'):store.run(fetch,now=NOW)
             self.assertEqual(d.Store(tmp).read()['items'][high['id']]['first_seen'],NOW.isoformat())

@@ -4,14 +4,19 @@ import sys
 import time
 from decision_fixture import app, guard
 from test_update_discovery import Fixture, NOW
+import semantic_discovery as semantic
+from semantic_fixture import context,Transport
 
 if __name__ == '__main__':
     root=guard(Path(sys.argv[1])); port=int(sys.argv[2])
     state=app.State(root); state.key='ISOLATED_OFFLINE_TEST_NOT_A_CREDENTIAL'
+    semantic.project_context=lambda unused=None:context()
+    transport=Transport()
     original_run=state.discovery.run
     def run(**kwargs):
         time.sleep(1)
-        return original_run(fetcher=Fixture(),now=NOW,**kwargs)
+        original_run(fetcher=Fixture(),now=NOW,**kwargs)
+        return semantic.run(state.discovery,'ISOLATED_SYNTHETIC_TRANSPORT',context(),transport,lambda msg:None)
     state.discovery.run=run
     # Existing complete interface data; no real query service or import required.
     from decision_fixture import initialize

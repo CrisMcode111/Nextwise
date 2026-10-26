@@ -1,0 +1,248 @@
+{
+  "policy": "nemotron-grounded-discovery-v1",
+  "authorization": "semantic-discovery-milestone-v1",
+  "max_requests": 3,
+  "requests": [
+    {
+      "id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "authorization": "semantic-discovery-milestone-v1",
+      "status": "failed_or_partial",
+      "started_at": "2026-10-26T12:02:01.488692+00:00",
+      "finished_at": "2026-10-26T12:03:45.937972+00:00",
+      "cache_keys": [
+        "933fb76b711a9594a2d623b4d6be25323d39e2105fe241bfd8696ef3356fa3f3",
+        "7e7098bbd8fc7bfa275ec7fde24396efdc2589ac122a4e4329b4a3dbfdb85120",
+        "86e00605404097cb951b67f0a7516fda22e34f40ab695f9992021561a7c7bf0a",
+        "6159d1f8f8114451e1f02b24cdff0409a30089caa1ffbb725d806dec9f573162",
+        "839ca8f3b03e373c0930a922193d4bda351566d03e0496d1aeb3d8daaf7bfdcc"
+      ],
+      "candidate_ids": [
+        "9428cc2bc3c996d8505a0fdf",
+        "c0320c9fae8313e8af4d7601",
+        "daf677f0f296925e50c0d739",
+        "90e35913e5ba3eb8b4a92f72",
+        "2c1c1d0b09d0e274e1a661fd"
+      ],
+      "max_tokens": 6000,
+      "timeout_seconds": 180,
+      "max_response_bytes": 1000000,
+      "model": {
+        "returned_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "usage": {
+          "prompt_tokens": 12994,
+          "completion_tokens": 2686,
+          "total_tokens": 15680
+        },
+        "http_status": 200,
+        "duration_seconds": 100.324
+      },
+      "outcomes": [
+        {
+          "candidate_id": "9428cc2bc3c996d8505a0fdf",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "c0320c9fae8313e8af4d7601",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "daf677f0f296925e50c0d739",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "90e35913e5ba3eb8b4a92f72",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "2c1c1d0b09d0e274e1a661fd",
+          "status": "failed"
+        }
+      ],
+      "journal_recovered": true
+    },
+    {
+      "id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "authorization": "semantic-discovery-milestone-v1",
+      "status": "failed_or_partial",
+      "started_at": null,
+      "finished_at": "2026-10-26T12:05:25.114679+00:00",
+      "cache_keys": [
+        "e883dce41f4306f987b6913623518f1d034a4032a52075289dbb388b2c2dca14",
+        "0ce9c6b5b52eba9d890d0be250cc90a7c4ca5a92d93ce3b085bdd3709c916752",
+        "43383616609b459f5bae056d55c4ea8054c021dec9392381fa82a59660789297",
+        "989d6633cebe4c75db09a8448726ae523c96634a5b9eaaf12b620578579c032a",
+        "8d1fc317960c2b396270a2cdbba5446c92499ad12ea92b2c2ac33803df9cd846"
+      ],
+      "candidate_ids": [
+        "856d845adf1f95fea166c443",
+        "f22a63cc12b9be5044807d05",
+        "36ee8fe7cab29f5dfbb84b94",
+        "7d13ce0e971c17c77553a630",
+        "898575ccc2fcbfd5eae1b581"
+      ],
+      "max_tokens": 6000,
+      "timeout_seconds": 180,
+      "max_response_bytes": 1000000,
+      "model": {
+        "returned_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "usage": {
+          "prompt_tokens": 10384,
+          "completion_tokens": 1806,
+          "total_tokens": 12190
+        },
+        "http_status": 200,
+        "duration_seconds": 95.504
+      },
+      "outcomes": [
+        {
+          "candidate_id": "856d845adf1f95fea166c443",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "f22a63cc12b9be5044807d05",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "36ee8fe7cab29f5dfbb84b94",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "7d13ce0e971c17c77553a630",
+          "status": "failed"
+        },
+        {
+          "candidate_id": "898575ccc2fcbfd5eae1b581",
+          "status": "failed"
+        }
+      ],
+      "journal_recovered": true
+    },
+    {
+      "id": "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "authorization": "semantic-discovery-milestone-v1",
+      "status": "failed_or_partial",
+      "started_at": null,
+      "finished_at": "2026-10-26T12:06:32.810982+00:00",
+      "cache_keys": [
+        "34a16c246512c5e6c855c51b80dd4b250f276092a326a2921e77bd72c6c32e34",
+        "0dccbf6f0d7dcec412aab148b0fb34595ce6d575fde6c9381ddc9fe7207664bf",
+        "7e960d01862736eadc9876c9b7b6f91be95c4ab50686711afc5c7bdc5731f884"
+      ],
+      "candidate_ids": [
+        "89a4e6d4e0e5bb84c8c4a864",
+        "bc7e4740517cd6fe1e42dac4",
+        "6822fece1c79cc899786a2c2"
+      ],
+      "max_tokens": 6000,
+      "timeout_seconds": 180,
+      "max_response_bytes": 1000000,
+      "model": {
+        "returned_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "usage": {
+          "prompt_tokens": 9272,
+          "completion_tokens": 1188,
+          "total_tokens": 10460
+        },
+        "http_status": 200,
+        "duration_seconds": 64.102
+      },
+      "outcomes": [
+        {
+          "candidate_id": "89a4e6d4e0e5bb84c8c4a864",
+          "status": "validated"
+        },
+        {
+          "candidate_id": "bc7e4740517cd6fe1e42dac4",
+          "status": "validated"
+        },
+        {
+          "candidate_id": "6822fece1c79cc899786a2c2",
+          "status": "failed"
+        }
+      ],
+      "journal_recovered": true
+    }
+  ],
+  "candidate_count": 13,
+  "outcomes": [
+    {
+      "candidate_id": "9428cc2bc3c996d8505a0fdf",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": true
+    },
+    {
+      "candidate_id": "c0320c9fae8313e8af4d7601",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": true
+    },
+    {
+      "candidate_id": "daf677f0f296925e50c0d739",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": true
+    },
+    {
+      "candidate_id": "90e35913e5ba3eb8b4a92f72",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "2c1c1d0b09d0e274e1a661fd",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "856d845adf1f95fea166c443",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "f22a63cc12b9be5044807d05",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "36ee8fe7cab29f5dfbb84b94",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "7d13ce0e971c17c77553a630",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "898575ccc2fcbfd5eae1b581",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "89a4e6d4e0e5bb84c8c4a864",
+      "status": "validated",
+      "category": "low relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "bc7e4740517cd6fe1e42dac4",
+      "status": "validated",
+      "category": "low relevance",
+      "existing_investigation": false
+    },
+    {
+      "candidate_id": "6822fece1c79cc899786a2c2",
+      "status": "failed",
+      "category": "uncertain relevance",
+      "existing_investigation": false
+    }
+  ],
+  "agent_proposals": 2
+}

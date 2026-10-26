@@ -36,28 +36,63 @@ be wrong, and changes outside the capped window are not covered. Partial failure
 means incomplete coverage; successful-source results persist and failed-source
 baselines remain. Fetch success never verifies publisher claims.
 
-Expand a saved candidate to inspect its provisional context/phrase rule matches,
-approved objective/task/constraints and full readable revision differences.
-Low-relevance candidates remain visible. These assessments use no Nemotron
-reasoning and do not establish suitability. Enter a reason and choose **Create
-investigation proposal**. Reopen it under **Persisted investigation proposals**
-or **Reopen saved discovery**, including after a server restart. A proposal is
-separate from the current Nemotron investigation and does not start research,
-call models, run a trial or approve anything. Repeated selection of the same
-candidate revision returns the existing proposal.
+Project reasoning uses **`nemotron-grounded-discovery-v1`** through the existing
+Meterless endpoint and routing configuration. Deterministic rules handle source
+comparison, identity and evidence selection; earlier rule assessments remain
+historical and are not a substitute for semantic relevance. The approved profile,
+use case, existing investigation, saved pilot findings (including evaluator
+limitations) and genuine Defer Version 1 supply the project context through H-MEM.
 
-Relevance policy **`context-phrases-v2`** requires supporting capability or
-model-integration phrases in nearby text within one sentence. Generic words
-such as “extraction” or “deployment”, product names, and disconnected mentions
-cannot establish potential relevance. Insufficient context is labelled
-**uncertain relevance**; low relevance and uncertainty remain visible. The
-policy deliberately favors false negatives over invented project connections.
-Expand **Relevance assessment history** to see earlier assessments and their
-source revision. Reopening discovery migrates older assessments once, retaining
-the original assessment, source snapshots, first-seen dates, revisions and
-discovery events. A reclassification banner identifies policy changes separately
-from publication or source changes. Existing proposals retain their selection-time
-assessment; migration neither selects candidates nor launches investigations.
+Expand a candidate to see the specific project need, source observation, exact
+supporting passage/provenance, a possible application labelled **hypothesis,
+untested**, limitations, missing information, explained priority, investigation
+question and proposed next step. No positive relevance or application is forced.
+Complete paragraphs are selected from verified saved pages; feed excerpts have
+explicitly limited coverage, and linked articles are not fetched. Quotations
+must match the supplied source and passage IDs exactly. Quote validation proves
+textual grounding, not truth, measured benefits or suitability. Sources already
+registered to the investigation are linked to its 1/4 pilot and Defer decision;
+they produce follow-up proposals rather than duplicate investigations.
+
+Validated assessments **automatically prepare and persist agent proposals**.
+Use **Review and select agent proposal** with an **Optional user note**; you do
+not have to invent its rationale. Selection is persisted separately from human
+approval and launches no research, model call, test or pilot. Reopen proposals
+and assessment/cache history after restart with **Reopen saved discovery**.
+Failed assessments remain visibly uncertain and cannot be selected as validated
+agent proposals. Earlier assessments, source revisions and existing proposals
+are retained. A classification change never becomes a source-publication event.
+
+For the explicitly authorized live milestone, start the existing Nightshift/
+Meterless runtime on port 8088 with the working Nemotron route, then use an
+interactive PowerShell console:
+
+```powershell
+python scripts/assess_discovery.py
+python scripts/assess_discovery.py --live
+```
+
+The first command is a no-model preview. The second requests the runtime token
+only at a hidden prompt when uncached work and authorization remain. Tokens stay
+in that process and are never written to files, URLs or the browser. At most
+**three requests total**, batches of at most five candidates, **6,000 output
+tokens/request**, **180-second socket timeout**, **1 MB response**, **100,000
+prompt characters**, and **no automatic retries** are allowed. Model transport
+uses the existing headers/endpoint, with proxies/redirects disabled. A durable
+request reservation prevents a crash or restart from resetting the allowance.
+
+Successes and failures are cached by selected content/provenance, policy and
+approved project-context hashes. Unchanged inputs cause no model request, even
+when the previous response failed. Once the three-request allowance is spent,
+new inputs remain pending/uncertain and need separate authorization; the app
+never silently spends another request. Refresh, reopen and human selection use
+only saved data. There is no scheduled monitoring or automatic investigation.
+
+**Actual live result:** all three allowed calls returned
+`nvidia/nemotron-3.5-lightning-30b-a3b` (38,330 reported tokens total).
+**Two** assessments validated and produced agent proposals; **eleven** failed
+response validation and remain explicitly uncertain. No fourth request or retry
+was made. See [semantic verification](reports/update_discovery/semantic_assessment/VERIFICATION.md).
 
 Discovery state, first-seen dates, revisions and proposals live through the
 app-owned official H-MEM adapter in `data/memory/hmem/update-discovery/`.
@@ -76,7 +111,7 @@ Discovery verification (isolated fixtures; browser requires installed Chrome):
 
 ```powershell
 python -m unittest discover -s tests -p test_update_discovery.py -v
-python -m unittest discover -s tests -p test_relevance_policy.py -v
+python -m unittest discover -s tests -p test_semantic_discovery.py -v
 python scripts/check_discovery_browser.py
 ```
 
@@ -84,6 +119,9 @@ python scripts/check_discovery_browser.py
 and persists only discovery state. It is optional; the UI uses the same path.
 Actual milestone verification is recorded in
 [update-discovery verification](reports/update_discovery/VERIFICATION.md).
+`python scripts/verify_semantic_discovery.py` audits exact grounding,
+preservation and zero-call cache replay. `python scripts/check_discovery_live_browser.py`
+checks the real authenticated view without model calls or real selections.
 
 ## Existing dependencies
 

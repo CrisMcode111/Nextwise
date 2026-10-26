@@ -4,8 +4,11 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import update_discovery as d
+import semantic_discovery as semantic
+from semantic_fixture import context as semantic_context
 from test_update_discovery import Fixture, NOW
 
 class RelevancePolicyTests(unittest.TestCase):
@@ -58,10 +61,12 @@ class RelevancePolicyTests(unittest.TestCase):
                 item['relevance']=copy.deepcopy(legacy);item.pop('relevance_history')
             store.save(state)
             chosen=next(iter(state['items'].values()))
-            state=store.select(chosen['id'],'ISOLATED legacy selection')
+            state=store.read()
+            state['proposals'].append({'id':'ISOLATED_LEGACY','origin':'human','candidate_id':chosen['id'],'selection_reason':'Historical fixture selection'})
+            state=store.save(state)
             before=copy.deepcopy(state)
             snapshots={str(p):d.sha(p.read_bytes()) for p in store.directory.rglob('*.raw')}
-            migrated=store.reassess()
+            with patch.object(semantic,'project_context',return_value=semantic_context()):migrated=store.reassess()
             self.assertEqual(migrated['runs'],before['runs']);self.assertEqual(migrated['baselines'],before['baselines'])
             self.assertEqual(migrated['proposals'],before['proposals'])
             for key,item in migrated['items'].items():
@@ -69,17 +74,18 @@ class RelevancePolicyTests(unittest.TestCase):
                 self.assertEqual(item['first_seen'],before['items'][key]['first_seen'])
                 self.assertEqual(item['relevance_history'][0]['assessment'],legacy)
                 self.assertEqual(item['relevance_history'][0]['policy_version'],'legacy-keywords-v1')
-                self.assertEqual(item['relevance']['policy_version'],d.RELEVANCE_POLICY)
+                self.assertEqual(item['relevance'],legacy)
+                self.assertEqual(item['semantic_assessment']['status'],'pending')
             self.assertEqual(snapshots,{str(p):d.sha(p.read_bytes()) for p in store.directory.rglob('*.raw')})
-            self.assertEqual(d.Store(tmp).reassess(),migrated)
+            with patch.object(semantic,'project_context',return_value=semantic_context()):self.assertEqual(d.Store(tmp).reassess(),migrated)
             self.assertEqual(d.Store(tmp).read()['proposals'],before['proposals'])
             unchanged=store.run(fixture,now=NOW)
             self.assertEqual(unchanged['runs'][-1]['events'],[])
-            self.assertEqual(unchanged['reassessments'],migrated['reassessments'])
+            self.assertEqual(unchanged.get('reassessments'),migrated.get('reassessments'))
             fixture.page='Changed public page with meaningful text. '*12
             changed=store.run(fixture,now=NOW)
             page=next(i for i in changed['items'].values() if i['source']!=d.FEED)
-            self.assertEqual(len(page['relevance_history']),3)
+            self.assertEqual(len(page['relevance_history']),1)
             self.assertEqual(page['relevance_history'][0]['assessment'],legacy)
 
 if __name__=='__main__':unittest.main()

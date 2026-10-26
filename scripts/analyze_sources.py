@@ -287,11 +287,12 @@ def parse_http_error_details(
 
 def request_claims(
     token: str, messages: list[dict[str, str]], *, json_output: bool = True,
+    max_tokens: int | None = None, max_response_bytes: int | None = None,
 ) -> dict[str, Any]:
     payload = {
         "model": MODEL,
         "stream": False,
-        "max_tokens": MAX_TOKENS,
+        "max_tokens": max_tokens if max_tokens is not None else MAX_TOKENS,
         "messages": messages,
     }
     if json_output:
@@ -312,8 +313,16 @@ def request_claims(
     )
     started = time.perf_counter()
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
-            body = response.read().decode("utf-8")
+        if max_response_bytes is not None:
+            class NoRedirect(urllib.request.HTTPRedirectHandler):
+                def redirect_request(self,*args,**kwargs):return None
+            open_request=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect()).open
+        else:open_request=urllib.request.urlopen
+        with open_request(request, timeout=TIMEOUT_SECONDS) as response:
+            raw = response.read(max_response_bytes + 1) if max_response_bytes is not None else response.read()
+            if max_response_bytes is not None and len(raw)>max_response_bytes:
+                return {"ok":False,"http_status":response.status,"error":"Model response exceeded the bounded size limit."}
+            body = raw.decode("utf-8")
             status = response.status
         duration = round(time.perf_counter() - started, 3)
         try:
