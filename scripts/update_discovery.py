@@ -321,7 +321,8 @@ class Store:
             project=semantic.project_context(self.root)
             prepared=semantic.prepare(self,item,project)
             assessment=item.get('semantic_assessment',{})
-            if (assessment.get('status')!='validated' or assessment.get('cache_key')!=prepared['cache_key']
+            cached=semantic.assessment_for_prepared(state,prepared)
+            if (assessment.get('status')!='validated' or assessment!=cached
                     or (assessment_cache_key and assessment_cache_key!=prepared['cache_key'])):
                 raise ValueError('The current agent proposal is unavailable or changed. Reopen discovery and review its assessment before selecting.')
             proposal=next((p for p in state['proposals'] if p.get('origin')=='agent' and p.get('assessment_cache_key')==prepared['cache_key']),None)

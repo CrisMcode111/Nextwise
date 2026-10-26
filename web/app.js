@@ -33,7 +33,7 @@ function paintSemantic(record,parent){
   el('h4','','Limitations',parent);list(a.limitations,parent);el('h4','','Missing information',parent);list(a.missing_information,parent);
   paragraph(`Priority: ${a.priority}. ${a.priority_reason}`,parent);
   if(p.existing_investigation){paragraph('Follow-up to the existing investigation; no duplicate investigation is proposed.',parent,'notice');paragraph(a.existing_findings_connection,parent);link('Existing investigation and findings','#update',parent);}
-  el('h4','','Proposed investigation question',parent);paragraph(a.investigation_question,parent);
+  el('h4','','Proposed investigation question',parent);paragraph(a.investigation_question||'No investigation proposed from the supplied material.',parent);
   el('h4','','Proposed next step — not executed',parent);paragraph(a.next_step,parent);
 }
 function paintDiscovery(d){
@@ -42,7 +42,7 @@ function paintDiscovery(d){
   list([...d.scope.pages,d.scope.feed],limits);
   paragraph(`At most ${d.scope.item_cap} recent feed items within ${d.scope.lookback_days} days. Feed and three fixed pages only; linked articles are not fetched. Missing, invalid or future publication dates are excluded.`,limits);
   paragraph(`${d.scope.max_response_bytes} bytes/source; ${d.scope.socket_timeout_seconds}s socket timeout; ${d.scope.source_deadline_seconds}s read deadline (a blocked read can add one socket timeout); at most ${d.scope.max_redirects} redirects. ${d.scope.destinations}`,limits);
-  paragraph('Manual source checks. Semantic assessment uses a separately authorized, capped Meterless/Nemotron run; at most three requests total for this milestone and no automatic retries. No scheduled monitoring or automatic investigation.',limits);
+  paragraph('Manual source checks. The original semantic milestone is capped at three requests. Any further reassessment needs a separate explicit authorization and its own cap; no automatic retries. No scheduled monitoring or automatic investigation.',limits);
   const saved=d.discovery, run=saved.runs.at(-1);
   if(saved.semantic_context_error)paragraph(saved.semantic_context_error,target,'notice');
   paragraph('Nextwise prepares agent proposals automatically from semantic assessments. Human selection is separate from approval and never launches research.',target);
@@ -69,7 +69,9 @@ function paintDiscovery(d){
     const form=el('form','',null,row);const labelNode=el('label','','Optional user note',form);
     const reason=el('textarea','',null,labelNode);reason.maxLength=2000;reason.value=selectionDrafts.get(item.id)||'';
     reason.oninput=()=>selectionDrafts.set(item.id,reason.value);
-    const save=el('button','button','Review and select agent proposal',form);save.type='submit';save.disabled=discoveryBusy||semantic?.status!=='validated'||!!saved.semantic_context_error||!d.semantic_review_supported;
+    const hasProposal=saved.proposals.some(p=>p.origin==='agent'&&p.assessment_cache_key===semantic?.cache_key);
+    if(semantic?.status==='validated'&&!hasProposal)paragraph('No investigation proposal is prepared for this low-relevance assessment.',row,'notice');
+    const save=el('button','button','Review and select agent proposal',form);save.type='submit';save.disabled=discoveryBusy||semantic?.status!=='validated'||!hasProposal||!!saved.semantic_context_error||!d.semantic_review_supported;
     const msg=el('p','',null,form);msg.setAttribute('role','status');
     form.onsubmit=async e=>{e.preventDefault();if(discoveryBusy)return;save.disabled=true;msg.textContent='Saving your review selection in H-MEM…';
       try{const r=await fetch('/api/discovery/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:item.id,revision_sha256:item.content_sha256,assessment_cache_key:semantic.cache_key,reason:reason.value})});const result=await r.json();if(!r.ok)throw new Error(result.message);selectionDrafts.delete(item.id);await readDiscovery();$('#discovery-status').textContent='Agent proposal selected for investigation review. Human approval remains separate; research has not started.';}
