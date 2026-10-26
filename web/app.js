@@ -4,19 +4,44 @@ let discoveryBusy=false, discoveryReading=false, discoveryTimer=null;
 const selectionDrafts=new Map();
 const opportunityDrafts=new Map();
 let opportunityBusy=false;
+let briefingItems={};
+function completeBriefing(r){
+  return r&&['Adopt','Test','Defer','Reject'].includes(r.recommended_choice)&&[r.what_changed,r.why_it_matters,r.recommendation_reason].every(value=>typeof value==='string'&&value.trim());
+}
+function isNewBriefing(entry){
+  const r=entry.recommendation,item=briefingItems[r?.candidate_id];
+  // Presentation only: use the persisted observation and backend freshness verdict.
+  // A baseline, a rejected assessment or an unrelated revision is never a new briefing.
+  return completeBriefing(r)&&entry.current===true&&item?.semantic_assessment?.status==='validated'
+    &&item.content_sha256===r.evidence_references?.content_sha256
+    &&['new_article','monitored_page_changed','article_summary_changed'].includes(item.kind);
+}
 async function opportunityPost(path,body){
   const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const result=await r.json();if(!r.ok)throw new Error(result.message||'Save could not be confirmed. Reopen history before retrying.');return result;
 }
 function paintOpportunities(entries=[]){
   const target=$('#opportunities');if(!target)return;
-  const expanded=expandedDisclosures(target);target.replaceChildren();el('h2','','Your next opportunity',target);
-  if(!entries.length)paragraph('No evidence-backed discovery briefing is saved yet. Open a validated candidate below and choose Prepare opportunity briefing. Failed assessments remain uncertain; the original investigation and decision are separate.',target,'notice');
+  const expanded=expandedDisclosures(target);target.replaceChildren();el('h2','','What I have for you',target);
+  const ready=entries.filter(isNewBriefing);
+  const overview=paragraph(ready.length?`I have ${ready.length===1?'a saved opportunity':`${ready.length} saved opportunities`} for you to review. Here's what the sources support, what might help your business, and what I'd consider next. Benefits remain unproven.`:"I don't have a new verified opportunity for you yet. Your previous investigations and decisions are still available below.",target,'copy');overview.id='opportunities-status';overview.setAttribute('role','status');overview.setAttribute('aria-live','polite');
+  paragraph('This briefing uses saved records. It does not mean sources were checked today. Each opportunity needs your own decision.',target,'meta');
+  if(entries.length>ready.length)paragraph(`${entries.length-ready.length} other saved briefing(s) are available below. They may be baseline observations, out of date, or incomplete; they are not confirmed new opportunities.`,target,'notice');
+  const older=entries.some(entry=>!isNewBriefing(entry))?details('Other saved briefings · baselines, earlier evidence or incomplete records',target,'other-saved-briefings'):null;
   entries.forEach(entry=>{
-    const r=entry.recommendation, head=entry.decisions.at(-1), row=el('article','card',null,target);row.id=`opportunity-${r.candidate_id}`;
-    el('h3','',r.title,row);pill(`Agent recommendation: ${r.recommended_choice} · provisional`,row,'neutral');
-    paragraph(entry.current?'Current evidence checked; your decision is separate from the agent recommendation.':'Historical briefing: evidence or project context is stale or unavailable. New decisions are blocked until a current briefing is prepared.',row,entry.current?'explanation':'notice');
-    for(const [title,text] of [['What was found',r.what_changed],['Why it matters to AI Raw Gourmet',r.why_it_matters],['Potential value · not a measured benefit',r.potential_value],['Recommended next step',r.recommendation_reason],['Next action',r.next_action]]){
+    const r=entry.recommendation, head=entry.decisions.at(-1), row=el('article','card',null,isNewBriefing(entry)?target:older);
+    if(!completeBriefing(r)){
+      paragraph('This opportunity briefing is incomplete. No recommendation is ready for your decision.',row,'notice');json(entry,details('Saved briefing details',row));return;
+    }
+    if(entry.current===true&&briefingItems[r.candidate_id]?.semantic_assessment?.status!=='validated'){
+      paragraph('This saved briefing could not be confirmed against its assessment. No recommendation is ready for your decision.',row,'notice');json(entry,details('Saved briefing details',row));return;
+    }
+    row.id=`opportunity-${r.candidate_id}`;
+    el('h3','',r.title,row);pill(`My recommendation: ${r.recommended_choice} · provisional`,row,'neutral');
+    const source=el('p','briefing-source',null,row);link('Read the source',r.evidence_references.url,source);
+    el('span','',` · Published ${date(r.evidence_references.publication_date)} · Saved ${date(r.created_at)}`,source);
+    paragraph(entry.current?'A possible next step for your review. The benefits are still uncertain.':'Earlier briefing: the supporting information needs checking again. Please review an updated briefing before deciding.',row,entry.current?'explanation':'notice');
+    for(const [title,text] of [['What I found',r.what_changed],[`Why it matters to ${$('#workspace-business').textContent}`,r.why_it_matters],['What this could help achieve · hypothesis, not a verified benefit',r.potential_value],['Why I recommend this',r.recommendation_reason],['Your possible next step',r.next_action]]){
       el('h4','',title,row);paragraph(text,row);
     }
     el('h4','','Risks and uncertainty',row);list([...r.risks,...r.uncertainty],row);
@@ -28,7 +53,7 @@ function paintOpportunities(entries=[]){
     paragraph(r.label,support,'meta');json(r.evidence_references,support);
     const history=details(`Briefing and decision history (${entry.recommendation_history.length} briefings, ${entry.decisions.length} decisions)`,row,`opportunity-history-${r.candidate_id}`);
     json({recommendations:entry.recommendation_history,decisions:entry.decisions},history);
-    if(head){el('h4','',`Recorded human opportunity decision: ${head.choice} · Version ${head.version}`,row);paragraph(head.rationale,row,'human-text');paragraph(`${head.created_at} · for briefing ${head.recommendation_id}`,row,'meta');if(head.next_action)paragraph(head.next_action,row);if(head.recommendation_id!==r.id)paragraph('That decision belongs to an earlier briefing. This recommendation is pending your review; no decision has been transferred to it.',row,'notice');}
+    if(head){el('h4','',`Recorded human opportunity decision: ${head.choice} · Version ${head.version}`,row);paragraph(head.rationale,row,'human-text');paragraph(`Saved ${date(head.created_at)}`,row,'meta');paragraph(`${head.created_at} · for briefing ${head.recommendation_id}`,history,'meta');if(head.next_action){label('When to reconsider',row);paragraph(head.next_action,row);}if(head.recommendation_id!==r.id)paragraph('That decision belongs to an earlier briefing. This recommendation is pending your review; no decision has been transferred to it.',row,'notice');}
     else paragraph('Agent recommendation pending human review. No human opportunity decision has been recorded.',row,'notice');
     paragraph('A saved choice does not run research, send model requests, spend money or deploy anything. The original investigation decision is unchanged.',row,'meta');
     let draft=opportunityDrafts.get(r.candidate_id);
@@ -42,7 +67,7 @@ function paintOpportunities(entries=[]){
     for(const [key,title,max] of [['rationale','Why this is your decision',8000],['next_action','Your next action or reconsideration condition (optional)',4000]]){const l=el('label','',title,form), field=el('textarea','',null,l);field.maxLength=max;field.value=draft[key];field.oninput=()=>{draft[key]=field.value;draft.request_id=crypto.randomUUID();};}
     const save=el('button','button','Save my opportunity decision',form);save.type='submit';save.disabled=!entry.current||stale||opportunityBusy;
     const status=el('p','',null,form);status.setAttribute('role','status');
-    form.onsubmit=async e=>{e.preventDefault();if(opportunityBusy||!entry.current||stale)return;opportunityBusy=true;save.disabled=true;status.textContent='Saving your explicit choice and evidence references in H-MEM…';
+    form.onsubmit=async e=>{e.preventDefault();if(opportunityBusy||!entry.current||stale)return;opportunityBusy=true;save.disabled=true;status.textContent='Saving your choice with its supporting evidence…';
       try{const result=await opportunityPost('/api/discovery/decision',{...draft,explicit_action:'record_opportunity_decision'});opportunityDrafts.delete(r.candidate_id);paintOpportunities(result.opportunities);}
       catch(error){status.textContent=error.message;save.disabled=false;}
       finally{opportunityBusy=false;const button=$(`#opportunity-${r.candidate_id} .opportunity-decision button[type="submit"]`);if(button)button.disabled=!entry.current||stale;}
@@ -86,6 +111,7 @@ function paintSemantic(record,parent){
   el('h4','','Proposed next step — not executed',parent);paragraph(a.next_step,parent);
 }
 function paintDiscovery(d){
+  briefingItems=d.discovery?.items||{};
   paintOpportunities(d.opportunities||[]);
   const scope=$('#discovery-scope'), target=$('#discovery-results');
   const expanded=expandedDisclosures($('#discovery'));
@@ -99,6 +125,7 @@ function paintDiscovery(d){
   const assessments=Object.values(saved.items).map(i=>i.semantic_assessment);
   const failed=assessments.filter(a=>a?.status==='failed').length;
   const uncertain=assessments.filter(a=>!a||a.category==='uncertain relevance').length;
+  $('#discovery-overview').textContent=`${Object.keys(saved.items).length} saved items · ${failed} could not be assessed · ${uncertain} uncertain`;
   paragraph(`${Object.keys(saved.items).length} saved candidates · ${failed} failed assessments · ${uncertain} uncertain. Discovery proposals are not approved; selection does not start research.`,target,'notice');
   if(saved.semantic_context_error)paragraph(saved.semantic_context_error,target,'notice');
   paragraph('Nextwise prepares agent proposals automatically from semantic assessments. Human selection is separate from approval and never launches research.',target);
@@ -126,7 +153,7 @@ function paintDiscovery(d){
     const prepare=el('button','button quiet','Prepare opportunity briefing',row);prepare.disabled=semantic?.status!=='validated'||!!saved.semantic_context_error;
     const preparation=el('p','',null,row);preparation.setAttribute('role','status');
     prepare.onclick=async()=>{if(opportunityBusy)return;opportunityBusy=true;prepare.disabled=true;preparation.textContent='Checking saved evidence and preparing a briefing; no model request…';
-      try{const result=await opportunityPost('/api/discovery/recommend',{candidate_id:item.id,revision_sha256:item.content_sha256,assessment_cache_key:semantic.cache_key});paintOpportunities(result.opportunities);preparation.textContent='Briefing persisted. Review Your next opportunity above.';$('#opportunities').scrollIntoView({block:'start'});}
+      try{const result=await opportunityPost('/api/discovery/recommend',{candidate_id:item.id,revision_sha256:item.content_sha256,assessment_cache_key:semantic.cache_key});paintOpportunities(result.opportunities);preparation.textContent='Briefing saved. Review your briefing above.';$('#opportunities').scrollIntoView({block:'start'});}
       catch(error){preparation.textContent=error.message;}finally{opportunityBusy=false;prepare.disabled=false;}
     };
     const assessments=details('Assessment history and cache provenance',row);json({current:semantic,semantic_history:item.semantic_history||[],historical_rules:item.relevance_history||[]},assessments);
@@ -165,7 +192,10 @@ async function readDiscovery(){
     // Keep the current inventory and any typed selection reason intact while polling.
     if(!discoveryBusy)paintDiscovery(d);
     if(discoveryBusy)discoveryTimer=setTimeout(readDiscovery,1000);
-  }catch(e){$('#discovery-status').textContent=e.message||'Local discovery service unavailable; reopen saved discovery to retry.';$('#check-updates').disabled=false;}
+  }catch(e){$('#discovery-status').textContent=e.message||'Local discovery service unavailable; reopen saved discovery to retry.';$('#check-updates').disabled=false;
+    $('#discovery-overview').textContent='Saved updates could not be refreshed';
+    $('#opportunities-status').textContent='We could not refresh saved opportunities. Any briefing below is from the previous load; no new recommendation has been confirmed.';
+  }
   finally{discoveryReading=false;}
 }
 $('#check-updates').onclick=async()=>{if(discoveryBusy)return;discoveryBusy=true;$('#check-updates').disabled=true;$('#discovery-status').textContent='Starting check…';try{const r=await fetch('/api/discovery/check',{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(d.message);await readDiscovery();}catch(e){discoveryBusy=false;$('#check-updates').disabled=false;$('#discovery-status').textContent=e.message;}};
@@ -180,11 +210,13 @@ const decisionPanel=$('#decision-panel');
 function parkDecisionPanel(){if(decisionPanel.parentElement!==$('#decision-home'))$('#decision-home').append(decisionPanel);}
 function paintDecisionRecord(record,parent){
   const card=el('div','saved-decision',null,parent);pill(`Your ${record.choice} decision · Version ${record.version}`,card);
-  paragraph(`${record.created_at_utc} · Recorded by the local user`,card,'meta');
+  paragraph(`Saved ${date(record.created_at_utc)} · Your recorded choice`,card,'meta');
   paragraph(record.rationale,card,'human-text');
-  if(record.next_action){label('Your next action / reconsideration condition',card);paragraph(record.next_action,card,'human-text');}
+  label('When to reconsider',card);
+  paragraph(record.next_action||'No next action or reconsideration condition has been saved.',card,'human-text reconsideration');
   if(record.needs_review){pill('Needs review · Referenced evidence changed or is unavailable',card,'pending');list(record.integrity_issues,card);}
   const refs=details('Evidence used for this decision',card);
+  paragraph(`${record.created_at_utc} · Recorded by the local user`,refs,'meta');
   record.evidence_references.forEach(ref=>{
     const p=el('div','decision-reference',null,refs);
     link(ref.kind.replaceAll('_',' '),`/api/decision-evidence?id=${encodeURIComponent(record.decision_id)}&kind=${encodeURIComponent(ref.kind)}`,p);
@@ -204,17 +236,20 @@ async function readDecisions(){
 }
 function paintDecisionPanel(){
   const expanded=expandedDisclosures(decisionPanel);
-  decisionPanel.replaceChildren();el('h3','','Your decision',decisionPanel);
-  paragraph('Your choice is separate from the AI proposal. It does not approve reviews, verify claims, or authorize model calls, experiments or deployment.',decisionPanel,'decision-boundary');
+  decisionPanel.replaceChildren();el('h3','',decisionState?.history?.length?'Your saved decision':'Your decision',decisionPanel);
+  paragraph('This decision belongs to the existing investigation. Other opportunities have separate decisions. Saving a choice does not start work or spending.',decisionPanel,'decision-boundary');
   const notice=el('p','decision-message',decisionError||decisionMessage,decisionPanel);notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
   if(decisionError)notice.classList.add('notice');
   if(!decisionState){
-    paragraph('Decision history has not been confirmed. Nothing is shown as undecided or saved until the store responds.',decisionPanel,'muted');
+    $('#previous-status').textContent='Saved decision history could not be confirmed. Open to retry.';
+    paragraph('We have not been able to confirm your saved decision yet. We will show it here when it can be read.',decisionPanel,'muted');
     const retry=el('button','button quiet','Retry history',decisionPanel);retry.onclick=readDecisions;return;
   }
   const history=decisionState.history,head=history.at(-1);
+  $('#previous-status').textContent=head?`Saved decision: ${head.choice} · Version ${head.version}. Open to review.`:'No human decision has been recorded.';
   if(head){paragraph(`Recorded human decision: ${head.choice} · Version ${head.version}`,decisionPanel,'notice');paintDecisionRecord(head,decisionPanel);}
   else paragraph('No human decision has been recorded.',decisionPanel,'muted');
+  if(head&&history.length>1){const first=history.find(record=>record.version===1);if(first)paragraph(`First saved decision: ${first.choice} · Version ${first.version}. You can still read it in Decision history.`,decisionPanel,'meta');}
   if(decisionDraft.started && decisionDraft.expected_head!==(head?.decision_id??null)){
     paragraph('History changed while you were writing. Read the latest decision before linking your amendment to it.',decisionPanel,'notice');
     const reconcile=el('button','button quiet','I reviewed the latest version · Keep my draft',decisionPanel);
@@ -264,7 +299,7 @@ async function saveDecision(event){
     if(!response.ok)throw new Error(result.message||'Save not confirmed. Your typed text is kept for retry.');
     if(!result.ok||!Array.isArray(result.history))throw new Error('Persistence could not be confirmed. Keep your text and retry.');
     decisionState=result;decisionDraft={choice:'',rationale:'',next_action:'',request_id:null,expected_head:null,editing:false,started:false};
-    decisionMessage=result.reused?'The saved decision was confirmed. No duplicate version was added.':'Your decision was saved in H-MEM and read back from disk.';
+    decisionMessage=result.reused?'Your saved decision was confirmed. No duplicate version was added.':'Your decision and evidence links were saved and checked.';
   }catch(error){decisionError=error.message||'Save not confirmed. Your typed text is kept for retry.';}
   finally{decisionSaving=false;refresh.disabled=loading;paintDecisionPanel();}
 }
@@ -303,9 +338,15 @@ function metric(value) { return value === null || value === undefined ? 'Unknown
 function json(value, parent) { el('pre', '', typeof value === 'string' ? value : JSON.stringify(value, null, 2), parent); }
 function label(text, parent) { el('p', 'label', text, parent); }
 function paragraph(text, parent, cls = 'copy') { return el('p', cls, text, parent); }
+function contextSentence(value){
+  const text=typeof value==='string'?value.trim():'';
+  if(!text)return 'No description has been saved.';
+  return text.charAt(0).toUpperCase()+text.slice(1)+(/[.!?]$/.test(text)?'':'.');
+}
 function recommendationSummary(recommendation) {
   // A shorter excerpt of the saved proposal, not a newly generated recommendation.
-  const text=recommendation.recommended_next_step;
+  const text=recommendation?.recommended_next_step;
+  if(typeof text!=='string'||!text.trim())return 'No saved recommendation is available yet.';
   return text.includes(':') ? text.slice(0,text.indexOf(':'))+'.' : text.split(/(?<=\.)\s/)[0];
 }
 function factValue(value) { return `${JSON.stringify(value)} (${typeof value === 'number' ? 'number' : typeof value})`; }
@@ -350,11 +391,23 @@ function render(d) {
   parkDecisionPanel();
   content.replaceChildren();
   const brief=el('div','card investigation-brief',null,content);brief.id='investigation-brief';
-  label('Current investigation',brief);el('h2','brief-question',d.investigation.question,brief);
+  label(`${d.profile.name} · Saved investigation`,brief);el('h2','brief-question',d.investigation.question,brief);
+  $('#workspace-business').textContent=d.profile.name;
+  $('#briefing-project').textContent=`Here's your briefing for ${d.profile.name}, the project you're following with Nextwise. I'll help you weigh possible opportunities, explain the uncertainty, and keep your decisions in view.`;
+  $('#briefing-purpose').textContent=`Your business goal: ${contextSentence(d.profile.objective)}`;
+  paragraph(`${d.investigation.technology} · Published ${date(d.investigation.release_date)}. This is an existing investigation, not a newly discovered release.`,brief,'meta');
+  const business=el('div','business-context',null,brief);el('h3','','Why it matters to your business',business);
+  label('Your business goal',business);paragraph(contextSentence(d.profile.objective),business);
+  label('The task being considered',business);paragraph(contextSentence(d.task.description),business);
   const columns=el('div','brief-columns',null,brief);
-  const next=el('div','brief-next',null,columns);label('Saved agent recommendation',next);
+  const next=el('div','brief-next',null,columns);label('What Nextwise recommends',next);
   paragraph(recommendationSummary(d.recommendation),next,'next-summary');
-  const briefStatus=el('div','inline-status',null,next);pill('Agent recommendation · Pending review',briefStatus,'pending');
+  const hasAdvice=typeof d.recommendation.recommended_next_step==='string'&&!!d.recommendation.recommended_next_step.trim();
+  const briefStatus=el('div','inline-status',null,next);pill(hasAdvice?'Saved advice · For your review':'Recommendation unavailable',briefStatus,'pending');
+  const finding=el('div','business-finding',null,next);el('h3','','Why this is still uncertain',finding);
+  paragraph(`${metric(d.aggregate.quality_pass_cases)} of ${metric(d.aggregate.attempted_cases)} sample requests passed the saved checks. These were synthetic examples, not customer use.`,finding);
+  paragraph(d.recommendation.rationale,finding);
+  paragraph(d.recommendation.production_adoption_supported?'Review the saved recommendation and its limitations before acting.':'The saved recommendation does not support using this in the live product yet.',finding,'muted');
   const original=details('Read the full original recommendation',next,'original-recommendation');
   paragraph(d.recommendation.recommended_next_step,original);paragraph(d.recommendation.rationale,original,'explanation');
   const earlyLinks=el('div','reason-links',null,next);link('Inspect pilot findings ↗','#pilot',earlyLinks);link('Read qualified publisher claims ↗','#claims',earlyLinks);
@@ -387,9 +440,11 @@ function render(d) {
     related.forEach((c,i)=>{ if (i===0) link('Inspect linked claims ↓',`#claim-${c.claim_pointer.split('/').pop()}`,text); });
   });
 
+  const evidenceDisclosure=details('See the evidence and trial results',content,'evidence-details');
   const evidence = section('evidence','01','Evidence & decision','Evidence review pending','pending');
+  evidenceDisclosure.append(evidence);
   const recommendationDetail=details('Saved recommendation and original artifact status',evidence,'recommendation-review');
-  const recommendation=el('div','card recommendation',null,recommendationDetail); pill('Agent recommendation · Pending review',recommendation);
+  const recommendation=el('div','card recommendation',null,recommendationDetail); pill(hasAdvice?'Agent recommendation · Pending review':'Recommendation unavailable',recommendation);
   el('h3','','The documented next action',recommendation); paragraph(recommendationSummary(d.recommendation),recommendation);
   link('Full original recommendation and rationale ↗','#original-recommendation',recommendation);
   paragraph(d.recommendation.rationale,recommendation,'explanation');
@@ -444,12 +499,12 @@ function render(d) {
   d.review.unresolved_evidence_gaps.forEach(g=>{el('h4','',g.unknown,gaps);paragraph(g.concrete_next_action,gaps);});
   const background=details('Project context and investigation background',content,'project-background');
   background.append(project,update);
-  brief.after(evidence,background.parentElement);
+  brief.after(evidenceDisclosure.parentElement,background.parentElement);
   const diag=details('Data provenance & technical diagnostics',content,'diagnostics','diagnostics');
   paragraph('H-MEM retrieves exact persisted artifacts; Zetaris supplies live table rows and SQL aggregates. Hash checks establish artifact identity, not truth or approval.',diag);
   json(d.diagnostics,diag);
   el('h4','','Separate workload: Nextwise source analysis',diag); paragraph('These source-analysis measurements are excluded from every extraction-pilot figure above.',diag); json(d.analysis_observation,diag);
-  content.hidden=false; state.hidden=true; $('#connection').textContent='● Live data · Memory linked'; $('#disconnect').hidden=false;
+  content.hidden=false; state.hidden=true; $('#connection').textContent='● Saved records connected'; $('#disconnect').hidden=false;
   const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${e.target.id}`));}});},{rootMargin:'-10% 0px -65% 0px'});
   document.querySelectorAll('#investigation-brief,.section').forEach(s=>observer.observe(s));
   restoreDisclosures(expanded);
@@ -458,8 +513,10 @@ function render(d) {
 function showState(code,message) {
   parkDecisionPanel();decisionContext=null;paintDecisionPanel();
   content.hidden=true; content.replaceChildren(); state.hidden=false; state.replaceChildren(); state.className=`state ${code==='loading'?'loading':'error'}`;
-  const titles={authentication:'Connect your investigation',loading:'Retrieving your investigation',empty:'No investigation data yet',memory:'Investigation memory unavailable',integrity:'The evidence could not be linked safely',zetaris:'Live data is unavailable',service:'Unable to load this investigation',network:'Cannot reach the local app'};
-  el('h2','',titles[code]||'Unable to continue',state); paragraph(message,state);
+  const titles={authentication:'Open your saved work',loading:'Opening your saved work',empty:'No saved investigation is available',memory:'Your saved work could not be read',integrity:'The supporting information needs checking',zetaris:'Your investigation could not be refreshed',service:'Your investigation is unavailable',network:'Nextwise is not responding'};
+  const explanations={authentication:'Enter your connection key privately in the Nextwise console, then connect here.',loading:'Nextwise is opening your investigation and checking the information behind it.',empty:'There is nothing ready to show for this investigation. No recommendation has been filled in.',memory:'Please try again. Your saved decision will remain visible if it can be read separately.',integrity:'We could not confirm the information behind this investigation. No new recommendation is shown. Your saved decision remains separate.',zetaris:'Please try again. Any decision we can confirm is shown separately below.',service:'Please try again when the local app is ready.',network:'Check that the local Nextwise app is running, then try again.'};
+  el('h2','',titles[code]||'Your saved work is unavailable',state); paragraph(explanations[code]||'Please try again. No new recommendation has been confirmed.',state);
+  paragraph(message,details('Connection and technical details',state,'load-error-details'));
   if(code==='authentication') {
     paragraph('The masked key is entered only in the PowerShell window running Nextwise. It is never stored in this browser, a URL, or a file.',state,'muted');
     const b=el('button','button','I entered the key · Connect',state);b.onclick=load;
