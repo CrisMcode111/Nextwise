@@ -254,7 +254,10 @@ def make_handler(state, loader=None):
                     self.respond(200,{"status":{"running":True,"message":"Waiting for the existing investigation read before verifying semantic context."},"scope":discovery.config()})
                     return
                 try:
-                    self.respond(200, {"status": dict(state.discovery_status), "scope": discovery.config(), "semantic_review_supported":True,"discovery": state.discovery.reassess()})
+                    import opportunity_workflow as opportunities
+                    saved = state.discovery.reassess()
+                    self.respond(200, {"status": dict(state.discovery_status), "scope": discovery.config(), "semantic_review_supported":True,
+                                       "discovery": saved, "opportunities": opportunities.view(state.discovery, saved)})
                 except Exception:
                     self.respond(503, {"message": "Discovery memory is unavailable. Check H-MEM runtime/storage and retry; no baseline was replaced."})
                 finally:
@@ -292,6 +295,38 @@ def make_handler(state, loader=None):
 
         def do_POST(self):
             if not self.allowed(session=True, post=True):
+                return
+            if self.path in ('/api/discovery/recommend', '/api/discovery/decision'):
+                try:
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < length <= 20000 or self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
+                        raise ValueError('Invalid opportunity request.')
+                    body = json.loads(self.rfile.read(length).decode('utf-8'))
+                    if not isinstance(body, dict): raise ValueError('Invalid opportunity request.')
+                except (ValueError, UnicodeError):
+                    self.respond(400, {'message': 'Invalid opportunity request; keep the form within its limits.'})
+                    return
+                if not state.discovery_lock.acquire(blocking=False):
+                    self.respond(409, {'message': 'Discovery is busy; your draft is preserved. Retry when it finishes.'})
+                    return
+                if not state.lock.acquire(blocking=False):
+                    state.discovery_lock.release()
+                    self.respond(409, {'message': 'The investigation is loading; your draft is preserved. Retry shortly.'})
+                    return
+                try:
+                    import opportunity_workflow as opportunities
+                    if self.path.endswith('/recommend'):
+                        result = opportunities.prepare(state.discovery, body.get('candidate_id'), body.get('revision_sha256'), body.get('assessment_cache_key'))
+                    else:
+                        result = opportunities.decide(state.discovery, body)
+                    self.respond(200, {'discovery': result, 'opportunities': opportunities.view(state.discovery, result)})
+                except ValueError:
+                    self.respond(409, {'message': 'The assessment, evidence, decision history or form is no longer valid. Reopen discovery and review the latest briefing; your draft is preserved.'})
+                except Exception:
+                    self.respond(503, {'message': 'Opportunity persistence could not be confirmed. Keep your draft and reopen saved history before retrying.'})
+                finally:
+                    state.lock.release()
+                    state.discovery_lock.release()
                 return
             if self.path in ("/api/discovery/check", "/api/discovery/select"):
                 body = None

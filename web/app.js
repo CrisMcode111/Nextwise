@@ -2,6 +2,53 @@
 const $ = s => document.querySelector(s);
 let discoveryBusy=false, discoveryReading=false, discoveryTimer=null;
 const selectionDrafts=new Map();
+const opportunityDrafts=new Map();
+let opportunityBusy=false;
+async function opportunityPost(path,body){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const result=await r.json();if(!r.ok)throw new Error(result.message||'Save could not be confirmed. Reopen history before retrying.');return result;
+}
+function paintOpportunities(entries=[]){
+  const target=$('#opportunities');if(!target)return;
+  const expanded=expandedDisclosures(target);target.replaceChildren();el('h2','','Your next opportunity',target);
+  if(!entries.length)paragraph('No evidence-backed discovery briefing is saved yet. Open a validated candidate below and choose Prepare opportunity briefing. Failed assessments remain uncertain; the original investigation and decision are separate.',target,'notice');
+  entries.forEach(entry=>{
+    const r=entry.recommendation, head=entry.decisions.at(-1), row=el('article','card',null,target);row.id=`opportunity-${r.candidate_id}`;
+    el('h3','',r.title,row);pill(`Agent recommendation: ${r.recommended_choice} · provisional`,row,'neutral');
+    paragraph(entry.current?'Current evidence checked; your decision is separate from the agent recommendation.':'Historical briefing: evidence or project context is stale or unavailable. New decisions are blocked until a current briefing is prepared.',row,entry.current?'explanation':'notice');
+    for(const [title,text] of [['What was found',r.what_changed],['Why it matters to AI Raw Gourmet',r.why_it_matters],['Potential value · not a measured benefit',r.potential_value],['Recommended next step',r.recommendation_reason],['Next action',r.next_action]]){
+      el('h4','',title,row);paragraph(text,row);
+    }
+    el('h4','','Risks and uncertainty',row);list([...r.risks,...r.uncertainty],row);
+    if(r.existing_findings_connection)paragraph(r.existing_findings_connection,row,'notice');
+    if(r.existing_investigation_id)link('Continue reviewing the existing investigation ↗','#investigation-brief',row);
+    const support=details('Supporting passages, source coverage and provenance',row,`opportunity-evidence-${r.candidate_id}`);
+    link('Publisher source',r.evidence_references.url,support);paragraph(r.coverage.description,support,'notice');
+    r.supporting_evidence.forEach(e=>{paragraph(e.exact_quote,support,'human-text');paragraph(`${e.source_id} · ${e.passage_id}`,support,'meta');});
+    paragraph(r.label,support,'meta');json(r.evidence_references,support);
+    const history=details(`Briefing and decision history (${entry.recommendation_history.length} briefings, ${entry.decisions.length} decisions)`,row,`opportunity-history-${r.candidate_id}`);
+    json({recommendations:entry.recommendation_history,decisions:entry.decisions},history);
+    if(head){el('h4','',`Recorded human opportunity decision: ${head.choice} · Version ${head.version}`,row);paragraph(head.rationale,row,'human-text');paragraph(`${head.created_at} · for briefing ${head.recommendation_id}`,row,'meta');if(head.next_action)paragraph(head.next_action,row);if(head.recommendation_id!==r.id)paragraph('That decision belongs to an earlier briefing. This recommendation is pending your review; no decision has been transferred to it.',row,'notice');}
+    else paragraph('Agent recommendation pending human review. No human opportunity decision has been recorded.',row,'notice');
+    paragraph('A saved choice does not run research, send model requests, spend money or deploy anything. The original investigation decision is unchanged.',row,'meta');
+    let draft=opportunityDrafts.get(r.candidate_id);
+    if(!draft){draft={choice:'',rationale:'',next_action:'',request_id:crypto.randomUUID(),expected_head:head?.id||null,recommendation_id:r.id,recommendation_sha256:r.record_sha256,editing:!head||head.recommendation_id!==r.id};opportunityDrafts.set(r.candidate_id,draft);}
+    if(!draft.editing){const amend=el('button','button quiet','Amend this opportunity decision',row);amend.onclick=()=>{draft.editing=true;paintOpportunities(entries);};return;}
+    const stale=draft.expected_head!==(head?.id||null)||draft.recommendation_id!==r.id;
+    if(stale){paragraph('A newer briefing or decision exists. Review it and the history above before keeping your draft.',row,'notice');const ack=el('button','button quiet','I reviewed the latest briefing and history · Keep my draft',row);ack.onclick=()=>{Object.assign(draft,{expected_head:head?.id||null,recommendation_id:r.id,recommendation_sha256:r.record_sha256,request_id:crypto.randomUUID()});paintOpportunities(entries);};}
+    const form=el('form','opportunity-decision',null,row);
+    const labelNode=el('label','','Your opportunity decision · choose one',form), select=el('select','',null,labelNode);
+    ['','Adopt','Test','Defer','Reject'].forEach(choice=>{const option=el('option','',choice||'Choose…',select);option.value=choice;});select.value=draft.choice;select.onchange=()=>{draft.choice=select.value;draft.request_id=crypto.randomUUID();};
+    for(const [key,title,max] of [['rationale','Why this is your decision',8000],['next_action','Your next action or reconsideration condition (optional)',4000]]){const l=el('label','',title,form), field=el('textarea','',null,l);field.maxLength=max;field.value=draft[key];field.oninput=()=>{draft[key]=field.value;draft.request_id=crypto.randomUUID();};}
+    const save=el('button','button','Save my opportunity decision',form);save.type='submit';save.disabled=!entry.current||stale||opportunityBusy;
+    const status=el('p','',null,form);status.setAttribute('role','status');
+    form.onsubmit=async e=>{e.preventDefault();if(opportunityBusy||!entry.current||stale)return;opportunityBusy=true;save.disabled=true;status.textContent='Saving your explicit choice and evidence references in H-MEM…';
+      try{const result=await opportunityPost('/api/discovery/decision',{...draft,explicit_action:'record_opportunity_decision'});opportunityDrafts.delete(r.candidate_id);paintOpportunities(result.opportunities);}
+      catch(error){status.textContent=error.message;save.disabled=false;}
+      finally{opportunityBusy=false;const button=$(`#opportunity-${r.candidate_id} .opportunity-decision button[type="submit"]`);if(button)button.disabled=!entry.current||stale;}
+    };
+  });restoreDisclosures(expanded);
+}
 const discoveryLabels={initial_inventory:'Initial inventory of recently published items',new_article:'Newly discovered article',article_summary_changed:'Feed title/summary changed (article not fetched)',page_baseline:'Initial monitored-page baseline',monitored_page_changed:'Monitored page edited'};
 function paintSemantic(record,parent){
   if(!record||record.status!=='validated'){
@@ -39,6 +86,7 @@ function paintSemantic(record,parent){
   el('h4','','Proposed next step — not executed',parent);paragraph(a.next_step,parent);
 }
 function paintDiscovery(d){
+  paintOpportunities(d.opportunities||[]);
   const scope=$('#discovery-scope'), target=$('#discovery-results');
   const expanded=expandedDisclosures($('#discovery'));
   scope.replaceChildren();target.replaceChildren();
@@ -75,6 +123,12 @@ function paintDiscovery(d){
     const sourceMetadata=details('Source dates and retrieval metadata',row);
     paragraph(`Published: ${item.publication_date||'unknown'} · First seen: ${item.first_seen} · Retrieved: ${item.retrieved_at}`,sourceMetadata,'meta');
     paintSemantic(semantic,row);
+    const prepare=el('button','button quiet','Prepare opportunity briefing',row);prepare.disabled=semantic?.status!=='validated'||!!saved.semantic_context_error;
+    const preparation=el('p','',null,row);preparation.setAttribute('role','status');
+    prepare.onclick=async()=>{if(opportunityBusy)return;opportunityBusy=true;prepare.disabled=true;preparation.textContent='Checking saved evidence and preparing a briefing; no model request…';
+      try{const result=await opportunityPost('/api/discovery/recommend',{candidate_id:item.id,revision_sha256:item.content_sha256,assessment_cache_key:semantic.cache_key});paintOpportunities(result.opportunities);preparation.textContent='Briefing persisted. Review Your next opportunity above.';$('#opportunities').scrollIntoView({block:'start'});}
+      catch(error){preparation.textContent=error.message;}finally{opportunityBusy=false;prepare.disabled=false;}
+    };
     const assessments=details('Assessment history and cache provenance',row);json({current:semantic,semantic_history:item.semantic_history||[],historical_rules:item.relevance_history||[]},assessments);
     const rev=details(`Revision history (${item.revisions.length}) and exact readable differences`,row);json(item.revisions,rev);
     const form=el('form','',null,row);const labelNode=el('label','','Optional user note',form);
@@ -104,7 +158,7 @@ function paintDiscovery(d){
 }
 async function readDiscovery(){
   clearTimeout(discoveryTimer);
-  if(loading||decisionSaving){discoveryTimer=setTimeout(readDiscovery,1000);return;}
+  if(loading||decisionSaving||opportunityBusy){discoveryTimer=setTimeout(readDiscovery,1000);return;}
   if(discoveryReading)return;
   discoveryReading=true;
   try{const r=await fetch('/api/discovery');const d=await r.json();if(!r.ok)throw new Error(d.message);discoveryBusy=d.status.running;$('#check-updates').disabled=discoveryBusy;$('#discovery-status').textContent=d.status.message;

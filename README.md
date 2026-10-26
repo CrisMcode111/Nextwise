@@ -12,6 +12,42 @@ See [demo readiness and recording sequence](docs/demo-readiness.md).
 
 ## Manual update discovery
 
+### From a validated candidate to your decision
+
+Reopen saved discovery, expand a candidate and choose **Prepare opportunity
+briefing**. This action rechecks its saved snapshot, exact quotations, current
+project context and existing semantic validator. Failed or stale assessments
+cannot become briefings. No source fetch or model call occurs.
+
+The **Your next opportunity** panel shows what was observed, its project
+connection, hypothetical value, risks, unknowns and next action. A versioned
+conservative policy recommends Test for a potentially relevant new opportunity,
+Defer for uncertainty or an existing-investigation continuation, and Reject for
+low relevance. It never recommends Adopt from these provisional assessments.
+This policy is distinct from the saved model analysis; it establishes no measured
+benefit and does not override a human decision.
+
+Choose Adopt, Test, Defer or Reject, write your rationale, and press **Save my
+opportunity decision**. No choice is preselected. Amendments preserve earlier
+versions. The briefing and decision reference the exact assessment, source
+snapshot, project context and prior history in the existing official H-MEM
+discovery checkpoints under existing locks, with disk read-back. They do not
+require the old pilot manifest or modify the original investigation/Defer Version
+1. Technical provenance and histories remain collapsed and accessible. A saved
+choice authorizes no execution, spending, model request or deployment.
+
+Unsaved drafts survive in-page discovery redraws, but not a full page reload.
+If a save acknowledgment is lost, reopen history before changing the draft;
+unchanged retries are deduplicated. Stale context/source revisions block new
+decisions; historical records stay readable and marked stale. H-MEM retains its
+existing non-transactional storage and checkpoint-size limits.
+
+**Verification scope:** this connection is verified with isolated synthetic
+sources/assessments and real temporary H-MEM only. There is still no accepted
+project-relevant live discovery assessment; the original two accepted low-relevance
+assessments and later rejected reassessments are not evidence of live end-to-end
+success. No model allowance is expanded by preparing a briefing.
+
 Open the existing local app and choose **Check for updates**. The existing
 investigation stays visible while progress is shown. Discovery can run before
 Zetaris key entry: it uses the approved local project context, public sources

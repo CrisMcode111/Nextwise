@@ -1,5 +1,54 @@
 # Demo readiness
 
+## Opportunity workflow — offline implementation
+
+The missing discovery-to-decision connection now has an offline implementation.
+From a validated candidate choose **Prepare opportunity briefing**, review the
+prominent **Your next opportunity** panel, explicitly choose Adopt/Test/Defer/Reject
+and supply your rationale, then **Save my opportunity decision**. Reopen saved
+discovery after restart to see the recommendation, decision and evidence history.
+Briefing preparation, selection and decision saves send no model/source request.
+
+Briefings preserve source observation kinds: an initial inventory or page baseline
+is not presented as a new release. Practical value is copied only from the validated
+assessment's labelled hypothesis; risks and evidence gaps remain explicit. A
+conservative policy derives the recommendation: Test for potential relevance on
+a new investigation, Defer for uncertainty or an existing-investigation
+continuation, Reject for low relevance. Adopt remains a human option, never an
+inferred endorsement. This policy is not a new Nemotron response.
+
+New opportunity choices have their own versioned, hashed H-MEM history with exact
+briefing/assessment/snapshot/context references. They do not amend the old pilot
+manifest or genuine Defer Version 1. Stale evidence, changed context, invalid
+quotes and rejected assessments block preparation/new decisions. Historical
+briefings remain accessible; no new pilot, research or deployment is launched.
+
+**Not yet a successful real product demonstration.** Offline fixtures exercise
+the connections, not real project reasoning. Existing live relevant assessments
+remain rejected. The minimum real test, requiring separate explicit authorization,
+is one bounded request for the existing saved Nemotron source using the current
+contract and complete selected paragraphs. It must pass unchanged validation
+including its existing-investigation/pilot/Defer connection. Then prepare its
+briefing in the actual app, inspect the real benefits/risks/quotes, let the user
+explicitly decide, and verify its persisted history after restart. An unchanged
+saved-source replay should produce no new discovery event or model request.
+Rejection remains a failed test, not a reason to relax validation. A new public
+fetch is only needed to demonstrate fresh discovery, and needs separate approval.
+
+Offline verification commands:
+
+```powershell
+python -B -m unittest discover -s tests -p test_opportunity_workflow.py -v
+python -B -m unittest discover -s tests -p test_semantic_discovery.py -v
+python -B -m unittest discover -s tests -p test_update_discovery.py -v
+python -B -m unittest discover -s tests -p test_decision_workflow.py -v
+python scripts/check_discovery_browser.py
+```
+
+The browser check uses an isolated temporary official H-MEM store and synthetic
+transport, starts only a temporary local fixture server, and blocks requests
+outside that fixture origin. It does not query the real Zetaris/Nightshift services.
+
 ## Semantic proposals — current state, 26 October 2026
 
 Nextwise now uses the existing Meterless/Nemotron path for semantic project

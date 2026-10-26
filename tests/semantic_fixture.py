@@ -7,7 +7,7 @@ import semantic_discovery as semantic
 import update_discovery as discovery
 
 def context():
-    profile=discovery.context()
+    profile={**discovery.context(), 'id':'ai-raw-gourmet'}
     return {'profile':profile,'use_case':{'investigated_task':{'description':profile['task']}},
         'existing_investigation':{'id':semantic.INVESTIGATION,'question':'Bounded requirement extraction trial?'},
         'registered_sources':[{'id':discovery.collector.stable_source_id(url),'requested_url':url} for url in discovery.config()['pages']],
