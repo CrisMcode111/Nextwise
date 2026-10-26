@@ -39,32 +39,41 @@ function paintSemantic(record,parent){
   el('h4','','Proposed next step — not executed',parent);paragraph(a.next_step,parent);
 }
 function paintDiscovery(d){
-  const scope=$('#discovery-scope'), target=$('#discovery-results');scope.replaceChildren();target.replaceChildren();
+  const scope=$('#discovery-scope'), target=$('#discovery-results');
+  const expanded=expandedDisclosures($('#discovery'));
+  scope.replaceChildren();target.replaceChildren();
   const limits=details('Approved source scope and limits',scope);
   list([...d.scope.pages,d.scope.feed],limits);
   paragraph(`At most ${d.scope.item_cap} recent feed items within ${d.scope.lookback_days} days. Feed and three fixed pages only; linked articles are not fetched. Missing, invalid or future publication dates are excluded.`,limits);
   paragraph(`${d.scope.max_response_bytes} bytes/source; ${d.scope.socket_timeout_seconds}s socket timeout; ${d.scope.source_deadline_seconds}s read deadline (a blocked read can add one socket timeout); at most ${d.scope.max_redirects} redirects. ${d.scope.destinations}`,limits);
   paragraph('Manual source checks. The original semantic milestone is capped at three requests. Any further reassessment needs a separate explicit authorization and its own cap; no automatic retries. No scheduled monitoring or automatic investigation.',limits);
   const saved=d.discovery, run=saved.runs.at(-1);
+  const assessments=Object.values(saved.items).map(i=>i.semantic_assessment);
+  const failed=assessments.filter(a=>a?.status==='failed').length;
+  const uncertain=assessments.filter(a=>!a||a.category==='uncertain relevance').length;
+  paragraph(`${Object.keys(saved.items).length} saved candidates · ${failed} failed assessments · ${uncertain} uncertain. Discovery proposals are not approved; selection does not start research.`,target,'notice');
   if(saved.semantic_context_error)paragraph(saved.semantic_context_error,target,'notice');
   paragraph('Nextwise prepares agent proposals automatically from semantic assessments. Human selection is separate from approval and never launches research.',target);
   const reassessment=saved.reassessments?.at(-1);
-  if(reassessment)paragraph(`Relevance reassessed under ${reassessment.policy_version} at ${reassessment.assessed_at}. Classification only; no newly published content or source change is implied.`,target,'notice');
+  const diagnostics=details('Discovery status, source metadata and technical diagnostics',target,'discovery-diagnostics');
+  if(reassessment)paragraph(`Relevance reassessed under ${reassessment.policy_version} at ${reassessment.assessed_at}. Classification only; no newly published content or source change is implied.`,diagnostics,'notice');
   if(run){
     paragraph(`Last persisted check: ${run.retrieved_at} · ${run.status}. ${run.events.length} inventory/change observations.`,target);
-    run.sources.forEach(s=>paragraph(`${s.requested_url}: ${s.error||'retrieved (not verified evidence)'}${s.rss_items!==undefined?` · valid RSS, ${s.rss_items} items; ${s.eligible_unique_items} eligible before cap`:''}`,target,s.error?'notice':'meta'));
-    const retrieval=details('Retrieval metadata, raw hashes and source errors',target);json(run.sources,retrieval);
+    const sourceFailures=run.sources.filter(s=>s.error).length;
+    if(sourceFailures)paragraph(`${sourceFailures} source retrieval failure(s); coverage is incomplete. Expand discovery diagnostics for details.`,target,'notice');
+    run.sources.forEach(s=>paragraph(`${s.requested_url}: ${s.error||'retrieved (not verified evidence)'}${s.rss_items!==undefined?` · valid RSS, ${s.rss_items} items; ${s.eligible_unique_items} eligible before cap`:''}`,diagnostics,s.error?'notice':'meta'));
+    const retrieval=details('Retrieval metadata, raw hashes and source errors',diagnostics);json(run.sources,retrieval);
     if(!run.events.length)paragraph(run.status==='success'?'No new or changed readable content in this check.':'No changes detected in successfully checked sources; coverage is incomplete.',target);
   }else paragraph('No confirmed check yet. First feed retrieval establishes a recent inventory; it does not detect new releases.',target);
   const events=new Set((run?.events||[]).map(e=>e.item_id));
-  const inventory=details(`Saved candidates (${Object.keys(saved.items).length}) · includes low relevance and previous observations`,target);
-  inventory.parentElement.open=true;
+  const inventory=details(`Saved candidates (${Object.keys(saved.items).length}) · ${failed} failed, ${uncertain} uncertain · includes low relevance`,target,'discovery-inventory');
   Object.values(saved.items).forEach(item=>{
     const semantic=item.semantic_assessment;
-    const row=details(`${item.title} · ${semantic?.category||'uncertain relevance'}`,inventory);
+    const row=details(`${item.title} · ${semantic?.category||'uncertain relevance'}`,inventory,`candidate-${item.id}`);
     paragraph(`${events.has(item.id)?'In latest check':'Previously observed'} · ${discoveryLabels[item.kind]}`,row);
     link(item.source===d.scope.feed?'Publisher article (not fetched during discovery)':'Monitored publisher page',item.url,row);
-    paragraph(`Published: ${item.publication_date||'unknown'} · First seen: ${item.first_seen} · Retrieved: ${item.retrieved_at}`,row,'meta');
+    const sourceMetadata=details('Source dates and retrieval metadata',row);
+    paragraph(`Published: ${item.publication_date||'unknown'} · First seen: ${item.first_seen} · Retrieved: ${item.retrieved_at}`,sourceMetadata,'meta');
     paintSemantic(semantic,row);
     const assessments=details('Assessment history and cache provenance',row);json({current:semantic,semantic_history:item.semantic_history||[],historical_rules:item.relevance_history||[]},assessments);
     const rev=details(`Revision history (${item.revisions.length}) and exact readable differences`,row);json(item.revisions,rev);
@@ -79,7 +88,7 @@ function paintDiscovery(d){
       try{const r=await fetch('/api/discovery/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:item.id,revision_sha256:item.content_sha256,assessment_cache_key:semantic.cache_key,reason:reason.value})});const result=await r.json();if(!r.ok)throw new Error(result.message);selectionDrafts.delete(item.id);await readDiscovery();$('#discovery-status').textContent='Agent proposal selected for investigation review. Human approval remains separate; research has not started.';}
       catch(e){msg.textContent=e.message||'Save failed; keep your reason and retry.';save.disabled=false;}};
   });
-  const proposals=details(`Persisted investigation proposals (${saved.proposals.length})`,target);proposals.parentElement.open=true;
+  const proposals=details(`Persisted investigation proposals (${saved.proposals.length}) · not approved`,target,'discovery-proposals');
   saved.proposals.forEach(p=>{
     const row=details(`${p.title} · ${p.origin==='agent'?'Agent-prepared proposal':'Historical human proposal'}, not a completed investigation`,proposals);
     link('Source',p.source,row);
@@ -91,6 +100,7 @@ function paintDiscovery(d){
     }else {paragraph(p.selection_reason||'',row,'human-text');json(p,row);}
     paragraph('Proposal only. No investigation, trial, adoption or replacement of the existing investigation was launched.',row,'notice');
   });
+  restoreDisclosures(expanded);
 }
 async function readDiscovery(){
   clearTimeout(discoveryTimer);
@@ -139,6 +149,7 @@ async function readDecisions(){
   }catch(error){decisionError=error.message||'Decision history is unavailable. Your typed text is kept.';paintDecisionPanel();}
 }
 function paintDecisionPanel(){
+  const expanded=expandedDisclosures(decisionPanel);
   decisionPanel.replaceChildren();el('h3','','Your decision',decisionPanel);
   paragraph('Your choice is separate from the AI proposal. It does not approve reviews, verify claims, or authorize model calls, experiments or deployment.',decisionPanel,'decision-boundary');
   const notice=el('p','decision-message',decisionError||decisionMessage,decisionPanel);notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
@@ -148,7 +159,8 @@ function paintDecisionPanel(){
     const retry=el('button','button quiet','Retry history',decisionPanel);retry.onclick=readDecisions;return;
   }
   const history=decisionState.history,head=history.at(-1);
-  if(head)paintDecisionRecord(head,decisionPanel);else paragraph('No human decision has been recorded.',decisionPanel,'muted');
+  if(head){paragraph(`Recorded human decision: ${head.choice} · Version ${head.version}`,decisionPanel,'notice');paintDecisionRecord(head,decisionPanel);}
+  else paragraph('No human decision has been recorded.',decisionPanel,'muted');
   if(decisionDraft.started && decisionDraft.expected_head!==(head?.decision_id??null)){
     paragraph('History changed while you were writing. Read the latest decision before linking your amendment to it.',decisionPanel,'notice');
     const reconcile=el('button','button quiet','I reviewed the latest version · Keep my draft',decisionPanel);
@@ -183,6 +195,7 @@ function paintDecisionPanel(){
   if(!history.length)paragraph('No records yet.',past,'muted');
   [...history].reverse().forEach(record=>paintDecisionRecord(record,past));
   const retry=el('button','button quiet','Refresh decision history',past);retry.onclick=readDecisions;
+  restoreDisclosures(expanded);
 }
 async function saveDecision(event){
   event.preventDefault();if(decisionSaving||!decisionContext||!decisionDraft.choice||!decisionDraft.rationale.trim())return;
@@ -224,6 +237,8 @@ function details(title, parent, id = '', cls = '') {
   const d = el('details', `detail ${cls}`, null, parent); if (id) d.id = id;
   el('summary', '', title, d); return el('div', 'detail-body', null, d);
 }
+function expandedDisclosures(root){return [...root.querySelectorAll('details[open][id]')].map(n=>n.id);}
+function restoreDisclosures(ids){ids.forEach(id=>{const n=document.getElementById(id);if(n?.tagName==='DETAILS')n.open=true;});}
 function section(id, n, title, tag, cls = '') {
   const s = el('section', 'section', null, content); s.id = id;
   const h = el('div', 'section-header', null, s), titleWrap = el('div', 'section-title', null, h);
@@ -272,22 +287,26 @@ function openHash() {
   target.scrollIntoView({block:'start'});
 }
 window.addEventListener('hashchange', openHash);
+document.addEventListener('click',event=>{
+  const anchor=event.target.closest?.('a[href^="#"]');
+  if(anchor?.hash&&anchor.hash===location.hash)requestAnimationFrame(openHash);
+});
 function render(d) {
+  const expanded=expandedDisclosures(content);
   parkDecisionPanel();
   content.replaceChildren();
   const brief=el('div','card investigation-brief',null,content);brief.id='investigation-brief';
   label('Current investigation',brief);el('h2','brief-question',d.investigation.question,brief);
   const columns=el('div','brief-columns',null,brief);
-  const next=el('div','brief-next',null,columns);label('Existing proposed next action',next);
+  const next=el('div','brief-next',null,columns);label('Saved agent recommendation',next);
   paragraph(recommendationSummary(d.recommendation),next,'next-summary');
-  const briefStatus=el('div','inline-status',null,next);pill('AI-assisted proposal · Pending approval',briefStatus,'pending');
-  pill(d.investigation.decision===null?'Original investigation · Decision: not set':String(d.investigation.decision),briefStatus,'neutral');
+  const briefStatus=el('div','inline-status',null,next);pill('Agent recommendation · Pending review',briefStatus,'pending');
   const original=details('Read the full original recommendation',next,'original-recommendation');
   paragraph(d.recommendation.recommended_next_step,original);paragraph(d.recommendation.rationale,original,'explanation');
   const earlyLinks=el('div','reason-links',null,next);link('Inspect pilot findings ↗','#pilot',earlyLinks);link('Read qualified publisher claims ↗','#claims',earlyLinks);
   decisionContext=Object.fromEntries(['manifest_id','artifact_hashes','run_id'].map(key=>[key,d.diagnostics[key]]));
   columns.append(decisionPanel);paintDecisionPanel();
-  const project = section('project', '01', 'My project', 'Approved project context');
+  const project = section('project', '02', 'My project', 'Approved project context');
   const grid = el('div', 'grid', null, project), p = el('div', 'card', null, grid);
   label('The project', p); el('h3', 'large', d.profile.name, p); paragraph(d.profile.objective, p);
   paragraph(d.profile.stage, p, 'meta');
@@ -297,7 +316,7 @@ function render(d) {
   const unknowns = el('div', 'unknown-grid', null, task);
   [['Current baseline', d.unknowns.baseline], ['Verified pricing', d.unknowns.verified_prices_and_quotas]].forEach(([name, value]) => { const u = el('div','unknown', value === null ? 'Unknown' : JSON.stringify(value), unknowns); el('strong','',name,u); });
 
-  const update = section('update', '02', 'Investigated update', 'Under investigation', 'neutral');
+  const update = section('update', '03', 'Investigated update', 'Under investigation', 'neutral');
   const uc = el('div','card',null,update); label('The question',uc); el('h3','large',d.investigation.question,uc);
   paragraph(`${d.investigation.technology} · Release date: ${date(d.investigation.release_date)}`,uc,'meta');
   const criteria = el('div','criteria',null,uc);
@@ -314,13 +333,14 @@ function render(d) {
     related.forEach((c,i)=>{ if (i===0) link('Inspect linked claims ↓',`#claim-${c.claim_pointer.split('/').pop()}`,text); });
   });
 
-  const evidence = section('evidence','03','Evidence & decision','Review pending','pending');
-  const recommendation=el('div','card recommendation',null,evidence); pill('AI-assisted interpretation · Pending your review',recommendation);
+  const evidence = section('evidence','01','Evidence & decision','Evidence review pending','pending');
+  const recommendationDetail=details('Saved recommendation and original artifact status',evidence,'recommendation-review');
+  const recommendation=el('div','card recommendation',null,recommendationDetail); pill('Agent recommendation · Pending review',recommendation);
   el('h3','','The documented next action',recommendation); paragraph(recommendationSummary(d.recommendation),recommendation);
   link('Full original recommendation and rationale ↗','#original-recommendation',recommendation);
   paragraph(d.recommendation.rationale,recommendation,'explanation');
   const reasons=el('div','reason-links',null,recommendation); link('Inspect pilot findings ↗','#pilot',reasons); link('Inspect source evidence ↗','#claims',reasons); link('See remaining questions ↗','#questions',reasons);
-  const status=el('div','inline-status',null,recommendation); pill(d.review.approval.status.replaceAll('_',' '),status,'pending'); pill(d.investigation.decision===null?'Decision: not set':String(d.investigation.decision),status,'neutral');
+  const status=el('div','inline-status',null,recommendation); pill(d.review.approval.status.replaceAll('_',' '),status,'pending'); pill(d.investigation.decision===null?'Original artifact decision field: not set · Human decisions are recorded separately':String(d.investigation.decision),status,'neutral');
 
   const pilot=el('div','card',null,evidence); pilot.id='pilot'; label('Measured results · Synthetic extraction pilot',pilot);
   el('h3','','A small pilot, with inspectable outcomes',pilot);
@@ -328,6 +348,8 @@ function render(d) {
   [[metric(a.attempted_cases),'Cases attempted'],[`${metric(a.schema_valid_cases)} / ${metric(a.attempted_cases)}`,'Schema-valid outputs'],[`${metric(a.quality_pass_cases)} / ${metric(a.attempted_cases)}`,'Passed saved quality checks'],[`${metric(a.request_seconds)} s`,'Summed request time']].forEach(([v,k])=>{const s=el('div','stat',null,stats);el('strong','',v,s);el('small','',k,s);});
   paragraph(`${metric(a.reported_total_tokens)} reported tokens · ${a.actual_model}`,pilot,'meta');
   paragraph('These local checks are diagnostic, not a production accuracy estimate or a comparison with the current application. Valid JSON alone does not establish correct extraction.',pilot,'explanation');
+  paragraph(d.recommendation.rationale,pilot,'explanation');
+  evidence.insertBefore(pilot,recommendationDetail.parentElement);
   d.cases.forEach(c=>{
     const b=details(c.label,pilot,`case-${c.fixture_id}`); const summary=b.parentElement.querySelector('summary');
     el('span','case-status',c.validation.quality_pass?'Passed saved checks':'Needs review',summary);
@@ -340,7 +362,8 @@ function render(d) {
   });
   const limits=details('How to interpret these results',pilot,'evaluator-limitations'); list(d.recommendation.evaluator_limitations,limits);
 
-  const claims=el('div','card',null,evidence); claims.id='claims'; label('Publisher claims · Background and limitations',claims);
+  const claimsDetail=details('Publisher claims and review qualifications',evidence,'publisher-claims');
+  const claims=el('div','card',null,claimsDetail); claims.id='claims'; label('Publisher claims · Background and limitations',claims);
   el('h3','','What the sources do — and do not — support',claims);
   paragraph('Exact quotation matching connects a claim to a saved excerpt. It does not verify the claim as fact, establish independence, or grant human approval.',claims,'explanation');
   d.claims.forEach(c=>{
@@ -359,18 +382,23 @@ function render(d) {
     paragraph(`Review basis: ${c.review.review_basis}`,b,'meta');
   });
 
-  const questions=el('div','card',null,evidence); questions.id='questions'; label('Still unknown',questions); el('h3','','Questions before another test',questions);
+  const questionsDetail=details('Remaining questions and earlier review history',evidence,'remaining-questions');
+  const questions=el('div','card',null,questionsDetail); questions.id='questions'; label('Still unknown',questions); el('h3','','Questions before another test',questions);
   list(d.recommendation.remaining_unknowns,questions); el('h4','','Open investigation questions',questions); list(d.investigation.open_questions,questions);
   const gaps=details(`Earlier evidence review · ${date(d.review.created_at_utc)}`,questions,'review-history');
   paragraph('This review predates the completed pilot. Its original gaps and proposed actions are preserved; they have not been silently updated or approved.',gaps,'notice');
   d.review.unresolved_evidence_gaps.forEach(g=>{el('h4','',g.unknown,gaps);paragraph(g.concrete_next_action,gaps);});
+  const background=details('Project context and investigation background',content,'project-background');
+  background.append(project,update);
+  brief.after(evidence,background.parentElement);
   const diag=details('Data provenance & technical diagnostics',content,'diagnostics','diagnostics');
   paragraph('H-MEM retrieves exact persisted artifacts; Zetaris supplies live table rows and SQL aggregates. Hash checks establish artifact identity, not truth or approval.',diag);
   json(d.diagnostics,diag);
   el('h4','','Separate workload: Nextwise source analysis',diag); paragraph('These source-analysis measurements are excluded from every extraction-pilot figure above.',diag); json(d.analysis_observation,diag);
   content.hidden=false; state.hidden=true; $('#connection').textContent='● Live data · Memory linked'; $('#disconnect').hidden=false;
   const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${e.target.id}`));}});},{rootMargin:'-10% 0px -65% 0px'});
-  document.querySelectorAll('.section').forEach(s=>observer.observe(s));
+  document.querySelectorAll('#investigation-brief,.section').forEach(s=>observer.observe(s));
+  restoreDisclosures(expanded);
   if(location.hash) requestAnimationFrame(openHash);
 }
 function showState(code,message) {

@@ -17,6 +17,7 @@ class Browser:
     def __init__(self,ws):
         self.ws=websocket.create_connection(ws,timeout=150,suppress_origin=True)
         self.counter=0;self.fixture=None;self.api_id=None;self.errors=0
+        self.allowed_origin=None;self.blocked_requests=[];self.request_log=[]
 
     def send(self,method,params=None):
         self.counter+=1
@@ -28,10 +29,17 @@ class Browser:
         while True:
             msg=json.loads(self.ws.recv())
             if msg.get('method')=='Fetch.requestPaused':
-                self.send('Fetch.fulfillRequest',{'requestId':msg['params']['requestId'],
-                    'responseCode':self.fixture['status'],
-                    'responseHeaders':[{'name':'Content-Type','value':'application/json'}],
-                    'body':base64.b64encode(json.dumps(self.fixture['body']).encode()).decode()})
+                request=msg['params']['request'];rid=msg['params']['requestId']
+                if self.allowed_origin:
+                    self.request_log.append((request['method'],request['url']))
+                if self.allowed_origin and not request['url'].startswith(self.allowed_origin+'/'):
+                    self.blocked_requests.append(request['url']);self.send('Fetch.failRequest',{'requestId':rid,'errorReason':'BlockedByClient'})
+                elif self.fixture is not None:
+                    self.send('Fetch.fulfillRequest',{'requestId':rid,
+                        'responseCode':self.fixture['status'],
+                        'responseHeaders':[{'name':'Content-Type','value':'application/json'}],
+                        'body':base64.b64encode(json.dumps(self.fixture['body']).encode()).decode()})
+                else:self.send('Fetch.continueRequest',{'requestId':rid})
             if msg.get('method')=='Network.responseReceived' and msg['params']['response']['url'].endswith('/api/load'):
                 self.api_id=msg['params']['requestId']
             if msg.get('method')=='Runtime.exceptionThrown':self.errors+=1
@@ -96,11 +104,11 @@ def main():
         data=json.loads(response['body'])
         report['live_data']={'aggregate':data['aggregate'],'memory':data['diagnostics'],'case_count':len(data['cases']),
                              'claim_count':len(data['claims'])}
-        check('All three connected sections',browser.evaluate('Array.from(document.querySelectorAll("section.section")).map(s=>s.id)')==['project','update','evidence'])
+        check('Pilot evidence precedes collapsed project background',browser.evaluate('Array.from(document.querySelectorAll("section.section")).map(s=>s.id)')==['evidence','project','update'])
         check('Investigation question appears before project section',browser.evaluate('document.querySelector("#investigation-brief .brief-question").textContent')==data['investigation']['question'] and browser.evaluate('document.querySelector("#investigation-brief").compareDocumentPosition(document.querySelector("#project")) & Node.DOCUMENT_POSITION_FOLLOWING')==4)
         check('Concise next action is an excerpt of the saved proposal',browser.evaluate('document.querySelector(".next-summary").textContent')==data['recommendation']['recommended_next_step'].split(':')[0]+'.')
         check('Full original recommendation is available unchanged and initially collapsed',browser.evaluate('!document.querySelector("#original-recommendation").open && document.querySelector("#original-recommendation .copy").textContent')==data['recommendation']['recommended_next_step'])
-        check('Pending approval and unset decision remain visible in early brief',browser.evaluate('document.querySelector("#investigation-brief").textContent.includes("Pending approval") && document.querySelector("#investigation-brief").textContent.includes("Decision: not set")'))
+        check('Recommendation review is separate from the human decision',browser.evaluate('document.querySelector("#investigation-brief").textContent.includes("Agent recommendation · Pending review") && !document.querySelector("#investigation-brief").textContent.includes("Decision: not set")'))
         check('Distribution and licensing qualifications visible beside draft before expansion',browser.evaluate('Array.from(document.querySelectorAll(".claim-item")).filter(e=>!e.querySelector("details").open).map(e=>e.querySelector(".proposed-correction").textContent)')==[c['review']['proposed_wording'] for c in data['claims']])
         check('Displayed figures reconcile with live SQL',browser.evaluate('Array.from(document.querySelectorAll(".stat strong")).map(e=>e.textContent)')==[
             str(data['aggregate']['attempted_cases']),f"{data['aggregate']['schema_valid_cases']} / {data['aggregate']['attempted_cases']}",

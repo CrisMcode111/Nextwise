@@ -7,13 +7,15 @@
   <a class="brand" href="#"><span class="mark">n<span>↗</span></span>nextwise<span class="beta">LOCAL</span></a>
   <div class="workspace-label">YOUR WORKSPACE</div>
   <div class="workspace"><span class="avatar">AG</span><div><strong>AI Raw Gourmet</strong><small>Technical investigation</small></div></div>
-  <nav aria-label="Investigation sections"><a href="#project"><span>01</span> My project</a><a href="#update"><span>02</span> Investigated update</a><a href="#evidence"><span>03</span> Evidence & decision</a></nav>
+  <nav aria-label="Investigation sections"><a href="#investigation-brief">Current investigation</a><a href="#evidence"><span>01</span> Evidence & decision</a><a href="#project"><span>02</span> My project</a><a href="#update"><span>03</span> Investigated update</a></nav>
   <div class="sidebar-note"><span class="dot"></span> A considered next step.<br><small>Keep the evidence. Keep the uncertainty.</small></div>
 </aside>
 <div class="shell"><header class="topbar"><span>Workspace <span class="slash">/</span> Investigation brief</span><div><span id="connection" class="connection">Not connected</span><button id="refresh" class="button quiet">Refresh</button><button id="disconnect" class="button quiet" hidden>Disconnect</button></div></header>
 <main id="main">
   <div class="intro compact-intro"><p class="eyebrow">FROM UPDATE TO NEXT STEP</p><h1>Your investigation, <em>in focus.</em></h1></div>
   <div id="decision-home"><section id="decision-panel" class="decision-panel" aria-label="Your decision"></section></div>
+  <div id="state" class="state" role="status" aria-live="polite"></div>
+  <div id="content" hidden></div>
   <section id="discovery" class="card" aria-label="Update discovery">
     <h2>Check approved sources</h2>
     <p>Nextwise explains possible project relevance and prepares grounded investigation proposals. Review and selection remain separate from human approval.</p>
@@ -22,7 +24,5 @@
     <p id="discovery-status" role="status" aria-live="polite"></p>
     <div id="discovery-scope"></div><div id="discovery-results"></div>
   </section>
-  <div id="state" class="state" role="status" aria-live="polite"></div>
-  <div id="content" hidden></div>
 </main><footer>Nextwise <span>Traceable reasons. Explicit unknowns. Your decision.</span></footer></div>
 </body></html>
