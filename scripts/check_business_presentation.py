@@ -4,6 +4,7 @@ Reads existing public artifacts and the persisted decision as fixture input only
 Never invokes the production H-MEM bridge, starts Nextwise or writes a decision.
 """
 import argparse
+from contextlib import nullcontext
 import hashlib
 import html
 import json
@@ -48,7 +49,7 @@ def accepted_fixture():
             return {'entry': entries[0], 'items': saved['items']}
 
 
-def fixtures(*, staged=False):
+def fixtures(*, staged=False, previous_only=False):
     artifacts = {kind: json.loads((ROOT / app.exporter.INPUTS[name]).read_text(encoding='utf-8'))
                  for name, kind in app.KINDS.items()}
     mem = {'investigation_id': app.INVESTIGATION, 'artifacts': artifacts,
@@ -71,6 +72,11 @@ def fixtures(*, staged=False):
     raw = json.loads((app.memory.DEFAULT_MEMORY_ROOT / 'update-discovery/state.json').read_text(encoding='utf-8'))
     saved = max((json.loads(r['content'])['value'] for r in raw['records']), key=lambda v: v['version'])
     assert not saved.get('opportunity_recommendations'), 'Real saved opportunities changed; update the zero-opportunity fixture honestly.'
+    if previous_only:
+        # Read-only presentation input: no official bridge or temporary H-MEM.
+        return {'data': data, 'history': {'ok': True, 'history': history},
+            'discovery': {'status': {'running': False, 'message': 'ISOLATED saved-fixture view'},
+                'scope': app.discovery.config(), 'semantic_review_supported': True, 'discovery': saved, 'opportunities': []}}
     from saved_source_opportunity_fixture import build
     with tempfile.TemporaryDirectory(prefix='nextwise-real-source-browser-fixture-') as tmp:
         # Same persisted API payload produced by the real-source isolated runner
@@ -102,6 +108,66 @@ window.XMLHttpRequest=class{constructor(){__networkAttempts++;throw Error('Netwo
 window.WebSocket=class{constructor(){__networkAttempts++;throw Error('Network forbidden');}};
 window.EventSource=class{constructor(){__networkAttempts++;throw Error('Network forbidden');}};
 navigator.sendBeacon=()=>{__networkAttempts++;return false;};
+'''
+
+PREVIOUS_ASSERTIONS = r'''
+(async()=>{
+ const checks=JSON.parse(sessionStorage.getItem('previous-checks')||'[]');
+ const phase=sessionStorage.getItem('previous-phase');
+ const check=(name,passed)=>{checks.push({name,passed:!!passed});if(!passed)throw Error(name);};
+ const until=async(f,label='Fixture wait timed out')=>{for(let i=0;i<100;i++){if(f())return;await new Promise(r=>setTimeout(r,30));}throw Error(label);};
+ const settle=()=>new Promise(r=>setTimeout(r,80));
+ const previous=()=>$('#previous-investigations');
+ const summary=()=>$('#previous-investigations>summary');
+ try{
+  await until(()=>window.__releaseLoad&&typeof loading!=='undefined'&&loading);
+  __releaseLoad();await until(()=>!loading&&!discoveryReading&&decisionState&&!content.hidden);await settle();
+  check(phase?'Full browser reload with a nested URL fragment returns to collapsed default':'Initial load with a stale URL fragment starts collapsed',!previous().open);
+  check('Collapsed section shows heading and saved summary without full investigation',summary().textContent.includes('Previous investigations')&&$('#previous-status').textContent.includes('Defer')&&!document.body.innerText.includes(__fixture.data.investigation.question));
+  check('Native accessible disclosure and saved decision controls remain available',previous().tagName==='DETAILS'&&summary().tagName==='SUMMARY'&&!!$('#amend-decision'));
+  if(!phase){
+   summary().click();await settle();
+   check('Heading click expands investigation and genuine saved decision',previous().open&&document.body.innerText.includes(__fixture.data.investigation.question)&&document.body.innerText.includes('Recorded human decision: Defer'));
+   summary().click();await settle();
+   check('Second heading click collapses the section',!previous().open);
+   $('nav a[href="#evidence"]').click();await until(()=>previous().open&&$('#evidence-details').open);await settle();
+   check('Sidebar evidence navigation expands ancestors and scrolls to target',location.hash==='#evidence'&&Math.abs($('#evidence').getBoundingClientRect().top)<250);
+   location.hash='#claim-0';await until(()=>$('#claim-0').open&&$('#publisher-claims').open);await settle();
+   check('Nested evidence navigation preserves exact supporting passage',$('#claim-0 blockquote').textContent===__fixture.data.claims[0].exact_supporting_quote);
+   $('#amend-decision').click();$('input[value="Test"]').click();
+   $('#decision-rationale').value='ISOLATED disclosure draft';$('#decision-rationale').dispatchEvent(new Event('input',{bubbles:true}));
+   summary().click();render(__fixture.data);paintDecisionPanel();await settle();
+   check('Nested disclosure restoration does not force the parent open',!previous().open&&$('#claim-0').open&&$('#evidence-details').open);
+   check('Collapsed redraw preserves user draft and original decision',$('#decision-rationale').value==='ISOLATED disclosure draft'&&decisionState.history.at(-1).choice==='Defer');
+   $('nav a[href="#evidence"]').click();await until(()=>previous().open);summary().click();
+   $('nav a[href="#evidence"]').click();await until(()=>previous().open);await settle();
+   check('Repeated same-fragment sidebar navigation reopens and scrolls',previous().open&&Math.abs($('#evidence').getBoundingClientRect().top)<250);
+   $('#refresh').click();await until(()=>!loading&&!discoveryReading);await settle();
+   check('Application refresh collapses and clears its stale nested fragment',!previous().open&&location.hash==='');
+   check('Refresh preserves draft and confirmed decision',$('#decision-rationale').value==='ISOLATED disclosure draft'&&$('#previous-status').textContent.includes('Defer'));
+   window.__holdLoad=true;window.__releaseLoad=null;const refreshPromise=load();
+   await until(()=>!!window.__releaseLoad,'Deferred fixture load did not start');$('nav a[href="#update"]').click();await settle();
+   __releaseLoad();await refreshPromise;await until(()=>previous().open&&$('#project-background').open,'Deferred sidebar navigation did not reveal the requested item');await settle();
+   check('Explicit sidebar navigation while loading opens the requested item',location.hash==='#update'&&Math.abs($('#update').getBoundingClientRect().top)<250);
+   $('nav a[href="#decision-panel"]').click();await until(()=>location.hash==='#decision-panel');await settle();
+   check('Decision navigation opens and scrolls to saved decision',previous().open&&Math.abs($('#decision-panel').getBoundingClientRect().top)<250);
+   summary().click();render(__fixture.data);await settle();
+   check('A stale decision fragment cannot reopen a manually collapsed parent',!previous().open);
+   // Reload a genuinely open parent at a nested fragment, using only file input.
+   summary().click();sessionStorage.setItem('previous-phase','reloaded');
+   sessionStorage.setItem('previous-checks',JSON.stringify(checks));location.reload();return;
+  }
+  summary().click();summary().click();await settle();
+  check('After full reload heading still expands and collapses normally',!previous().open);
+  $('nav a[href="#decision-panel"]').click();await until(()=>previous().open);await settle();
+  check('After full reload same-fragment decision navigation still works',Math.abs($('#decision-panel').getBoundingClientRect().top)<250);
+  showState('memory','ISOLATED connection detail');
+  check('Error state preserves separate saved decision and collapsed diagnostics',content.hidden&&decisionPanel.textContent.includes('Recorded human decision: Defer')&&!$('#load-error-details').open);
+  check('No script errors, network attempts or decision writes',__errors.length===0&&__networkAttempts===0&&!__calls.some(c=>c.path==='/api/decision'||c.path==='/api/discovery/decision'));
+ }catch(error){checks.push({name:'Fixture completion: '+error.message,passed:false});}
+ sessionStorage.removeItem('previous-phase');sessionStorage.removeItem('previous-checks');
+ const result=document.createElement('pre');result.id='presentation-test-results';result.hidden=true;result.textContent=JSON.stringify(checks);document.body.append(result);
+})();
 '''
 
 ASSERTIONS = r'''
@@ -202,6 +268,7 @@ def main():
     parser.add_argument('--width',type=int,default=1440)
     parser.add_argument('--screenshot',type=Path)
     parser.add_argument('--staged-fixture', action='store_true', help='Synthetic staged output with genuine saved inputs and temporary H-MEM; no model/network calls.')
+    parser.add_argument('--previous-only', action='store_true', help='Focused disclosure tests with read-only fixtures; no H-MEM writes or model transport.')
     args=parser.parse_args()
     if args.screenshot and not args.screenshot.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()):
         raise SystemExit('Presentation screenshots must stay in OS temporary storage.')
@@ -210,8 +277,11 @@ def main():
     js = (ROOT / 'web/app.js').read_text(encoding='utf-8')
     document = re.sub(r'<script\b[^>]*src=[^>]*></script>', '', original)
     document = re.sub(r'<link\b[^>]*rel="stylesheet"[^>]*>', '<style>' + css + 'html{scroll-behavior:auto!important}</style>', document)
-    boot = BOOT.replace('FIXTURE_DATA', json.dumps(fixtures(staged=args.staged_fixture), ensure_ascii=True).replace(chr(60), chr(92)+'u003c'))
-    document = document.replace('</body>', '<script>' + boot + '</script><script>' + js + '</script><script>' + ASSERTIONS + '</script></body>')
+    with patch.object(app.memory, 'call_bridge', side_effect=AssertionError('Presentation fixture must not access H-MEM')) if args.previous_only else nullcontext():
+        fixture = fixtures(staged=args.staged_fixture, previous_only=args.previous_only)
+    boot = BOOT.replace('FIXTURE_DATA', json.dumps(fixture, ensure_ascii=True).replace(chr(60), chr(92)+'u003c'))
+    assertions = PREVIOUS_ASSERTIONS if args.previous_only else ASSERTIONS
+    document = document.replace('</body>', '<script>' + boot + '</script><script>' + js + '</script><script>' + assertions + '</script></body>')
     with tempfile.TemporaryDirectory(prefix='nextwise-business-presentation-') as tmp:
         page = Path(tmp) / 'fixture.html'; page.write_text(document, encoding='utf-8')
         command = [r'C:\Program Files\Google\Chrome\Application\chrome.exe', '--headless=new',
@@ -220,7 +290,7 @@ def main():
             f'--window-size={args.width},1000', '--user-data-dir=' + str(Path(tmp) / 'chrome'),
             '--dump-dom', '--virtual-time-budget=12000']
         if args.screenshot:command.append('--screenshot='+str(args.screenshot))
-        result = subprocess.run([*command,page.as_uri()], capture_output=True, timeout=60)
+        result = subprocess.run([*command,page.as_uri()+('#decision-panel' if args.previous_only else '')], capture_output=True, timeout=60)
     output = result.stdout.decode('utf-8', errors='replace')
     match = re.search(r'<pre id="presentation-test-results"[^>]*>(.*?)</pre>', output, re.S)
     if not match:

@@ -1,5 +1,6 @@
 'use strict';
 const $ = s => document.querySelector(s);
+let pendingHashNavigation=false;
 let discoveryBusy=false, discoveryReading=false, discoveryTimer=null;
 const selectionDrafts=new Map();
 const opportunityDrafts=new Map();
@@ -378,9 +379,18 @@ function comparison(c, parent) {
   paragraph(`Flagged incorrectly unknown by the saved evaluator: ${c.comparison.incorrect_unknowns.join(', ') || 'None'}`,unknowns);
   paragraph(`Saved scoring protocol: ${c.comparison.protocol}`,unknowns,'meta');
 }
+function resetPreviousDisclosure(){
+  const previous=$('#previous-investigations'), fragment=document.getElementById(location.hash.slice(1));
+  // Restored fragments can make the browser reveal closed details on reload.
+  if(location.hash&&(!fragment||previous.contains(fragment)))history.replaceState(history.state,'',location.pathname+location.search);
+  previous.open=false;
+  pendingHashNavigation=false;
+}
+resetPreviousDisclosure();
 function openHash() {
   const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-  if (!target) return;
+  if (!target) { pendingHashNavigation=!!location.hash; return; }
+  pendingHashNavigation=false;
   if (target.tagName === 'DETAILS') target.open = true;
   let ancestor = target.parentElement;
   while (ancestor) { if (ancestor.tagName === 'DETAILS') ancestor.open = true; ancestor = ancestor.parentElement; }
@@ -513,7 +523,7 @@ function render(d) {
   const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${e.target.id}`));}});},{rootMargin:'-10% 0px -65% 0px'});
   document.querySelectorAll('#investigation-brief,.section').forEach(s=>observer.observe(s));
   restoreDisclosures(expanded);
-  if(location.hash) requestAnimationFrame(openHash);
+  if(pendingHashNavigation) openHash();
 }
 function showState(code,message) {
   parkDecisionPanel();decisionContext=null;paintDecisionPanel();
@@ -530,6 +540,7 @@ function showState(code,message) {
 }
 async function load() {
   if(loading||decisionSaving)return; loading=true; refresh.disabled=true;
+  resetPreviousDisclosure();
   while(discoveryReading)await new Promise(resolve=>setTimeout(resolve,100));
   showState('loading','Reading live Zetaris tables, retrieving persisted H-MEM artifacts, and checking investigation identity and evidence links. This may take a moment.');
   try {
