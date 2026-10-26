@@ -1,5 +1,48 @@
 # Demo readiness
 
+## Optional JSON Schema transport — not live verified
+
+`analyze_sources.request_claims` accepts an opt-in `response_schema` keyword.
+Existing callers still send `json_object` unchanged. Inside a separately
+authorized, guarded discovery attempt, derive the schema directly from
+`semantic_discovery.output_contract(batch)` and pass it as `response_schema`.
+Keep the existing prepared sources/messages, token and byte limits, route checks,
+response retention and semantic validation. No separate schema is maintained.
+No existing runner/CLI is automatically switched to schema mode and no allowance
+is reset or extended by this option.
+
+The helper sends `response_format` with type `json_schema`, name
+`nextwise_discovery`, `strict: true` and the supplied contract. Supplying a schema
+with `json_output=False`, or a non-object root schema, fails before transport.
+Provider errors remain failures; there is no retry with `json_object`. HTTP success
+is transport success only: the unchanged batch/evidence validator must still
+reject duplicate candidates, unsupported quotes and invalid project linkage.
+
+Mock-transport tests verify the exact Nextwise request body and rejection paths;
+they do not verify NVIDIA's schema support. The installed Nightshift client
+forwards `response_format` through its final generation phase into the NVIDIA
+adapter, but actual hosted Nemotron support, enforced schema keywords, nullable
+types and length/item bounds remain unverified. Unsupported constraints must not
+be silently removed. Exact quotation matching, evidence identity and substantive
+project reasoning remain application responsibilities.
+
+Before any future live verification, obtain a new explicit authorization and
+resolve Nightshift's internal attempt accounting. The inspected installed adapter
+uses `withRetry` with up to two retries for selected transient errors; auto routing
+may also race/fallback or use additional phases. Nextwise's one client attempt and
+`meterless-tier-split: off` do not guarantee one upstream model invocation. Verify
+the exact provider/model, control or account for internal retries/dispatches,
+and prevent post-processing from bypassing the structured-output contract.
+No private runtime configuration was read or changed, and no live compatibility
+test was performed for this feature.
+
+Offline tests:
+
+```powershell
+python -B -m unittest discover -s tests -p test_schema_response_format.py -v
+python -B -m unittest discover -s tests -p test_analyze_sources.py -v
+```
+
 ## Opportunity workflow — offline implementation
 
 The missing discovery-to-decision connection now has an offline implementation.

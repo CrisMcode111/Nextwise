@@ -288,7 +288,19 @@ def parse_http_error_details(
 def request_claims(
     token: str, messages: list[dict[str, str]], *, json_output: bool = True,
     max_tokens: int | None = None, max_response_bytes: int | None = None,
+    response_schema: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Send one client attempt. Schema mode is opt-in, with no format fallback.
+
+    Discovery callers supply semantic_discovery.output_contract(batch). This
+    transports that schema; it does not attest provider support or replace the
+    caller's semantic/evidence validation.
+    """
+    if response_schema is not None:
+        if not json_output:
+            raise ValueError("response_schema requires json_output=True.")
+        if not isinstance(response_schema, dict) or response_schema.get("type") != "object":
+            raise ValueError("response_schema must be an object schema from the discovery contract.")
     payload = {
         "model": MODEL,
         "stream": False,
@@ -297,7 +309,9 @@ def request_claims(
     }
     if json_output:
         payload["chat_template_kwargs"] = {"enable_thinking": False}
-        payload["response_format"] = {"type": "json_object"}
+        payload["response_format"] = ({"type": "json_schema", "json_schema": {
+            "name": "nextwise_discovery", "strict": True, "schema": response_schema,
+        }} if response_schema is not None else {"type": "json_object"})
     request = urllib.request.Request(
         ENDPOINT,
         data=json.dumps(payload).encode("utf-8"),
