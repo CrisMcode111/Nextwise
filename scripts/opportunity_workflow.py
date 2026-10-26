@@ -56,6 +56,9 @@ def current(store, state, candidate_id, context):
             or assessment.get('provenance') != prepared['source']):
         raise ValueError('A current validated assessment is required; rejected or stale drafts cannot become recommendations.')
     semantic.validate(assessment['assessment'], prepared)
+    if 'staged_plan' in assessment:
+        import staged_opportunity as stages
+        stages.validate(assessment['assessment'], prepared, context, assessment['staged_plan'])
     return item, assessment
 
 

@@ -48,7 +48,7 @@ def accepted_fixture():
             return {'entry': entries[0], 'items': saved['items']}
 
 
-def fixtures():
+def fixtures(*, staged=False):
     artifacts = {kind: json.loads((ROOT / app.exporter.INPUTS[name]).read_text(encoding='utf-8'))
                  for name, kind in app.KINDS.items()}
     mem = {'investigation_id': app.INVESTIGATION, 'artifacts': artifacts,
@@ -71,8 +71,16 @@ def fixtures():
     raw = json.loads((app.memory.DEFAULT_MEMORY_ROOT / 'update-discovery/state.json').read_text(encoding='utf-8'))
     saved = max((json.loads(r['content'])['value'] for r in raw['records']), key=lambda v: v['version'])
     assert not saved.get('opportunity_recommendations'), 'Real saved opportunities changed; update the zero-opportunity fixture honestly.'
+    from saved_source_opportunity_fixture import build
+    with tempfile.TemporaryDirectory(prefix='nextwise-real-source-browser-fixture-') as tmp:
+        # Same persisted API payload produced by the real-source isolated runner
+        # test, with a clearly synthetic response. Never production acceptance.
+        isolated = build(tmp, staged=staged)
+        saved_review = isolated['discovery']
     return {'data': data, 'history': {'ok': True, 'history': history},
         'accepted_fixture': accepted_fixture(),
+        'saved_review_fixture': saved_review,
+        'staged_fixture': staged,
         'discovery': {'status': {'running': False, 'message': 'ISOLATED saved-fixture view'},
             'scope': app.discovery.config(), 'semantic_review_supported': True, 'discovery': saved, 'opportunities': []}}
 
@@ -128,11 +136,18 @@ ASSERTIONS = r'''
  const note=$('#opportunities textarea');note.value='ISOLATED opportunity draft';note.dispatchEvent(new Event('input'));paintOpportunities([entry]);
  check('Opportunity redraw preserves the draft without recording a decision',$('#opportunities textarea').value==='ISOLATED opportunity draft'&&!__calls.some(c=>c.path==='/api/discovery/decision'));
  const candidate=briefingItems[r.candidate_id];candidate.kind='initial_inventory';paintOpportunities([entry]);
- check('Accepted baseline stays secondary and is not announced as new',!$('#opportunities>article')&&!$('#other-saved-briefings').open&&$('#opportunities-status').textContent.includes("don't have a new verified opportunity")&&!!$('#other-saved-briefings .opportunity-decision'));
+ check('Accepted baseline review is visible without being announced as new',!!$('#opportunities>article')&&$('#opportunities-status').textContent.includes("don't have a new verified opportunity")&&$('#opportunities>article').textContent.includes('Saved-source review')&&!!$('#opportunities .opportunity-decision'));
  candidate.kind='new_article';candidate.semantic_assessment.status='failed';paintOpportunities([entry]);
  check('Rejected assessment offers no accepted recommendation or decision',!$('#opportunities>article')&&!$('#opportunities .opportunity-decision')&&$('#opportunities-status').textContent.includes("don't have a new verified opportunity")&&$('#opportunities').textContent.includes('could not be confirmed'));
  candidate.semantic_assessment.status='validated';const staleEntry={...entry,current:false};paintOpportunities([staleEntry]);
  check('Stale evidence stays secondary and decision submission is disabled',!$('#opportunities>article')&&$('#opportunities button[type=submit]').disabled&&$('#opportunities').textContent.includes('needs checking again'));
+ paintDiscovery(__fixture.saved_review_fixture);
+ const savedReview=__fixture.saved_review_fixture.opportunities[0].recommendation;
+ check('Real snapshot and context with synthetic accepted response render a continuation',$('#opportunities>article h3').textContent===savedReview.title&&$('#opportunities>article').textContent.includes('continuation of your existing investigation, not a new discovery')&&$('#opportunities-status').textContent.includes("don't have a new verified opportunity"));
+ check('Continuation explains source, business need, hypothetical value and bounded next step',[savedReview.what_changed,savedReview.why_it_matters,savedReview.potential_value,savedReview.next_action,savedReview.existing_findings_connection].every(t=>$('#opportunities>article').textContent.includes(t))&&$('#opportunities>article').textContent.includes('My recommendation: Defer'));
+ check('Continuation keeps genuine decision separate from unapproved advice',!$('#previous-investigations').open&&$('#previous-status').textContent.includes('Defer')&&$('#opportunities>article').textContent.includes('No human opportunity decision has been recorded')&&$('#opportunities select').value==='');
+ check('Continuation provenance links and exact passages remain accessible',$('#opportunities .briefing-source a').href===savedReview.evidence_references.url&&$('#opportunities').textContent.includes(savedReview.supporting_evidence[0].exact_quote)&&[...$('#opportunities').querySelectorAll('details')].every(d=>!d.open));
+ if(__fixture.staged_fixture)check('Staged accepted result reaches the same UI with its extraction audit and unchosen human control',$('#discovery-results').textContent.includes('Opt-in staged publisher-claim extraction')&&!!__fixture.saved_review_fixture.discovery.items[savedReview.candidate_id].semantic_assessment.staged_plan&&$('#opportunities select').value==='');
  await readDiscovery();
  $('nav a[href="#evidence"]').click();await until(()=>$('#evidence-details').open);
  location.hash='#claim-0';await until(()=>$('#claim-0').open&&$('#publisher-claims').open);
@@ -186,6 +201,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--width',type=int,default=1440)
     parser.add_argument('--screenshot',type=Path)
+    parser.add_argument('--staged-fixture', action='store_true', help='Synthetic staged output with genuine saved inputs and temporary H-MEM; no model/network calls.')
     args=parser.parse_args()
     if args.screenshot and not args.screenshot.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()):
         raise SystemExit('Presentation screenshots must stay in OS temporary storage.')
@@ -194,7 +210,7 @@ def main():
     js = (ROOT / 'web/app.js').read_text(encoding='utf-8')
     document = re.sub(r'<script\b[^>]*src=[^>]*></script>', '', original)
     document = re.sub(r'<link\b[^>]*rel="stylesheet"[^>]*>', '<style>' + css + 'html{scroll-behavior:auto!important}</style>', document)
-    boot = BOOT.replace('FIXTURE_DATA', json.dumps(fixtures(), ensure_ascii=True).replace(chr(60), chr(92)+'u003c'))
+    boot = BOOT.replace('FIXTURE_DATA', json.dumps(fixtures(staged=args.staged_fixture), ensure_ascii=True).replace(chr(60), chr(92)+'u003c'))
     document = document.replace('</body>', '<script>' + boot + '</script><script>' + js + '</script><script>' + ASSERTIONS + '</script></body>')
     with tempfile.TemporaryDirectory(prefix='nextwise-business-presentation-') as tmp:
         page = Path(tmp) / 'fixture.html'; page.write_text(document, encoding='utf-8')

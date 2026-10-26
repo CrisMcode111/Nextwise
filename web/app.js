@@ -8,13 +8,14 @@ let briefingItems={};
 function completeBriefing(r){
   return r&&['Adopt','Test','Defer','Reject'].includes(r.recommended_choice)&&[r.what_changed,r.why_it_matters,r.recommendation_reason].every(value=>typeof value==='string'&&value.trim());
 }
-function isNewBriefing(entry){
+function isCurrentBriefing(entry){
   const r=entry.recommendation,item=briefingItems[r?.candidate_id];
-  // Presentation only: use the persisted observation and backend freshness verdict.
-  // A baseline, a rejected assessment or an unrelated revision is never a new briefing.
+  // The backend establishes acceptance/freshness; this is display eligibility only.
   return completeBriefing(r)&&entry.current===true&&item?.semantic_assessment?.status==='validated'
-    &&item.content_sha256===r.evidence_references?.content_sha256
-    &&['new_article','monitored_page_changed','article_summary_changed'].includes(item.kind);
+    &&item.content_sha256===r.evidence_references?.content_sha256;
+}
+function isNewBriefing(entry){
+  return isCurrentBriefing(entry)&&['new_article','monitored_page_changed','article_summary_changed'].includes(briefingItems[entry.recommendation.candidate_id].kind);
 }
 async function opportunityPost(path,body){
   const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -24,12 +25,15 @@ function paintOpportunities(entries=[]){
   const target=$('#opportunities');if(!target)return;
   const expanded=expandedDisclosures(target);target.replaceChildren();el('h2','','What I have for you',target);
   const ready=entries.filter(isNewBriefing);
+  const reviews=entries.filter(entry=>isCurrentBriefing(entry)&&!isNewBriefing(entry));
   const overview=paragraph(ready.length?`I have ${ready.length===1?'a saved opportunity':`${ready.length} saved opportunities`} for you to review. Here's what the sources support, what might help your business, and what I'd consider next. Benefits remain unproven.`:"I don't have a new verified opportunity for you yet. Your previous investigations and decisions are still available below.",target,'copy');overview.id='opportunities-status';overview.setAttribute('role','status');overview.setAttribute('aria-live','polite');
   paragraph('This briefing uses saved records. It does not mean sources were checked today. Each opportunity needs your own decision.',target,'meta');
-  if(entries.length>ready.length)paragraph(`${entries.length-ready.length} other saved briefing(s) are available below. They may be baseline observations, out of date, or incomplete; they are not confirmed new opportunities.`,target,'notice');
-  const older=entries.some(entry=>!isNewBriefing(entry))?details('Other saved briefings · baselines, earlier evidence or incomplete records',target,'other-saved-briefings'):null;
+  if(reviews.length)paragraph(`I also have ${reviews.length===1?'a review':'reviews'} of saved source material for you. This is not a newly detected development. Any previous human decision remains unchanged.`,target,'notice');
+  const historical=entries.filter(entry=>!isCurrentBriefing(entry));
+  if(historical.length)paragraph(`${historical.length} other saved briefing(s) are available below. They are out of date, incomplete or could not be confirmed; they are not confirmed new opportunities.`,target,'notice');
+  const older=historical.length?details('Other saved briefings · earlier evidence or incomplete records',target,'other-saved-briefings'):null;
   entries.forEach(entry=>{
-    const r=entry.recommendation, head=entry.decisions.at(-1), row=el('article','card',null,isNewBriefing(entry)?target:older);
+    const r=entry.recommendation, head=entry.decisions.at(-1), row=el('article','card',null,isCurrentBriefing(entry)?target:older);
     if(!completeBriefing(r)){
       paragraph('This opportunity briefing is incomplete. No recommendation is ready for your decision.',row,'notice');json(entry,details('Saved briefing details',row));return;
     }
@@ -37,6 +41,7 @@ function paintOpportunities(entries=[]){
       paragraph('This saved briefing could not be confirmed against its assessment. No recommendation is ready for your decision.',row,'notice');json(entry,details('Saved briefing details',row));return;
     }
     row.id=`opportunity-${r.candidate_id}`;
+    if(isCurrentBriefing(entry)&&!isNewBriefing(entry))paragraph(r.existing_investigation_id?'Saved-source review · continuation of your existing investigation, not a new discovery.':'Saved-source review · not a new discovery.',row,'notice');
     el('h3','',r.title,row);pill(`My recommendation: ${r.recommended_choice} · provisional`,row,'neutral');
     const source=el('p','briefing-source',null,row);link('Read the source',r.evidence_references.url,source);
     el('span','',` · Published ${date(r.evidence_references.publication_date)} · Saved ${date(r.created_at)}`,source);
