@@ -12,7 +12,7 @@ import update_discovery as discovery
 
 POLICY='nemotron-grounded-discovery-v1'
 VALIDATOR_VERSION='grounded-discovery-validator-v3'
-CONTRACT_VERSION='grounded-discovery-contract-v3.1'
+CONTRACT_VERSION='grounded-discovery-contract-v3.2'
 TEXT_MIN=10
 TEXT_MAX=1800
 GAP_MIN=5
@@ -144,13 +144,21 @@ def messages(batch,context):
     system=('You are Nextwise preparing evidence-grounded project relevance and investigation proposals, not making human decisions. '
         'Return one JSON object only, no reasoning trace or Markdown, matching the supplied JSON Schema. All fields are required; '
         'use JSON null, never the string null. Return each supplied candidate_id exactly once. Keep explanations concise. '
+        f'This request contains exactly {len(batch)} candidates: return exactly {len(batch)} assessment objects total in assessments. '
+        'Produce one synthesized assessment per candidate, not one per paragraph, capability or interpretation. '
+        'Do not append alternative, summary or placeholder copies of an assessment. '
+        f'Each evidence array has at most {EVIDENCE_CAP} entries. The supplied paragraphs are an evidence pool, not an output checklist: '
+        f'select up to {EVIDENCE_CAP} directly supporting quotations, not a quotation from every paragraph. '
+        'Do this selection when generating the response; the application will reject excess entries rather than silently drop evidence. '
+        f'Each limitations and missing_information array requires 1–{GAP_CAP} substantive strings, including for low relevance. '
+        'Low relevance does not permit empty required lists or omission of an existing-investigation connection. '
         'Include source_observation in EVERY assessment: say what the supplied passage describes separately from project_need and application_hypothesis. '
         'Assess EVERY candidate including irrelevant and ambiguous ones; never force positive results. '
         'Use approved profile, use case, existing investigation, pilot findings (including evaluator limitations) and genuine Defer Version 1. '
         'Do not equate generic extraction, deployment, gaming modes, hardware or national infrastructure with requirements extraction. '
         'Reason about the described capability and a SPECIFIC project need. If evidence is insufficient choose uncertain relevance, '
         'project_need_id uncertain, null application_hypothesis and defer/low priority. For clearly unrelated content explain low relevance. '
-        'For every candidate include at least one exact quote if a supplied passage is at least 20 characters. Copy source_id and passage_id exactly. '
+        f'For every candidate include at least one exact quote if a supplied passage is at least {QUOTE_MIN} characters. Copy source_id and passage_id exactly. '
         'Potential relevance requires evidence, a specific project_need_id, a non-null investigation_question and an application_hypothesis '
         'starting with Hypothesis: that explains a concrete conditional use. Non-potential categories require null application_hypothesis. '
         'Low relevance requires low/defer priority; investigation_question may be null and no investigation proposal will be created. '
