@@ -1,0 +1,50 @@
+{
+  "authorization": "semantic-reassessment-20261026-two-candidates-v1",
+  "max_requests": 1,
+  "controlled": {
+    "requests_used": 1,
+    "confirmed_response_requests": 1,
+    "unconfirmed_reservations": 0,
+    "request_ids": [
+      "1c245068-11ef-4036-95c7-d7c6024ea28f"
+    ],
+    "usage": {
+      "prompt_tokens": 8612,
+      "completion_tokens": 866,
+      "total_tokens": 9478
+    },
+    "usage_complete": true,
+    "usage_missing_request_ids": [],
+    "usage_conflict_request_ids": []
+  },
+  "original_milestone": {
+    "requests_used": 3,
+    "confirmed_response_requests": 3,
+    "unconfirmed_reservations": 0,
+    "request_ids": [
+      "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "b7deced9-0d3a-42bb-8552-29a298019405"
+    ],
+    "usage": {
+      "prompt_tokens": 32650,
+      "completion_tokens": 5680,
+      "total_tokens": 38330
+    },
+    "usage_complete": true,
+    "usage_missing_request_ids": [],
+    "usage_conflict_request_ids": []
+  },
+  "outcomes": [
+    {
+      "candidate_id": "9428cc2bc3c996d8505a0fdf",
+      "status": "failed",
+      "category": "uncertain relevance"
+    },
+    {
+      "candidate_id": "856d845adf1f95fea166c443",
+      "status": "failed",
+      "category": "uncertain relevance"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "authorization": "semantic-reassessment-20261026-two-candidates-v1",
+  "new_model_requests_sent_by_audit": 0,
+  "controlled": {
+    "requests_used": 1,
+    "confirmed_response_requests": 1,
+    "unconfirmed_reservations": 0,
+    "request_ids": [
+      "1c245068-11ef-4036-95c7-d7c6024ea28f"
+    ],
+    "usage": {
+      "prompt_tokens": 8612,
+      "completion_tokens": 866,
+      "total_tokens": 9478
+    },
+    "usage_complete": true,
+    "usage_missing_request_ids": [],
+    "usage_conflict_request_ids": []
+  },
+  "original_milestone": {
+    "requests_used": 3,
+    "confirmed_response_requests": 3,
+    "unconfirmed_reservations": 0,
+    "request_ids": [
+      "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "b7deced9-0d3a-42bb-8552-29a298019405"
+    ],
+    "usage": {
+      "prompt_tokens": 32650,
+      "completion_tokens": 5680,
+      "total_tokens": 38330
+    },
+    "usage_complete": true,
+    "usage_missing_request_ids": [],
+    "usage_conflict_request_ids": []
+  },
+  "accepted": 0,
+  "rejected": 2,
+  "original_cache_request_proposal_hashes_preserved": true,
+  "sources_baselines_publication_dates_and_events_unchanged": true,
+  "genuine_defer_version_1": true,
+  "genuine_defer_record_sha256": "1ebe18051f77a0a385cd625f3a2b24c394f5b11e7de65eacb5d2c415b4a01a59",
+  "read_only_audit_all_memory_files_unchanged": true,
+  "unchanged_cache_refresh_no_reclassification": true,
+  "validator_version": "grounded-discovery-validator-v3"
+}

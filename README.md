@@ -103,6 +103,22 @@ zero failed assessments can be recovered, and two accepted fragments revalidate.
 The corrected summary counts all three distinct requests and their usage once;
 cache replay sends zero requests. See the [per-candidate diagnosis](reports/update_discovery/semantic_assessment/offline_diagnosis/DIAGNOSIS.md).
 
+The separately authorized two-candidate reassessment uses
+`python scripts/reassess_discovery_once.py --live` with hidden runtime-token
+entry and a durable **one-request** cap. It never resets the original allowance
+or retries an interrupted attempt. Its preview (omit `--live`) and offline replay
+(`--replay`) send no requests. This command is for the explicitly authorized
+reassessment only, not routine startup or automatic monitoring. See the
+[controlled reassessment record](reports/update_discovery/controlled_reassessment/VERIFICATION.md)
+for its current stage and actual results. Responses remain in protected, ignored
+local memory storage. Previous failed outcomes remain in history; low relevance
+can have no investigation question and prepares no new proposal.
+The authorized attempt is now consumed: one request, 9,478 reported tokens,
+zero accepted and two rejected assessments. Both omitted a required observation;
+the blog also omitted its existing-investigation linkage, and the gaming quote
+was not exact. Offline replay preserves these failures. Do not rerun the live
+command expecting another attempt; its durable guard refuses one.
+
 Discovery state, first-seen dates, revisions and proposals live through the
 app-owned official H-MEM adapter in `data/memory/hmem/update-discovery/`.
 Immutable run directories retain raw snapshots, hashes, errors and source

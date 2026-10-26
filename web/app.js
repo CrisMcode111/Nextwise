@@ -6,6 +6,8 @@ const discoveryLabels={initial_inventory:'Initial inventory of recently publishe
 function paintSemantic(record,parent){
   if(!record||record.status!=='validated'){
     paragraph(record?.error||record?.explanation||'Semantic assessment pending. No project connection has been established.',parent,'notice');
+    const failure=record?.validation_failure;
+    if(failure)paragraph(`Validation detail: ${failure.code} at ${failure.field}.${failure.missing_fields?.length?` Missing required fields: ${failure.missing_fields.join(', ')}.`:''}`,parent,'notice');
     paragraph('Uncertain. Historical deterministic rules are not used as project reasoning. Failed inputs are cached and are not retried automatically.',parent);
     if(record?.provenance){
       const p=record.provenance;

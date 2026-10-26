@@ -323,15 +323,15 @@ class Store:
             assessment=item.get('semantic_assessment',{})
             cached=semantic.assessment_for_prepared(state,prepared)
             if (assessment.get('status')!='validated' or assessment!=cached
-                    or (assessment_cache_key and assessment_cache_key!=prepared['cache_key'])):
+                    or (assessment_cache_key and assessment_cache_key!=assessment.get('cache_key'))):
                 raise ValueError('The current agent proposal is unavailable or changed. Reopen discovery and review its assessment before selecting.')
-            proposal=next((p for p in state['proposals'] if p.get('origin')=='agent' and p.get('assessment_cache_key')==prepared['cache_key']),None)
+            proposal=next((p for p in state['proposals'] if p.get('origin')=='agent' and p.get('assessment_cache_key')==assessment['cache_key']),None)
             if not proposal:raise ValueError('No persisted agent proposal is available to review.')
             selections=state.setdefault('proposal_selections',[])
             if not any(s['proposal_id']==proposal['id'] for s in selections):
                 selections.append({'proposal_id':proposal['id'],'selected_at':datetime.now(timezone.utc).isoformat(),
                     'user_note':reason.strip() or None,'action':'selected_for_investigation_review','approval':None,
-                    'assessment_cache_key':prepared['cache_key']})
+                    'assessment_cache_key':assessment['cache_key']})
                 return self.save(state)
             return state
 

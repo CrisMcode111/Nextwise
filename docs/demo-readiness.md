@@ -6,7 +6,7 @@ Nextwise now uses the existing Meterless/Nemotron path for semantic project
 reasoning, with the approved profile/use case, existing investigation, original
 pilot findings and genuine Defer Version 1. The rule policies described below
 are historical. The user no longer writes the agent's rationale: validated
-assessments automatically create persisted agent proposals, and the UI offers
+assessments with a bounded investigation question prepare persisted agent proposals, and the UI offers
 **Review and select agent proposal** plus an **Optional user note**. Selection
 is separate from approval and starts no investigation or trial.
 
@@ -15,7 +15,20 @@ The three-request live allowance is **exhausted**. All three calls returned
 tokens, 38,330 total. Two assessments validated, both low relevance, and produced
 two agent proposals. Eleven remain uncertain because responses failed
 validation; this is **partial live semantic validation**, not a successful
-assessment of all thirteen candidates. No additional calls/retries were made.
+assessment of all thirteen candidates. Those are the original run's results.
+
+A separately authorized one-request reassessment of the Nemotron blog and gaming
+feed item has also completed: HTTP 200, the same returned Nemotron model, 8,612
+prompt + 866 completion = 9,478 tokens. **Neither assessment validated**. Both
+omitted `source_observation`; the blog also omitted its required existing-pilot/
+Defer linkage, and the gaming quotation changed an ellipsis. Rejected drafts
+remain uncertain and produce no new proposal. The separate allowance is now
+exhausted; no retries or extra model calls were sent. Exact source/quote checks
+were not relaxed to make the demonstration pass. See the
+[controlled request and offline replay](../reports/update_discovery/controlled_reassessment/VERIFICATION.md).
+The shared contract now explicitly supplies types/enums/limits; low relevance
+may have no investigation question and creates no unnecessary proposal. The two
+historical low-relevance proposals from the original run are preserved.
 
 Expand a candidate for its project need, source observation and exact supporting
 quote/provenance, untested application hypothesis when justified, limitations,

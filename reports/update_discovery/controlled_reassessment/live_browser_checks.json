@@ -1,0 +1,70 @@
+[
+  {
+    "check": "Authenticated investigation, genuine decision and discovery load together",
+    "passed": true
+  },
+  {
+    "check": "Connection confirms live data and linked H-MEM",
+    "passed": true
+  },
+  {
+    "check": "Six Zetaris tables reconcile with eight original memory artifacts",
+    "passed": true
+  },
+  {
+    "check": "Original pilot score and pending evidence review preserved",
+    "passed": true
+  },
+  {
+    "check": "Genuine Defer Version 1 has no integrity warnings",
+    "passed": true
+  },
+  {
+    "check": "Original allowance remains three and separate allowance is one",
+    "passed": true
+  },
+  {
+    "check": "9428cc2bc3c996d8505a0fdf: active persisted assessment belongs to this authorization",
+    "passed": true
+  },
+  {
+    "check": "9428cc2bc3c996d8505a0fdf: original failed assessment remains in history and cache",
+    "passed": true
+  },
+  {
+    "check": "9428cc2bc3c996d8505a0fdf: displays precise rejection, missing fields and uncertainty",
+    "passed": true
+  },
+  {
+    "check": "9428cc2bc3c996d8505a0fdf: failed evidence coverage remains visible and selection disabled",
+    "passed": true
+  },
+  {
+    "check": "856d845adf1f95fea166c443: active persisted assessment belongs to this authorization",
+    "passed": true
+  },
+  {
+    "check": "856d845adf1f95fea166c443: original failed assessment remains in history and cache",
+    "passed": true
+  },
+  {
+    "check": "856d845adf1f95fea166c443: displays precise rejection, missing fields and uncertainty",
+    "passed": true
+  },
+  {
+    "check": "856d845adf1f95fea166c443: failed evidence coverage remains visible and selection disabled",
+    "passed": true
+  },
+  {
+    "check": "Reload reopens combined view",
+    "passed": true
+  },
+  {
+    "check": "Reload preserves active outcomes, proposals, baselines and source events",
+    "passed": true
+  },
+  {
+    "check": "No uncaught browser JavaScript errors",
+    "passed": true
+  }
+]
