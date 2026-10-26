@@ -99,6 +99,15 @@ class DataTests(unittest.TestCase):
 
 
 class HttpTests(unittest.TestCase):
+    def test_production_listener_refuses_duplicate_binding(self):
+        server=app.LocalHTTPServer(('127.0.0.1',0),app.make_handler(app.State()))
+        try:
+            with self.assertRaises(OSError):
+                app.LocalHTTPServer(server.server_address,app.make_handler(app.State()))
+            with self.assertRaises(OSError):
+                app.ThreadingHTTPServer(server.server_address,app.make_handler(app.State()))
+        finally:server.server_close()
+
     def setUp(self):
         self.state=app.State()
         self.error=None

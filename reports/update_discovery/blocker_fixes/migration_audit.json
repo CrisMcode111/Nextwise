@@ -1,0 +1,16 @@
+{
+  "policy_version": "context-phrases-v2",
+  "reassessed_candidates": 13,
+  "categories": {
+    "uncertain relevance": 8,
+    "low relevance": 5
+  },
+  "source_snapshots_hashes_preserved": true,
+  "source_fields_revisions_and_first_seen_preserved": true,
+  "baselines_runs_events_and_proposals_preserved": true,
+  "earlier_assessments_preserved_exactly": true,
+  "saved_source_replay": "Isolated copy of actual saved source bytes at original retrieval time; no public fetches",
+  "unchanged_source_events": 0,
+  "reassessment_idempotent": true,
+  "live_proposal_count": 0
+}

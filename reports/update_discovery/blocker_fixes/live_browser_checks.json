@@ -1,0 +1,54 @@
+[
+  {
+    "check": "Authenticated live investigation and discovery load together",
+    "passed": true
+  },
+  {
+    "check": "Connection displays live data and memory linked",
+    "passed": true
+  },
+  {
+    "check": "All six live tables reconcile with eight original H-MEM artifacts",
+    "passed": true
+  },
+  {
+    "check": "Original pilot score and pending review unchanged",
+    "passed": true
+  },
+  {
+    "check": "Genuine Defer Version 1 reopens without review warnings",
+    "passed": true
+  },
+  {
+    "check": "Every saved candidate uses the versioned provisional policy",
+    "passed": true
+  },
+  {
+    "check": "Previously ambiguous extraction/deployment candidate is uncertain without invented matches",
+    "passed": true
+  },
+  {
+    "check": "Earlier assessments remain available separately from source revisions",
+    "passed": true
+  },
+  {
+    "check": "Policy-only reclassification and assessment history are visible",
+    "passed": true
+  },
+  {
+    "check": "Reload recovers live investigation, discovery and genuine decision",
+    "passed": true
+  },
+  {
+    "check": "Reopen preserves proposals, source events and assessment checkpoints exactly",
+    "passed": true
+  },
+  {
+    "check": "Combined live view fits mobile viewport",
+    "passed": true
+  },
+  {
+    "check": "No uncaught browser JavaScript errors",
+    "passed": true
+  }
+]

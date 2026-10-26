@@ -5,10 +5,85 @@ deserves further testing. It connects approved project context, dated sources,
 qualified claims, a saved four-case pilot, an existing AI-assisted proposal and
 an explicit human decision with evidence links.
 
-**Feature scope is frozen for delivery.** This demonstration resumes existing
+This demonstration resumes existing
 results through live Zetaris queries and official H-MEM retrieval. Refresh,
 decision save and restart do **not** call a model or rerun an experiment.
 See [demo readiness and recording sequence](docs/demo-readiness.md).
+
+## Manual update discovery
+
+Open the existing local app and choose **Check for updates**. The existing
+investigation stays visible while progress is shown. Discovery can run before
+Zetaris key entry: it uses the approved local project context, public sources
+and a separate official H-MEM namespace, not live SQL or a model.
+
+The approved scope is the three `investigation.initial_source_urls` plus
+`https://blogs.nvidia.com/feed/`. The source-scope disclosure lists all four URLs.
+Only these four resources are fetched. Feed article links are enumerated, not
+downloaded. At most **10** unique recent items within **14 days** are retained per
+check, newest first; missing/invalid/future publication dates are excluded.
+Responses are limited to **2,000,000 bytes**, an **8-second** socket timeout,
+**20-second** read deadline (a blocked read can add one socket timeout), and
+**3** redirects. Every redirect must target an exact approved HTTPS URL.
+Feed candidate links must be HTTPS NVIDIA `/blog/` URLs; tracking parameters
+and fragments do not establish separate identities.
+
+First feed success shows an **initial inventory of recently published items**.
+Later checks distinguish newly discovered articles, feed title/summary edits
+and monitored-page edits. Unchanged readable content produces no new event;
+script/style and whitespace/markup changes are suppressed. Publisher dates may
+be wrong, and changes outside the capped window are not covered. Partial failure
+means incomplete coverage; successful-source results persist and failed-source
+baselines remain. Fetch success never verifies publisher claims.
+
+Expand a saved candidate to inspect its provisional context/phrase rule matches,
+approved objective/task/constraints and full readable revision differences.
+Low-relevance candidates remain visible. These assessments use no Nemotron
+reasoning and do not establish suitability. Enter a reason and choose **Create
+investigation proposal**. Reopen it under **Persisted investigation proposals**
+or **Reopen saved discovery**, including after a server restart. A proposal is
+separate from the current Nemotron investigation and does not start research,
+call models, run a trial or approve anything. Repeated selection of the same
+candidate revision returns the existing proposal.
+
+Relevance policy **`context-phrases-v2`** requires supporting capability or
+model-integration phrases in nearby text within one sentence. Generic words
+such as “extraction” or “deployment”, product names, and disconnected mentions
+cannot establish potential relevance. Insufficient context is labelled
+**uncertain relevance**; low relevance and uncertainty remain visible. The
+policy deliberately favors false negatives over invented project connections.
+Expand **Relevance assessment history** to see earlier assessments and their
+source revision. Reopening discovery migrates older assessments once, retaining
+the original assessment, source snapshots, first-seen dates, revisions and
+discovery events. A reclassification banner identifies policy changes separately
+from publication or source changes. Existing proposals retain their selection-time
+assessment; migration neither selects candidates nor launches investigations.
+
+Discovery state, first-seen dates, revisions and proposals live through the
+app-owned official H-MEM adapter in `data/memory/hmem/update-discovery/`.
+Immutable run directories retain raw snapshots, hashes, errors and source
+metadata. Back up this entire directory privately with the app stopped.
+Concurrent checks/selections are refused by process and exclusive file locks;
+inspect a stale `discovery-run.lock` only after confirming no process owns it.
+The bridge also uses its existing `nextwise.lock`. H-MEM is not crash-atomic;
+history grows without automatic pruning and the bridge's existing 2 MB input
+ceiling can eventually block additional saves. A persistence failure is reported
+without replacing the last confirmed baseline; no automatic cleanup occurs.
+This milestone provides **manual checks**, with no scheduled monitoring or
+automatic investigation.
+
+Discovery verification (isolated fixtures; browser requires installed Chrome):
+
+```powershell
+python -m unittest discover -s tests -p test_update_discovery.py -v
+python -m unittest discover -s tests -p test_relevance_policy.py -v
+python scripts/check_discovery_browser.py
+```
+
+`python scripts/update_discovery.py` performs a real bounded public-source check
+and persists only discovery state. It is optional; the UI uses the same path.
+Actual milestone verification is recorded in
+[update-discovery verification](reports/update_discovery/VERIFICATION.md).
 
 ## Existing dependencies
 
@@ -62,6 +137,13 @@ model-execution scripts are separate from the application.
 If port 8765 is already serving Nextwise, use that app rather than starting a
 second process. To replace a running instance, press Ctrl+C in its own console
 before launching again. No infrastructure recreation is required.
+New starts use exclusive port binding so Windows cannot route requests to
+multiple app instances. If startup says the port is occupied, use the existing
+instance or stop it in its own console; no key is requested by the failed start.
+If connection needs attention, check that Docker Desktop and the existing
+Zetaris API, driver, UI and PostgreSQL containers are running. Restore those
+existing services rather than recreating volumes or registrations. SQL failures
+show only a safe HTTP status or failure category, never response contents.
 
 ## Recording a real human decision
 
@@ -127,8 +209,8 @@ python .\scripts\check_decision_live_browser.py
 Run browser commands sequentially. The first and last require the authenticated
 running app; the middle browser command writes clearly labelled decisions only
 to isolated temporary storage and tests full process restart. The live decision
-check expects the real investigation to remain undecided, as it is before your
-first save. After your genuine save, that assertion is no longer applicable;
+check expects an undecided investigation. The genuine **Defer Version 1** now
+exists, so that assertion is no longer applicable;
 do not erase your decision to satisfy it. Test ports 8767 and 9223–9225 must be free.
 The browser scripts normally update their report locations; the delivery check
 preserved earlier reports and placed its results under `reports/delivery_readiness/`.

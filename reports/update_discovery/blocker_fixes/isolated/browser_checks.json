@@ -1,0 +1,42 @@
+[
+  {
+    "check": "Existing investigation renders with discovery controls",
+    "passed": true
+  },
+  {
+    "check": "Progress disables overlap and preserves investigation",
+    "passed": true
+  },
+  {
+    "check": "Second server-side check is rejected while running",
+    "passed": true
+  },
+  {
+    "check": "Initial inventory and low relevance shown",
+    "passed": true
+  },
+  {
+    "check": "Explicit selection persists separate proposal as plain text",
+    "passed": true
+  },
+  {
+    "check": "Unchanged check announces no new content",
+    "passed": true
+  },
+  {
+    "check": "Malformed selection rejected",
+    "passed": true
+  },
+  {
+    "check": "Full process restart reopens proposal, baseline and existing investigation",
+    "passed": true
+  },
+  {
+    "check": "Mobile discovery fits viewport",
+    "passed": true
+  },
+  {
+    "check": "No uncaught JavaScript errors",
+    "passed": true
+  }
+]

@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import secrets
 import re
+import socket
 import threading
 from urllib.parse import urlsplit, parse_qs
 import warnings
@@ -15,6 +16,7 @@ import warnings
 import export_zetaris as exporter
 import integrate_zetaris as integration
 import investigation_memory as memory
+import update_discovery as discovery
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web"
@@ -22,6 +24,17 @@ INVESTIGATION = "nemotron-lightning-requirements-extraction"
 PORT = 8765
 KINDS = dict(zip(exporter.INPUTS, ("project_profile", "investigation", "sources", "evidence_draft",
                                   "evidence_review", "use_case", "evaluation_results", "evaluation_recommendation")))
+
+
+class LocalHTTPServer(ThreadingHTTPServer):
+    # Windows SO_REUSEADDR permits multiple servers on the identical port.
+    # Exclusive binding keeps stale instances from capturing authenticated reads.
+    allow_reuse_address = False
+
+    def server_bind(self):
+        if hasattr(socket,'SO_EXCLUSIVEADDRUSE'):
+            self.socket.setsockopt(socket.SOL_SOCKET,socket.SO_EXCLUSIVEADDRUSE,1)
+        super().server_bind()
 
 
 class AppError(Exception):
@@ -163,6 +176,9 @@ class State:
         self.memory_root = Path(memory_root or memory.DEFAULT_MEMORY_ROOT).resolve()
         self.context = None
         self.evidence_warning = False
+        self.discovery = discovery.Store(self.memory_root)
+        self.discovery_lock = threading.Lock()
+        self.discovery_status = {"running": False, "message": "Ready for a manual check."}
 
 
 def decision_call(state, operation, **fields):
@@ -225,6 +241,17 @@ def make_handler(state, loader=None):
             if not self.allowed():
                 return
             route = urlsplit(self.path)
+            if route.path == "/api/discovery":
+                if not self.allowed(session=True): return
+                if not state.discovery_lock.acquire(blocking=False):
+                    self.respond(200, {"status": {**state.discovery_status, "running": True}, "scope": discovery.config()})
+                    return
+                try:
+                    self.respond(200, {"status": dict(state.discovery_status), "scope": discovery.config(), "discovery": state.discovery.reassess()})
+                except Exception:
+                    self.respond(503, {"message": "Discovery memory is unavailable. Check H-MEM runtime/storage and retry; no baseline was replaced."})
+                finally: state.discovery_lock.release()
+                return
             if route.path in ("/api/decisions", "/api/decision-evidence"):
                 if not self.allowed(session=True):
                     return
@@ -256,6 +283,42 @@ def make_handler(state, loader=None):
 
         def do_POST(self):
             if not self.allowed(session=True, post=True):
+                return
+            if self.path in ("/api/discovery/check", "/api/discovery/select"):
+                body = None
+                if self.path.endswith('/select'):
+                    try:
+                        length = int(self.headers.get('Content-Length','0'))
+                        if not 0 < length <= 10000 or self.headers.get('Content-Type','').split(';')[0] != 'application/json': raise ValueError('Invalid selection request.')
+                        body = json.loads(self.rfile.read(length).decode('utf-8'))
+                        if not isinstance(body,dict) or not isinstance(body.get('item_id'),str) or not re.fullmatch(r'[0-9a-f]{64}',str(body.get('revision_sha256',''))): raise ValueError('Choose a candidate revision and provide a reason.')
+                    except (ValueError, UnicodeError) as exc:
+                        self.respond(400,{"message":str(exc)})
+                        return
+                if not state.discovery_lock.acquire(blocking=False):
+                    self.respond(409, {"message": "Discovery or selection is already running. Wait for it to finish."})
+                    return
+                if self.path.endswith('/check'):
+                    state.discovery_status = {"running": True, "message": "Starting bounded public-source check…"}
+                    def work():
+                        try:
+                            result = state.discovery.run(progress=lambda msg: state.discovery_status.update(message=msg))
+                            run = result['runs'][-1]
+                            state.discovery_status = {"running":False, "message":"Check complete." if run['status']=='success' else "Check incomplete: some sources failed. Successful results were saved; failed-source baselines were retained."}
+                        except Exception:
+                            state.discovery_status = {"running":False, "message":"Discovery could not be confirmed. Last successful baselines remain. Check H-MEM storage, runtime and locks, then retry.", "failed":True}
+                        finally: state.discovery_lock.release()
+                    threading.Thread(target=work,daemon=True).start()
+                    self.respond(202, {"status":dict(state.discovery_status)})
+                else:
+                    try:
+                        result = state.discovery.select(body['item_id'],body.get('reason'),body['revision_sha256'])
+                        self.respond(200,{"discovery":result})
+                    except (ValueError, UnicodeError) as exc:
+                        self.respond(400,{"message":str(exc)})
+                    except Exception:
+                        self.respond(503,{"message":"Proposal persistence could not be confirmed. Keep your reason and retry after checking H-MEM storage."})
+                    finally: state.discovery_lock.release()
                 return
             if self.path == "/api/disconnect":
                 if not state.lock.acquire(blocking=False):
@@ -315,7 +378,13 @@ def make_handler(state, loader=None):
                     state.need_key.set()
                     self.respond(401, {"code": "authentication", "message": "Zetaris rejected the key or its permissions. Enter a valid key in the private console."})
                 else:
-                    self.respond(503, {"code": "zetaris", "message": "Zetaris could not complete the live read. Check the service and table access, then retry."})
+                    # Expose only fixed diagnostics, never exception contents or response bodies.
+                    http = re.fullmatch(r'HTTP (\d{3}); response body suppressed',str(exc))
+                    known = {'Request/JSON decoding failed; body and connection details suppressed': 'The SQL API transport failed or returned non-JSON data.',
+                             'Response has no data envelope': 'The SQL API returned no data envelope.',
+                             'Unsupported or ambiguous tabular response envelope': 'The SQL API returned an unsupported tabular envelope.'}
+                    detail = f'The SQL API returned HTTP {http.group(1)}.' if http else known.get(str(exc),'The SQL service could not complete the query.')
+                    self.respond(503, {"code": "zetaris", "message": f"Zetaris could not complete the live read. {detail} Check the service and table access, then retry."})
             except Exception:
                 self.respond(503, {"code": "service", "message": "The investigation could not be loaded safely. Check local services and retry; no saved report was substituted."})
             finally:
@@ -325,7 +394,11 @@ def make_handler(state, loader=None):
 
 def main():
     state = State()
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), make_handler(state))
+    try:
+        server = LocalHTTPServer(("127.0.0.1", PORT), make_handler(state))
+    except OSError:
+        print(f"Nextwise could not bind port {PORT}. If an instance is already running, use it or stop it in its own console before restarting. No credential was requested.",flush=True)
+        return
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     print(f"Nextwise is running at http://127.0.0.1:{PORT}", flush=True)

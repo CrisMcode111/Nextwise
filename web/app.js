@@ -1,5 +1,65 @@
 'use strict';
 const $ = s => document.querySelector(s);
+let discoveryBusy=false, discoveryTimer=null;
+const selectionDrafts=new Map();
+const discoveryLabels={initial_inventory:'Initial inventory of recently published items',new_article:'Newly discovered article',article_summary_changed:'Feed title/summary changed (article not fetched)',page_baseline:'Initial monitored-page baseline',monitored_page_changed:'Monitored page edited'};
+function paintDiscovery(d){
+  const scope=$('#discovery-scope'), target=$('#discovery-results');scope.replaceChildren();target.replaceChildren();
+  const limits=details('Approved source scope and limits',scope);
+  list([...d.scope.pages,d.scope.feed],limits);
+  paragraph(`At most ${d.scope.item_cap} recent feed items within ${d.scope.lookback_days} days. Feed and three fixed pages only; linked articles are not fetched. Missing, invalid or future publication dates are excluded.`,limits);
+  paragraph(`${d.scope.max_response_bytes} bytes/source; ${d.scope.socket_timeout_seconds}s socket timeout; ${d.scope.source_deadline_seconds}s read deadline (a blocked read can add one socket timeout); at most ${d.scope.max_redirects} redirects. ${d.scope.destinations}`,limits);
+  paragraph('Manual checks only. Public source content is untrusted; no models, scheduled monitoring or automatic investigation.',limits);
+  const saved=d.discovery, run=saved.runs.at(-1);
+  const reassessment=saved.reassessments?.at(-1);
+  if(reassessment)paragraph(`Relevance reassessed under ${reassessment.policy_version} at ${reassessment.assessed_at}. Classification only; no newly published content or source change is implied.`,target,'notice');
+  if(run){
+    paragraph(`Last persisted check: ${run.retrieved_at} · ${run.status}. ${run.events.length} inventory/change observations.`,target);
+    run.sources.forEach(s=>paragraph(`${s.requested_url}: ${s.error||'retrieved (not verified evidence)'}${s.rss_items!==undefined?` · valid RSS, ${s.rss_items} items; ${s.eligible_unique_items} eligible before cap`:''}`,target,s.error?'notice':'meta'));
+    const retrieval=details('Retrieval metadata, raw hashes and source errors',target);json(run.sources,retrieval);
+    if(!run.events.length)paragraph(run.status==='success'?'No new or changed readable content in this check.':'No changes detected in successfully checked sources; coverage is incomplete.',target);
+  }else paragraph('No confirmed check yet. First feed retrieval establishes a recent inventory; it does not detect new releases.',target);
+  const events=new Set((run?.events||[]).map(e=>e.item_id));
+  const inventory=details(`Saved candidates (${Object.keys(saved.items).length}) · includes low relevance and previous observations`,target);
+  inventory.parentElement.open=true;
+  Object.values(saved.items).forEach(item=>{
+    const row=details(`${item.title} · ${item.relevance.category}`,inventory);
+    paragraph(`${events.has(item.id)?'In latest check':'Previously observed'} · ${discoveryLabels[item.kind]}`,row);
+    link(item.source===d.scope.feed?'Publisher article (not fetched during discovery)':'Monitored publisher page',item.url,row);
+    paragraph(`Published: ${item.publication_date||'unknown'} · First seen: ${item.first_seen} · Retrieved: ${item.retrieved_at}`,row,'meta');
+    paragraph(item.text.slice(0,1800),row);
+    paragraph(item.relevance.label,row,'notice');
+    paragraph(`Relevance policy: ${item.relevance.policy_version||'legacy-keywords-v1'}`,row,'meta');
+    item.relevance.matches.forEach(m=>paragraph(`${m.connection}: ${m.terms.join(', ')}`,row));
+    item.relevance.matches.forEach(m=>{if(m.supporting_phrase)paragraph(`Supporting source phrase: ${m.supporting_phrase}`,row);});
+    paragraph(item.relevance.explanation,row);
+    const ctx=details('Approved project context',row);json(item.relevance.project_context,ctx);
+    const assessments=details(`Relevance assessment history (${item.relevance_history?.length||1})`,row);json(item.relevance_history||[{policy_version:'legacy-keywords-v1',assessment:item.relevance}],assessments);
+    const rev=details(`Revision history (${item.revisions.length}) and exact readable differences`,row);json(item.revisions,rev);
+    const form=el('form','',null,row);const labelNode=el('label','','Why investigate this candidate?',form);
+    const reason=el('textarea','',null,labelNode);reason.maxLength=2000;reason.required=true;reason.value=selectionDrafts.get(item.id)||'';
+    reason.oninput=()=>selectionDrafts.set(item.id,reason.value);
+    const save=el('button','button','Create investigation proposal',form);save.type='submit';save.disabled=discoveryBusy;
+    const msg=el('p','',null,form);msg.setAttribute('role','status');
+    form.onsubmit=async e=>{e.preventDefault();if(discoveryBusy)return;save.disabled=true;msg.textContent='Saving separate proposal in H-MEM…';
+      try{const r=await fetch('/api/discovery/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:item.id,revision_sha256:item.content_sha256,reason:reason.value})});const result=await r.json();if(!r.ok)throw new Error(result.message);selectionDrafts.delete(item.id);await readDiscovery();$('#discovery-status').textContent='Proposal saved. Reopen it below; research has not started.';}
+      catch(e){msg.textContent=e.message||'Save failed; keep your reason and retry.';save.disabled=false;}};
+  });
+  const proposals=details(`Persisted investigation proposals (${saved.proposals.length})`,target);proposals.parentElement.open=true;
+  saved.proposals.forEach(p=>{const row=details(`${p.title} · Proposal, not a completed investigation`,proposals);paragraph(`Selected ${p.selected_at} · Published ${p.source_publication_date||'unknown'} · Retrieved ${p.source_retrieved_at}`,row);link('Source',p.source,row);paragraph(p.selection_reason,row,'human-text');paragraph(p.project_connection.label,row);p.project_connection.matches.forEach(m=>paragraph(`${m.connection}: ${m.terms.join(', ')}`,row));list(p.questions,row);paragraph('Proposed only. No research, model request, trial or replacement of the existing Nemotron investigation was launched.',row,'notice');});
+}
+async function readDiscovery(){
+  clearTimeout(discoveryTimer);
+  try{const r=await fetch('/api/discovery');const d=await r.json();if(!r.ok)throw new Error(d.message);discoveryBusy=d.status.running;$('#check-updates').disabled=discoveryBusy;$('#discovery-status').textContent=d.status.message;
+    // Keep the current inventory and any typed selection reason intact while polling.
+    if(!discoveryBusy)paintDiscovery(d);
+    if(discoveryBusy)discoveryTimer=setTimeout(readDiscovery,1000);
+  }catch(e){$('#discovery-status').textContent=e.message||'Local discovery service unavailable; reopen saved discovery to retry.';$('#check-updates').disabled=false;}
+}
+$('#check-updates').onclick=async()=>{if(discoveryBusy)return;discoveryBusy=true;$('#check-updates').disabled=true;$('#discovery-status').textContent='Starting check…';try{const r=await fetch('/api/discovery/check',{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(d.message);await readDiscovery();}catch(e){discoveryBusy=false;$('#check-updates').disabled=false;$('#discovery-status').textContent=e.message;}};
+$('#reload-discovery').onclick=readDiscovery;
+// Wait until the remainder of this script has initialized its shared render helpers.
+setTimeout(readDiscovery,0);
 const content = $('#content'), state = $('#state'), refresh = $('#refresh');
 let loading = false;
 let decisionState=null, decisionContext=null, decisionSaving=false, decisionMessage='', decisionError='';

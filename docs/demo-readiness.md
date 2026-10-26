@@ -1,4 +1,68 @@
-# Demo readiness — scope frozen
+# Demo readiness
+
+## Update-discovery milestone — 26 October 2026
+
+Both observed blockers were corrected and verified against the authenticated
+live application. Relevance now uses **`context-phrases-v2`**, with supporting
+phrases rather than isolated keywords. All 13 saved candidates were reassessed:
+**8 uncertain, 5 low relevance**. The ambiguous extraction/deployment candidate
+has no claimed task connection. Earlier assessments remain in history; source
+snapshots, first-seen dates, revisions, baselines and discovery events did not
+change. Insufficient context is explicit; triage remains provisional.
+
+The connection failure involved stopped Docker services, a driver startup mount
+failure and multiple stale Nextwise processes sharing Windows port 8765.
+Existing containers were restored and only stale app processes stopped. A single
+authenticated instance now reconciles all six tables with H-MEM and displays
+the genuine **Defer Version 1** without review warnings. New starts use exclusive
+port binding. Credentials were privately re-entered and remain only in memory;
+Docker volumes and registrations were not recreated.
+
+Current verification: **26 backend tests**, **10 isolated discovery browser
+checks**, **13 live browser checks**, migration preservation audit and saved-byte
+unchanged-source replay passed. Proposal persistence and restart were exercised
+in isolated storage; no real proposal was created. The original live source run
+below was not repeated during this fix. See
+[blocker-fix verification](../reports/update_discovery/blocker_fixes/VERIFICATION.md)
+for passed, initial failed and unrun checks. The initial category counts below
+record the superseded keyword policy, not current classifications.
+
+The existing application now offers **Check for updates** and **Reopen saved
+discovery**. Restart the local Python app to load the new backend, reopen its
+local page, then choose **Check for updates**. Discovery works before private
+Zetaris key entry; reconnect as usual to show the existing investigation.
+Expand **Approved source scope and limits**, a saved candidate, its relevance
+explanation and revision history. Enter a selection reason and choose **Create
+investigation proposal**; reopen it under **Persisted investigation proposals**
+after restarting. The original investigation and human decision remain separate.
+
+The bounded live public check returned HTTP 200 for all three fixed pages and
+the NVIDIA feed. The feed was verified in this environment as RSS with **18**
+eligible items; the app retained the capped **10-item initial inventory** and
+three monitored-page baselines. This is not an announcement of ten new releases.
+There were six potential-relevance and seven low-relevance candidates, all
+explicitly provisional keyword/rule matches. No real proposal was selected.
+
+Discovery uses only the approved three fixed pages and NVIDIA feed, at most
+10 recent items within 14 days, 2 MB/source, 8-second socket timeout, 20-second
+read deadline (plus at most one blocked socket read) and three approval-checked
+redirects. Linked articles are not downloaded. Only static readable HTML and
+RSS titles/summaries are compared; no JavaScript rendering, factual verification,
+semantic suitability assessment, scheduled monitoring or automatic investigation
+is provided. Feed dates and publisher content are untrusted. Partial coverage
+and storage errors are visible, and last successful baselines remain available.
+Discovery is stored separately under `data/memory/hmem/update-discovery/`,
+using the official H-MEM adapter and locks. Back up the entire directory privately
+with the app stopped; history grows and the existing 2 MB bridge-input ceiling
+can eventually prevent new checkpoints. H-MEM is not crash-atomic.
+
+Verification evidence and exact commands:
+[update discovery verification](../reports/update_discovery/VERIFICATION.md).
+The original artifact/CSV hashes and genuine **Defer Version 1** are preserved.
+The following readiness section records the earlier demo state; its statements
+about being undecided predate the genuine human decision.
+
+## Earlier demonstration verification
 
 **READY for the bounded local demonstration on 26 October 2026.** Verified on
 25 October: **14 backend tests, 19 isolated decision checks, 30 live interface

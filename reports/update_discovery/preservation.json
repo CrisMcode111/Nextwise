@@ -1,0 +1,125 @@
+{
+  "original_inputs": [
+    {
+      "path": "data/project_profile.json",
+      "matches": true
+    },
+    {
+      "path": "data/investigation.json",
+      "matches": true
+    },
+    {
+      "path": "data/sources.json",
+      "matches": true
+    },
+    {
+      "path": "data/evidence_draft.json",
+      "matches": true
+    },
+    {
+      "path": "data/evidence_review.json",
+      "matches": true
+    },
+    {
+      "path": "data/use_case.json",
+      "matches": true
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/results.json",
+      "matches": true
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/recommendation.json",
+      "matches": true
+    }
+  ],
+  "csv_snapshots": [
+    {
+      "table": "project_profiles",
+      "matches": true
+    },
+    {
+      "table": "investigations",
+      "matches": true
+    },
+    {
+      "table": "sources",
+      "matches": true
+    },
+    {
+      "table": "evidence_claims",
+      "matches": true
+    },
+    {
+      "table": "evidence_reviews",
+      "matches": true
+    },
+    {
+      "table": "evaluation_cases",
+      "matches": true
+    }
+  ],
+  "original_hmem_artifacts": [
+    {
+      "kind": "project_profile",
+      "sha256": "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651",
+      "matches": true
+    },
+    {
+      "kind": "investigation",
+      "sha256": "055477b1ce9736904f23f138e772d9868a0ff01b4bd8806bbbec419d6d1bcbd5",
+      "matches": true
+    },
+    {
+      "kind": "sources",
+      "sha256": "71a50afc8d777e76a6000433d5bece40317cafe17d7c231b9eb0fb2c1813e697",
+      "matches": true
+    },
+    {
+      "kind": "evidence_draft",
+      "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c",
+      "matches": true
+    },
+    {
+      "kind": "evidence_review",
+      "sha256": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f",
+      "matches": true
+    },
+    {
+      "kind": "use_case",
+      "sha256": "4c18a25ae4f75cef32fad60f38984dbde75f4421926e48646de8850e4c638c02",
+      "matches": true
+    },
+    {
+      "kind": "evaluation_results",
+      "sha256": "1cd4c7a39c1670922226db69d7fbb4909fb9ecc9d7b31e4b5fa58563349bd2dd",
+      "matches": true
+    },
+    {
+      "kind": "evaluation_recommendation",
+      "sha256": "f8d992d6922f5024462baa66d892f0d0e45cd93ea3ea199e5c8fdeb03a7550f7",
+      "matches": true
+    }
+  ],
+  "old_manifests": [
+    {
+      "memory_id": "mem-10",
+      "content_sha256": "0fcfce1d54d4069e7fa723aa11011bb6eab752f3485ec125cc43b6961912507b",
+      "artifact_hashes_match": true
+    },
+    {
+      "memory_id": "mem-6",
+      "content_sha256": "7c1409e2b26a103aa8836250444d9398cf510565994757aeb8570baecd97e4ab",
+      "artifact_hashes_match": true
+    }
+  ],
+  "human_decision_metadata_only": [
+    {
+      "version": 1,
+      "choice": "Defer",
+      "hash_matches": true
+    }
+  ],
+  "genuine_defer_version_1_preserved": true,
+  "registrations": "No registration/upload/write workflow invoked; live authenticated SQL not available for this milestone check."
+}
