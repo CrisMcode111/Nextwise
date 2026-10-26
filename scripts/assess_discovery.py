@@ -10,9 +10,16 @@ import update_discovery as discovery
 
 OUT=discovery.ROOT/'reports/update_discovery/semantic_assessment'
 
-def report(state):
+def summary(state,new_requests_sent=0,cache_replay=False):
+    return {**semantic.request_accounting(state),'new_requests_sent':new_requests_sent,'cache_replay':cache_replay,
+        'agent_proposals':sum(p.get('origin')=='agent' for p in state['proposals']),
+        'validated':sum(i.get('semantic_assessment',{}).get('status')=='validated' for i in state['items'].values())}
+
+
+def report(state,new_requests_sent=0,cache_replay=False):
     OUT.mkdir(parents=True,exist_ok=True)
     value={'policy':semantic.POLICY,'authorization':semantic.AUTHORIZATION,'max_requests':semantic.MAX_REQUESTS,
+        'accounting':summary(state,new_requests_sent,cache_replay),
         'requests':state.get('semantic_requests',[]),'candidate_count':len(state['items']),
         'outcomes':[{'candidate_id':i['id'],'status':i.get('semantic_assessment',{}).get('status'),
             'category':i.get('semantic_assessment',{}).get('category'),
@@ -20,8 +27,7 @@ def report(state):
             for i in state['items'].values()],
         'agent_proposals':sum(p.get('origin')=='agent' for p in state['proposals'])}
     (OUT/'requests.json').write_text(json.dumps(value,indent=2),encoding='utf-8')
-    print(json.dumps({'requests_used':len(value['requests']),'agent_proposals':value['agent_proposals'],
-        'validated':sum(o['status']=='validated' for o in value['outcomes'])}),flush=True)
+    print(json.dumps(value['accounting']),flush=True)
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--live',action='store_true');args=parser.parse_args()
@@ -34,11 +40,11 @@ def main():
             'maximum_requests':semantic.MAX_REQUESTS,'max_output_tokens_per_request':semantic.MAX_OUTPUT_TOKENS,
             'context_sha256':semantic.digest(context)}));return
     if all(p['cache_key'] in state.get('semantic_cache',{}) for p in prepared):
-        report(state)
+        report(state,cache_replay=True)
         print('All inputs are cached (including visible failures). No token requested and no model request sent.',flush=True)
         return
-    spent={r['id'] for r in state.get('semantic_requests',[])} | {r['request_id'] for r in state.get('semantic_cache',{}).values() if r.get('request_id')}
-    if len(spent)>=semantic.MAX_REQUESTS:
+    spent=semantic.request_accounting(state)['requests_used']
+    if spent>=semantic.MAX_REQUESTS:
         report(state)
         print('Three-request authorization exhausted. No token requested and no model request sent.',flush=True)
         return
@@ -51,8 +57,9 @@ def main():
         token=getpass.getpass('Meterless Runtime token (hidden; at most 3 requests, no retries): ').strip()
     if not token:raise SystemExit('No token entered. No model request was sent.')
     try:
+        prior_ids=set(semantic.request_accounting(state)['request_ids'])
         state=semantic.run(store,token,context=context)
-        report(state)
+        report(state,new_requests_sent=sum(r.get('transport_invoked',False) for r in state['semantic_requests'] if r['id'] not in prior_ids))
     finally:token=None
 
 if __name__=='__main__':main()

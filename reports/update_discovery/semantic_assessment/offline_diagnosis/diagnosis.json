@@ -1,0 +1,539 @@
+{
+  "validator_version": "grounded-discovery-validator-v2",
+  "inspected_at_utc": "2026-10-26T13:33:39.979667+00:00",
+  "new_model_requests": 0,
+  "accounting": {
+    "requests_used": 3,
+    "confirmed_response_requests": 3,
+    "unconfirmed_reservations": 0,
+    "request_ids": [
+      "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "b7deced9-0d3a-42bb-8552-29a298019405"
+    ],
+    "usage": {
+      "prompt_tokens": 32650,
+      "completion_tokens": 5680,
+      "total_tokens": 38330
+    },
+    "usage_complete": true,
+    "usage_missing_request_ids": [],
+    "usage_conflict_request_ids": [],
+    "new_requests_sent": 0,
+    "cache_replay": true,
+    "agent_proposals": 2,
+    "validated": 2
+  },
+  "retained_full_responses": 0,
+  "candidates": [
+    {
+      "candidate_id": "9428cc2bc3c996d8505a0fdf",
+      "title": "NVIDIA Nemotron 3.5 Lightning and NeMo Switchyard Deliver Faster, Smarter, More Efficient Agentic AI | NVIDIA Blog",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Selected complete readable paragraphs from a hash-verified saved page; no JavaScript rendering or fresh retrieval.",
+        "full_readable_characters": 7988,
+        "selected_characters": 2967,
+        "selected_paragraphs": 8,
+        "omitted_paragraphs": 30,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "c0320c9fae8313e8af4d7601",
+      "title": "nemotron-3.5-lightning-30b-a3b Model by NVIDIA | NVIDIA NIM",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Selected complete readable paragraphs from a hash-verified saved page; no JavaScript rendering or fresh retrieval.",
+        "full_readable_characters": 51550,
+        "selected_characters": 3941,
+        "selected_paragraphs": 8,
+        "omitted_paragraphs": 361,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "daf677f0f296925e50c0d739",
+      "title": "Engines · Meterless",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Selected complete readable paragraphs from a hash-verified saved page; no JavaScript rendering or fresh retrieval.",
+        "full_readable_characters": 61171,
+        "selected_characters": 4499,
+        "selected_paragraphs": 7,
+        "omitted_paragraphs": 353,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "90e35913e5ba3eb8b4a92f72",
+      "title": "Kazakhstan Expands Compute for Its AI Future",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 353,
+        "selected_characters": 353,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "2c1c1d0b09d0e274e1a661fd",
+      "title": "NVIDIA Unveils Minerva to Bring End-to-End Observability for AI Factories",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 361,
+        "selected_characters": 361,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "856d845adf1f95fea166c443",
+      "title": "Cloud Deployment Incoming: ‘Call of Duty: Modern Warfare 4’ Arrives on GeForce NOW",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 362,
+        "selected_characters": 362,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "f22a63cc12b9be5044807d05",
+      "title": "Leading European Financial Services Organizations Embrace Open Models to Build Proprietary Intelligence",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 385,
+        "selected_characters": 385,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "36ee8fe7cab29f5dfbb84b94",
+      "title": "NVIDIA Cosmos Opens New Tools to Train, Evaluate and Deploy World Models",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 377,
+        "selected_characters": 377,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "7d13ce0e971c17c77553a630",
+      "title": "How Companies Are Using NVIDIA DSX to Break the Power Bottleneck",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 322,
+        "selected_characters": 322,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "898575ccc2fcbfd5eae1b581",
+      "title": "NVIDIA Transforms European Retail, From Digital Discovery to Physical Operations",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "original_status": "failed",
+      "original_error": "Model request or response failed; this attempt is not retried automatically.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 378,
+        "selected_characters": 378,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    },
+    {
+      "candidate_id": "89a4e6d4e0e5bb84c8c4a864",
+      "title": "Pioneers Across Europe Deploy NVIDIA Earth-2 Open Models to Power Real-World Weather and Climate Prediction",
+      "request_id": "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "original_status": "validated",
+      "original_error": null,
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 379,
+        "selected_characters": 379,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "validated",
+        "basis": "persisted_accepted_assessment_fragment"
+      }
+    },
+    {
+      "candidate_id": "bc7e4740517cd6fe1e42dac4",
+      "title": "NVIDIA Open Models Power a New Wave of European Public Sector Projects",
+      "request_id": "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "original_status": "validated",
+      "original_error": null,
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 389,
+        "selected_characters": 389,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "validated",
+        "basis": "persisted_accepted_assessment_fragment"
+      }
+    },
+    {
+      "candidate_id": "6822fece1c79cc899786a2c2",
+      "title": "Bringing the Spark to Europe: Local Intelligence Powers Next Wave of Agents",
+      "request_id": "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "original_status": "failed",
+      "original_error": "Assessment rejected: invalid identity, unsupported fields, quotation, hypothesis or investigation linkage.",
+      "original_validator_version": null,
+      "original_diagnostic": null,
+      "snapshot_and_prepared_input_verified": true,
+      "coverage": {
+        "description": "Feed title and publisher excerpt only; linked article was not fetched and the excerpt may end mid-thought.",
+        "full_readable_characters": 372,
+        "selected_characters": 372,
+        "selected_paragraphs": 1,
+        "omitted_paragraphs": 0,
+        "selection": "Whole paragraphs ranked by context-term overlap; selection is not a relevance judgement."
+      },
+      "full_response_retained": false,
+      "revalidation": {
+        "status": "unrecoverable",
+        "basis": "no_response_or_rejected_assessment_retained"
+      }
+    }
+  ],
+  "revalidations": [
+    {
+      "candidate_id": "9428cc2bc3c996d8505a0fdf",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "933fb76b711a9594a2d623b4d6be25323d39e2105fe241bfd8696ef3356fa3f3",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "c0320c9fae8313e8af4d7601",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "7e7098bbd8fc7bfa275ec7fde24396efdc2589ac122a4e4329b4a3dbfdb85120",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "daf677f0f296925e50c0d739",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "86e00605404097cb951b67f0a7516fda22e34f40ab695f9992021561a7c7bf0a",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "90e35913e5ba3eb8b4a92f72",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "6159d1f8f8114451e1f02b24cdff0409a30089caa1ffbb725d806dec9f573162",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "2c1c1d0b09d0e274e1a661fd",
+      "request_id": "b7deced9-0d3a-42bb-8552-29a298019405",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "839ca8f3b03e373c0930a922193d4bda351566d03e0496d1aeb3d8daaf7bfdcc",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "856d845adf1f95fea166c443",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "e883dce41f4306f987b6913623518f1d034a4032a52075289dbb388b2c2dca14",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "f22a63cc12b9be5044807d05",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "0ce9c6b5b52eba9d890d0be250cc90a7c4ca5a92d93ce3b085bdd3709c916752",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "36ee8fe7cab29f5dfbb84b94",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "43383616609b459f5bae056d55c4ea8054c021dec9392381fa82a59660789297",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "7d13ce0e971c17c77553a630",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "989d6633cebe4c75db09a8448726ae523c96634a5b9eaaf12b620578579c032a",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "898575ccc2fcbfd5eae1b581",
+      "request_id": "6977a2d0-3858-4bf9-a82a-0224896869bf",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "8d1fc317960c2b396270a2cdbba5446c92499ad12ea92b2c2ac33803df9cd846",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    },
+    {
+      "candidate_id": "89a4e6d4e0e5bb84c8c4a864",
+      "request_id": "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": "b8af5a562734cdcef7fac2f37b163f839c154bc7724a3ca1f0de11053146ce3b",
+      "assessment_cache_key": "34a16c246512c5e6c855c51b80dd4b250f276092a326a2921e77bd72c6c32e34",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "validated",
+      "status": "validated",
+      "basis": "persisted_accepted_assessment_fragment"
+    },
+    {
+      "candidate_id": "bc7e4740517cd6fe1e42dac4",
+      "request_id": "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": "2b512d7e6d1a196c3bfad4b51addd1e0b5e1b4f3fbcac514ffefa18b5592ddba",
+      "assessment_cache_key": "0dccbf6f0d7dcec412aab148b0fb34595ce6d575fde6c9381ddc9fe7207664bf",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "validated",
+      "status": "validated",
+      "basis": "persisted_accepted_assessment_fragment"
+    },
+    {
+      "candidate_id": "6822fece1c79cc899786a2c2",
+      "request_id": "062b9ff2-0c28-4ba7-94ba-9b67bfc40a8c",
+      "validator_version": "grounded-discovery-validator-v2",
+      "original_assessment_sha256": null,
+      "assessment_cache_key": "7e960d01862736eadc9876c9b7b6f91be95c4ab50686711afc5c7bdc5731f884",
+      "project_context_sha256": "f761e59eb549561c702e09fecd828924932dde4987b73c7274dea138a6a6a199",
+      "original_status": "failed",
+      "status": "unrecoverable",
+      "basis": "no_response_or_rejected_assessment_retained"
+    }
+  ],
+  "recovered_assessments": 0,
+  "accepted_fragments_revalidated": 2,
+  "unchanged_cache_refresh": true,
+  "historical_journal_entries": [
+    {
+      "preserved_at": "2026-10-26T12:12:04.561813+00:00",
+      "requests": [
+        {
+          "id": "b7deced9-0d3a-42bb-8552-29a298019405",
+          "authorization": "semantic-discovery-milestone-v1",
+          "status": "failed_or_partial",
+          "started_at": "2026-10-26T12:02:01.488692+00:00",
+          "cache_keys": [
+            "933fb76b711a9594a2d623b4d6be25323d39e2105fe241bfd8696ef3356fa3f3",
+            "7e7098bbd8fc7bfa275ec7fde24396efdc2589ac122a4e4329b4a3dbfdb85120",
+            "86e00605404097cb951b67f0a7516fda22e34f40ab695f9992021561a7c7bf0a",
+            "6159d1f8f8114451e1f02b24cdff0409a30089caa1ffbb725d806dec9f573162",
+            "839ca8f3b03e373c0930a922193d4bda351566d03e0496d1aeb3d8daaf7bfdcc"
+          ],
+          "candidate_ids": [
+            "9428cc2bc3c996d8505a0fdf",
+            "c0320c9fae8313e8af4d7601",
+            "daf677f0f296925e50c0d739",
+            "90e35913e5ba3eb8b4a92f72",
+            "2c1c1d0b09d0e274e1a661fd"
+          ],
+          "max_tokens": 6000,
+          "timeout_seconds": 180,
+          "max_response_bytes": 1000000,
+          "finished_at": "2026-10-26T12:06:32.810982+00:00",
+          "model": {
+            "returned_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+            "usage": {
+              "prompt_tokens": 9272,
+              "completion_tokens": 1188,
+              "total_tokens": 10460
+            },
+            "http_status": 200,
+            "duration_seconds": 64.102
+          },
+          "outcomes": [
+            {
+              "candidate_id": "89a4e6d4e0e5bb84c8c4a864",
+              "status": "validated"
+            },
+            {
+              "candidate_id": "bc7e4740517cd6fe1e42dac4",
+              "status": "validated"
+            },
+            {
+              "candidate_id": "6822fece1c79cc899786a2c2",
+              "status": "failed"
+            }
+          ]
+        }
+      ],
+      "reason": "Reconciled actual request IDs from persisted candidate records; no additional request."
+    }
+  ],
+  "all_hmem_files_unchanged": true,
+  "genuine_defer_version_1": {
+    "choice": "Defer",
+    "version": 1,
+    "record_sha256": "1ebe18051f77a0a385cd625f3a2b24c394f5b11e7de65eacb5d2c415b4a01a59"
+  }
+}

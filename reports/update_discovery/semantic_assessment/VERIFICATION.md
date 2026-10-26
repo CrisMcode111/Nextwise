@@ -1,5 +1,10 @@
 # Semantic discovery and agent proposals — 26 October 2026
 
+Offline follow-up: [per-candidate diagnosis and validator-v2 replay](offline_diagnosis/DIAGNOSIS.md).
+No full original responses survived: zero failed assessments recovered, two
+accepted fragments revalidated. The broad original errors do not establish the
+exact parsing/identity/contract mismatch. Historical results below are preserved.
+
 Implemented semantic project reasoning through the existing Meterless/Nemotron
 configuration and automatically persisted agent proposals. Human rationale is
 no longer mandatory: the interface offers an optional note and explicit review/

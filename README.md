@@ -94,6 +94,15 @@ only saved data. There is no scheduled monitoring or automatic investigation.
 response validation and remain explicitly uncertain. No fourth request or retry
 was made. See [semantic verification](reports/update_discovery/semantic_assessment/VERIFICATION.md).
 
+For local diagnosis without model calls, source retrieval or credentials, run
+`python scripts/diagnose_semantic_discovery.py`. It verifies saved source/context
+hashes and writes separate validator-versioned results under
+`reports/update_discovery/semantic_assessment/offline_diagnosis/`; it preserves
+cached outcomes and proposals. The original failed responses were not retained:
+zero failed assessments can be recovered, and two accepted fragments revalidate.
+The corrected summary counts all three distinct requests and their usage once;
+cache replay sends zero requests. See the [per-candidate diagnosis](reports/update_discovery/semantic_assessment/offline_diagnosis/DIAGNOSIS.md).
+
 Discovery state, first-seen dates, revisions and proposals live through the
 app-owned official H-MEM adapter in `data/memory/hmem/update-discovery/`.
 Immutable run directories retain raw snapshots, hashes, errors and source

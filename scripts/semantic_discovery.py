@@ -11,6 +11,7 @@ import investigation_memory as memory
 import update_discovery as discovery
 
 POLICY='nemotron-grounded-discovery-v1'
+VALIDATOR_VERSION='grounded-discovery-validator-v2'
 AUTHORIZATION='semantic-discovery-milestone-v1'
 MAX_REQUESTS=3
 BATCH_SIZE=5
@@ -26,6 +27,11 @@ def project_context(root=memory.DEFAULT_MEMORY_ROOT):
     snapshot=memory.call_bridge({'operation':'resume','investigation_id':INVESTIGATION,'memory_root':str(root)})
     decisions=memory.call_bridge({'operation':'decision_history','investigation_id':INVESTIGATION,'memory_root':str(root)})
     if not snapshot.get('ok') or not decisions.get('ok'):raise ValueError('Verified project memory or human decision is unavailable.')
+    return context_from_verified_memory(snapshot,decisions)
+
+
+def context_from_verified_memory(snapshot,decisions):
+    """Build stable reasoning context after the caller verifies its inputs."""
     artifacts=snapshot['artifacts']
     defer=next((d for d in decisions['history'] if d['version']==1 and d['choice']=='Defer'),None)
     if not defer or defer['needs_review']:raise ValueError('Genuine Defer Version 1 is missing or needs review; assessment blocked.')
@@ -121,33 +127,69 @@ def messages(batch,context):
 FIELDS={'candidate_id','category','project_need_id','project_need','source_observation','evidence','application_hypothesis',
     'limitations','missing_information','priority','priority_reason','investigation_question','next_step','existing_findings_connection'}
 
+class AssessmentError(ValueError):
+    """Fixed diagnostic codes and paths; never include untrusted model values."""
+    def __init__(self,code,field,message,**details):
+        super().__init__(message)
+        self.diagnostic={'validator_version':VALIDATOR_VERSION,'code':code,'field':field,**details}
+
+
+def parse_batch(content,batch):
+    """Decode supplied final JSON; never repair content or infer candidate IDs."""
+    text=content.strip()
+    if not text.startswith(('{','```')) and '</think>' in text:text=text.partition('</think>')[2].strip()
+    text=re.sub(r'^```(?:json)?\s*|\s*```$','',text)
+    def unique_pairs(pairs):
+        result={}
+        for key,value in pairs:
+            if key in result:raise AssessmentError('duplicate_json_key','response','Duplicate JSON object key.')
+            result[key]=value
+        return result
+    try:output=json.loads(text,object_pairs_hook=unique_pairs)
+    except json.JSONDecodeError as exc:
+        raise AssessmentError('invalid_json','response','Model content is not valid JSON.',line=exc.lineno,column=exc.colno) from None
+    if not isinstance(output,dict) or set(output)!={'assessments'} or not isinstance(output['assessments'],list):
+        raise AssessmentError('batch_schema','assessments','Invalid batch response schema.')
+    values=output['assessments']
+    if any(not isinstance(a,dict) or not isinstance(a.get('candidate_id'),str) for a in values):
+        raise AssessmentError('candidate_id_type','assessments.candidate_id','Each assessment needs a string candidate ID.')
+    ids=[a['candidate_id'] for a in values]
+    expected={p['source']['candidate_id'] for p in batch}
+    if len(ids)!=len(set(ids)) or set(ids)!=expected:
+        raise AssessmentError('batch_identity','assessments.candidate_id','Missing, duplicate or unknown candidate IDs.',
+            missing_count=len(expected-set(ids)),unknown_count=len(set(ids)-expected),duplicate_count=len(ids)-len(set(ids)))
+    return {a['candidate_id']:a for a in values}
+
+
 def validate(value,prepared):
-    if not isinstance(value,dict) or set(value)!=FIELDS:raise ValueError('Invalid assessment schema.')
+    if not isinstance(value,dict) or set(value)!=FIELDS:raise AssessmentError('assessment_schema','assessment','Invalid assessment schema.',missing_fields=sorted(FIELDS-set(value)) if isinstance(value,dict) else sorted(FIELDS),unexpected_field_count=len(set(value)-FIELDS) if isinstance(value,dict) else 0)
     source=prepared['source']
-    if value['candidate_id']!=source['candidate_id']:raise ValueError('Unknown candidate identity.')
-    if value['category'] not in ('potential relevance','low relevance','uncertain relevance'):raise ValueError('Invalid category.')
-    if value['project_need_id'] not in ('objective','extraction_task','integration_constraints','decision_followup','uncertain'):raise ValueError('Unknown approved project need.')
+    if value['candidate_id']!=source['candidate_id']:raise AssessmentError('candidate_identity','candidate_id','Unknown candidate identity.')
+    if value['category'] not in ('potential relevance','low relevance','uncertain relevance'):raise AssessmentError('category','category','Invalid category.')
+    if value['project_need_id'] not in ('objective','extraction_task','integration_constraints','decision_followup','uncertain'):raise AssessmentError('project_need','project_need_id','Unknown approved project need.')
     for k in ('project_need','source_observation','priority_reason','investigation_question','next_step'):
-        if not isinstance(value[k],str) or not 10<=len(value[k])<=1800:raise ValueError('Missing or oversized explanation.')
+        if not isinstance(value[k],str) or not 10<=len(value[k])<=1800:raise AssessmentError('explanation',k,'Missing or oversized explanation.')
     for k in ('limitations','missing_information'):
-        if not isinstance(value[k],list) or not 1<=len(value[k])<=8 or any(not isinstance(v,str) or not 5<=len(v)<=1200 for v in value[k]):raise ValueError('Missing limitations or evidence gaps.')
-    if value['priority'] not in ('high','medium','low','defer'):raise ValueError('Invalid priority.')
+        if not isinstance(value[k],list) or not 1<=len(value[k])<=8 or any(not isinstance(v,str) or not 5<=len(v)<=1200 for v in value[k]):raise AssessmentError('evidence_gaps',k,'Missing limitations or evidence gaps.')
+    if value['priority'] not in ('high','medium','low','defer'):raise AssessmentError('priority','priority','Invalid priority.')
     evidence=value['evidence']
-    if not isinstance(evidence,list) or len(evidence)>3:raise ValueError('Invalid evidence references.')
+    if not isinstance(evidence,list) or len(evidence)>3:raise AssessmentError('evidence_type','evidence','Invalid evidence references.')
     supplied={p['passage_id']:p['text'] for p in source['passages']}
-    for e in evidence:
-        if not isinstance(e,dict) or set(e)!={'source_id','passage_id','exact_quote'}:raise ValueError('Invalid quotation reference.')
-        if e['source_id']!=source['source_id'] or e['passage_id'] not in supplied:raise ValueError('Unknown source or passage ID.')
-        if not isinstance(e['exact_quote'],str) or not 20<=len(e['exact_quote'])<=1800 or not analyzer.quote_supported(e['exact_quote'],supplied[e['passage_id']]):raise ValueError('Supporting quote is not exact in the supplied passage.')
+    for index,e in enumerate(evidence):
+        field=f'evidence[{index}]'
+        if not isinstance(e,dict) or set(e)!={'source_id','passage_id','exact_quote'}:raise AssessmentError('quotation_schema',field,'Invalid quotation reference.')
+        if e['source_id']!=source['source_id']:raise AssessmentError('source_identity',field+'.source_id','Unknown source ID.')
+        if not isinstance(e['passage_id'],str) or e['passage_id'] not in supplied:raise AssessmentError('passage_identity',field+'.passage_id','Unknown passage ID.')
+        if not isinstance(e['exact_quote'],str) or not 20<=len(e['exact_quote'])<=1800 or not analyzer.quote_supported(e['exact_quote'],supplied[e['passage_id']]):raise AssessmentError('quote_not_exact',field+'.exact_quote','Supporting quote is not exact in the supplied passage.')
     hypothesis=value['application_hypothesis']
-    if hypothesis is not None and (not isinstance(hypothesis,str) or not 10<=len(hypothesis)<=1800):raise ValueError('Invalid application hypothesis.')
-    if value['category']=='potential relevance' and (not evidence or hypothesis is None or value['project_need_id']=='uncertain'):raise ValueError('Positive relevance lacks grounded evidence or a specific need.')
-    if value['category']!='potential relevance' and hypothesis is not None:raise ValueError('Unsupported application must remain uncertain; no positive hypothesis accepted.')
-    if value['category']=='uncertain relevance' and value['priority'] not in ('defer','low'):raise ValueError('Insufficient evidence cannot establish high priority.')
+    if hypothesis is not None and (not isinstance(hypothesis,str) or not 10<=len(hypothesis)<=1800):raise AssessmentError('hypothesis_type','application_hypothesis','Invalid application hypothesis.')
+    if value['category']=='potential relevance' and (not evidence or hypothesis is None or value['project_need_id']=='uncertain'):raise AssessmentError('positive_grounding','assessment','Positive relevance lacks grounded evidence or a specific need.')
+    if value['category']!='potential relevance' and hypothesis is not None:raise AssessmentError('unsupported_hypothesis','application_hypothesis','Unsupported application must remain uncertain; no positive hypothesis accepted.')
+    if value['category']=='uncertain relevance' and value['priority'] not in ('defer','low'):raise AssessmentError('uncertain_priority','priority','Insufficient evidence cannot establish high priority.')
     connection=value['existing_findings_connection']
     if source['existing_investigation']:
-        if not isinstance(connection,str) or not 20<=len(connection)<=1800 or 'defer' not in connection.lower() or not re.search(r'1\s*(?:/|of|out of)\s*4',connection,re.I):raise ValueError('Existing investigation must acknowledge pilot findings and Defer Version 1.')
-    elif connection is not None:raise ValueError('Unrelated source cannot claim existing investigation membership.')
+        if not isinstance(connection,str) or not 20<=len(connection)<=1800 or 'defer' not in connection.lower() or not re.search(r'1\s*(?:/|of|out of)\s*4',connection,re.I):raise AssessmentError('existing_findings','existing_findings_connection','Existing investigation must acknowledge pilot findings and Defer Version 1.')
+    elif connection is not None:raise AssessmentError('false_membership','existing_findings_connection','Unrelated source cannot claim existing investigation membership.')
     return value
 
 def pending(item,error=None):
@@ -210,8 +252,38 @@ def reconcile_request_journal(state):
             'cache_keys':[key for key,_ in entries],'candidate_ids':[o['candidate_id'] for o in outcomes],
             'max_tokens':MAX_OUTPUT_TOKENS,'timeout_seconds':analyzer.TIMEOUT_SECONDS,'max_response_bytes':MAX_RESPONSE_BYTES,
             'model':model,'outcomes':outcomes,'journal_recovered':True})
+    # Interrupted reservations may have no completed cache record. Never erase
+    # their consumed allowance when reconstructing other entries.
+    repaired.extend(r for r in current if r['id'] not in groups)
     state['semantic_requests']=repaired
     return True
+
+
+def request_accounting(state):
+    """Count physical request identities once, including rejected output/cache hits.
+
+    Reservations consume allowance but are not proof that a request reached the
+    provider. Conflicting metadata is surfaced, never silently added or repaired.
+    """
+    records={}
+    for r in state.get('semantic_requests',[]):
+        if r.get('authorization')==AUTHORIZATION:records.setdefault(r['id'],[]).append(r.get('model'))
+    for r in state.get('semantic_cache',{}).values():
+        if r.get('request_id'):records.setdefault(r['request_id'],[]).append(r.get('model'))
+    usage={k:0 for k in ('prompt_tokens','completion_tokens','total_tokens')}
+    confirmed=0;missing=[];conflicts=[]
+    for rid,values in records.items():
+        models=[v for v in values if isinstance(v,dict)]
+        if any(m.get('http_status') is not None or m.get('returned_model') not in (None,'unknown') for m in models):confirmed+=1
+        metadatas={digest(v.get('usage',{})) for v in models}
+        if len(metadatas)>1:conflicts.append(rid);continue
+        value=models[0].get('usage',{}) if models else {}
+        if not all(type(value.get(k)) is int and value[k]>=0 for k in usage):missing.append(rid);continue
+        for k in usage:usage[k]+=value[k]
+    return {'requests_used':len(records),'confirmed_response_requests':confirmed,
+        'unconfirmed_reservations':len(records)-confirmed,'request_ids':sorted(records),
+        'usage':usage,'usage_complete':not missing and not conflicts,
+        'usage_missing_request_ids':missing,'usage_conflict_request_ids':conflicts}
 
 def run(store,token,context=None,requester=None,progress=print):
     context=context or project_context(store.root)
@@ -227,8 +299,7 @@ def run(store,token,context=None,requester=None,progress=print):
                 p=prepare(store,item,context)
                 if p['cache_key'] not in state.get('semantic_cache',{}):missing.append(p)
         state.setdefault('semantic_requests',[])
-        used=len({r['id'] for r in state['semantic_requests'] if r.get('authorization')==AUTHORIZATION}
-            | {r['request_id'] for r in state.get('semantic_cache',{}).values() if r.get('request_id')})
+        used=request_accounting(state)['requests_used']
         for offset in range(0,len(missing),BATCH_SIZE):
             if used>=MAX_REQUESTS:
                 for p in missing[offset:]:
@@ -253,28 +324,26 @@ def run(store,token,context=None,requester=None,progress=print):
             # Durable reservation before the single transport call; interruptions consume budget.
             state=store.save(state);attempt=state['semantic_requests'][-1]
             progress(f'Bounded semantic request {used}/{MAX_REQUESTS}: {len(batch)} candidates; no retry.')
-            result={};parsed={};failure=None;response_content=None;failure_stage='transport'
+            result={};parsed={};failure=None;response_content=None;failure_stage='transport';failure_detail=None
             try:
                 prompt=messages(batch,context)
-                if sum(len(m['content']) for m in prompt)>100_000:raise ValueError('Bounded prompt is too large.')
+                if sum(len(m['content']) for m in prompt)>100_000:raise AssessmentError('prompt_size','prompt','Bounded prompt is too large.')
+                attempt['transport_invoked']=True
                 result=requester(token,prompt)
-                if not result.get('ok'):raise ValueError('Model transport failed; no automatic retry.')
+                if not result.get('ok'):raise AssessmentError('transport','response','Model transport failed; no automatic retry.')
+                failure_stage='response_envelope'
                 data=result['data'];content=analyzer.message_content(data) or ''
-                if 'nemotron' not in str(data.get('model','')).lower():raise ValueError('Unexpected returned model; Nemotron routing was not confirmed.')
-                if token and token in content:raise ValueError('Credential echo rejected.')
+                if 'nemotron' not in str(data.get('model','')).lower():raise AssessmentError('returned_model','model','Unexpected returned model; Nemotron routing was not confirmed.')
+                if token and token in content:raise AssessmentError('credential_echo','response','Credential echo rejected.')
                 response_content=content
-                failure_stage='json_or_batch_identity'
-                text=content.strip()
-                if not text.startswith(('{','```')) and '</think>' in text:text=text.partition('</think>')[2].strip()
-                text=re.sub(r'^```(?:json)?\s*|\s*```$','',text)
-                output=json.loads(text)
-                if not isinstance(output,dict) or set(output)!={'assessments'} or not isinstance(output['assessments'],list):raise ValueError('Invalid batch response schema.')
-                ids=[a.get('candidate_id') for a in output['assessments'] if isinstance(a,dict)]
-                expected={p['source']['candidate_id'] for p in batch}
-                if len(ids)!=len(output['assessments']) or len(ids)!=len(set(ids)) or set(ids)!=expected:raise ValueError('Missing, duplicate or unknown candidate IDs.')
-                parsed={a['candidate_id']:a for a in output['assessments']}
+                failure_stage='batch_parse'
+                parsed=parse_batch(content,batch)
+            except AssessmentError as exc:
+                failure='Model response rejected: '+str(exc)
+                failure_detail={**exc.diagnostic,'stage':failure_stage}
             except Exception:
                 failure='Model request or response failed; this attempt is not retried automatically.'
+                failure_detail={'validator_version':VALIDATOR_VERSION,'code':'unexpected_failure','field':'response','stage':failure_stage}
             data=result.get('data') if isinstance(result.get('data'),dict) else {}
             usage=data.get('usage') if isinstance(data.get('usage'),dict) else {}
             metadata={'returned_model':analyzer.sanitize_server_text(str(data.get('model','unknown')),token,[]),
@@ -283,15 +352,23 @@ def run(store,token,context=None,requester=None,progress=print):
             outcomes=[]
             for prepared in batch:
                 item=state['items'][prepared['source']['candidate_id']]
-                error=failure
+                error=failure;diagnostic=failure_detail
                 value=None
                 if not error:
                     try:
                         prepare(store,item,context)  # Recheck snapshot integrity before persisting model claims.
-                        value=validate(parsed[item['id']],prepared)
-                    except ValueError as exc:error='Assessment rejected: '+str(exc)
-                    except (TypeError,KeyError):error='Assessment rejected: invalid field types or missing fields.'
+                    except (ValueError,OSError):
+                        error='Saved source evidence failed integrity/preparation checks.'
+                        diagnostic={'validator_version':VALIDATOR_VERSION,'code':'source_preparation','field':'source','stage':'source_preparation'}
+                    if not error:
+                        try:value=validate(parsed[item['id']],prepared)
+                        except AssessmentError as exc:
+                            error='Assessment rejected: '+str(exc);diagnostic={**exc.diagnostic,'stage':'assessment_validation'}
+                        except (TypeError,KeyError):
+                            error='Assessment rejected: invalid field types or missing fields.'
+                            diagnostic={'validator_version':VALIDATOR_VERSION,'code':'field_type','field':'assessment','stage':'assessment_validation'}
                 record={'status':'failed' if error else 'validated','policy_version':POLICY,'cache_key':prepared['cache_key'],
+                    'validator_version':VALIDATOR_VERSION,'validation_failure':diagnostic,
                     'context_sha256':prepared['context_sha256'],'content_sha256':item['content_sha256'],
                 'assessed_at':now(),'request_id':request_id,'model':metadata,'provenance':prepared['source'],
                     'project_context_provenance':context.get('provenance',{}),
@@ -304,12 +381,18 @@ def run(store,token,context=None,requester=None,progress=print):
                 if not error:prepare_proposal(state,item,record)
                 outcomes.append({'candidate_id':item['id'],'status':record['status']})
             attempt.update(status='completed' if all(o['status']=='validated' for o in outcomes) else 'failed_or_partial',
-                finished_at=now(),model=metadata,outcomes=outcomes,failure_stage=failure_stage if failure else None)
+                finished_at=now(),model=metadata,outcomes=outcomes,failure_stage=failure_stage if failure else None,
+                validation_failure=failure_detail)
             # Bounded untrusted output is kept only in ignored run storage for offline
             # validation/recovery. Never execute it, and never persist a credential echo.
             if response_content is not None:
                 response_dir=store.directory/'model-responses';response_dir.mkdir(exist_ok=True)
-                (response_dir/(request_id+'.json')).write_text(json.dumps({'content':response_content,'model':metadata}),encoding='utf-8')
+                artifact={'content':response_content,'content_sha256':discovery.sha(response_content),
+                    'request_id':request_id,'model':metadata,'validator_version':VALIDATOR_VERSION,
+                    'prepared_inputs':batch,'project_context_sha256':digest(context),
+                    'finish_reason':next((c.get('finish_reason') for c in data.get('choices',[])
+                        if isinstance(c,dict) and c.get('finish_reason') in ('stop','length','content_filter','tool_calls')),None)}
+                (response_dir/(request_id+'.json')).write_text(json.dumps(artifact),encoding='utf-8')
             state=store.save(state)
             if failure and not result.get('ok'):
                 # An unavailable/auth-failed runtime is not probed again for other batches.
