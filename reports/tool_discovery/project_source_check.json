@@ -1,0 +1,100 @@
+{
+  "checked_at": "2026-10-27T06:25:10.716987+00:00",
+  "candidates": [
+    {
+      "title": "Instructor",
+      "url": "https://python.useinstructor.com/",
+      "publisher": "Instructor documentation",
+      "publication_date": null,
+      "retrieved_at": "2026-10-27T06:25:10.716987+00:00",
+      "description": "Extract structured data from any LLM with type safety, validation, and automatic retries. Available in Python, TypeScript, Go, Ruby, Elixir, and Rust.",
+      "label": "Discovery candidate — not yet validated",
+      "kind": "product_documentation",
+      "need_id": "structured_extraction",
+      "reasons": [
+        "Could be evaluated as a structured-extraction layer for the saved requirements task; correctness is untested."
+      ],
+      "supporting_phrases": [
+        "Extract structured data from any LLM with type safety, validation, and automatic retries. Available in Python, TypeScript, Go, Ruby, Elixir, and Rust."
+      ],
+      "limitations": [
+        "Structured output does not prove that user constraints were extracted correctly. Model access and any model usage costs need separate review; discovery runs no model.",
+        "Project compatibility, accuracy, costs and integration effort remain unverified."
+      ],
+      "raw_sha256": "b696287a2abcf4d9c7eed6f148d71278ae419373cd38a3510698ccc0955ed23a"
+    },
+    {
+      "title": "promptfoo",
+      "url": "https://www.promptfoo.dev/docs/intro",
+      "publisher": "promptfoo documentation",
+      "publication_date": null,
+      "retrieved_at": "2026-10-27T06:25:10.716987+00:00",
+      "description": "Comprehensive security testing and monitoring for AI models",
+      "label": "Discovery candidate — not yet validated",
+      "kind": "product_documentation",
+      "need_id": "extraction_evaluation",
+      "reasons": [
+        "Could be evaluated for repeatable checks of extraction outputs using the saved synthetic cases; no test has been run."
+      ],
+      "supporting_phrases": [
+        "Comprehensive security testing and monitoring for AI models"
+      ],
+      "limitations": [
+        "An evaluation tool, not proof of production quality. Fixtures and assertions must reflect the project task; live model-based evaluations would require separate authorization.",
+        "Project compatibility, accuracy, costs and integration effort remain unverified."
+      ],
+      "raw_sha256": "98f80ef28f80ce9f7c7c6e682b295363c383084dca4ca278548465de68563160"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://python.useinstructor.com/",
+      "publisher": "Instructor documentation",
+      "error": null,
+      "eligible_items": 1,
+      "kind": "product_documentation"
+    },
+    {
+      "url": "https://docs.pydantic.dev/latest/",
+      "publisher": "Pydantic documentation",
+      "error": "Official source unavailable or unreadable; no candidate inferred and no retry made.",
+      "eligible_items": 0,
+      "kind": "product_documentation"
+    },
+    {
+      "url": "https://www.promptfoo.dev/docs/intro/",
+      "publisher": "promptfoo documentation",
+      "error": null,
+      "eligible_items": 1,
+      "kind": "product_documentation"
+    }
+  ],
+  "status": "partial_failure",
+  "scope": {
+    "mode": "project",
+    "needs": [
+      {
+        "id": "structured_extraction",
+        "description": "Extract explicit user requirements into structured data without silently filling gaps."
+      },
+      {
+        "id": "constraint_validation",
+        "description": "Check the shape and types of extracted requirements before recipe or meal-plan generation."
+      },
+      {
+        "id": "extraction_evaluation",
+        "description": "Evaluate whether extraction preserves explicit constraints and missing information."
+      }
+    ],
+    "source_limit": 4
+  },
+  "notice": "Matched against a small configured catalog of official product documentation, including existing tools. Source excerpts support capabilities, not project benefits. Previously seen, rejected or deferred products are excluded. Results are not saved.",
+  "verification": {
+    "network_fetches": 3,
+    "model_calls": 0,
+    "memory_bridge_calls": 0,
+    "memory_files_unchanged": true,
+    "existing_candidate_count": 13,
+    "human_decision_count": 1
+  }
+}

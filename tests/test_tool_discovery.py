@@ -51,7 +51,7 @@ class ToolDiscoveryTests(unittest.TestCase):
         self.addCleanup(self.network.stop)
 
     def preview(self, existing=(), **kwargs):
-        return d.tool_preview(existing, fetcher=fixture_fetch, now=NOW, **kwargs)
+        return d.tool_preview(existing, fetcher=fixture_fetch, now=NOW, **{'feeds':FEEDS, **kwargs})
 
     def test_rss_atom_dates_and_traceability(self):
         items = d.tool_feed_items(RSS, FEEDS[1], NOW)
@@ -115,7 +115,7 @@ class ToolDiscoveryTests(unittest.TestCase):
         for response in ({'raw':b'', 'error':'503'}, {'raw':b'not xml', 'error':None}):
             calls=[]
             def fetch(url): calls.append(url); return response
-            result = d.tool_preview([], fetcher=fetch, now=NOW)
+            result = d.tool_preview([], feeds=FEEDS, fetcher=fetch, now=NOW)
             self.assertEqual(result['candidates'], [])
             self.assertEqual(calls, [feed['url'] for feed in FEEDS])
             self.assertEqual(result['status'], 'partial_failure')
@@ -127,9 +127,14 @@ class ToolDiscoveryTests(unittest.TestCase):
         self.assertEqual(result['status'], 'success')
         root = '<rss><channel>'+''.join(
             f'<item><title>Introducing Fixture {i} LLM API</title><link>https://openai.com/index/fixture-{i}</link><pubDate>Mon, 26 Oct 2026 09:00:00 GMT</pubDate><description>A language model supports structured outputs for user requirements.</description></item>'
-            for i in range(20))+'</channel></rss>'
+            for i in range(40))+'</channel></rss>'
         result = d.tool_preview([], feeds=[FEEDS[1]], now=NOW, fetcher=lambda url:{'raw':root.encode(),'error':None})
-        self.assertEqual(result['sources'][0]['eligible_items'], 10)
+        self.assertEqual(result['sources'][0]['eligible_items'], 30)
+        self.assertEqual(result['scope']['items_per_feed'], 30)
+        self.assertEqual(result['scope']['lookback_days'], 14)
+        legacy = root.replace('https://openai.com/index/', 'https://blogs.nvidia.com/blog/').encode()
+        self.assertEqual(len(d.feed_items(legacy, NOW)[0]), 10)
+        self.assertEqual(d.config()['item_cap'], 10)
         self.assertEqual(len(result['candidates']), 3)
 
     def test_api_manual_authentication_readiness_overlap_and_no_memory_or_model(self):
@@ -143,12 +148,15 @@ class ToolDiscoveryTests(unittest.TestCase):
             self.assertEqual(dispatch(state, route, 'POST', origin=False)[0], 403)
             self.assertEqual(dispatch(state, route, 'POST')[0], 409)
             state.tool_existing_items=[]
+            self.assertEqual(dispatch(state, route, 'POST')[0], 409)
+            state.tool_human_history=[]
+            state.tool_opportunity_history=[]
             original=d.tool_preview
             class ImmediateThread:
                 def __init__(self, target, **kwargs): self.target=target
                 def start(self): self.target()
             with patch.object(app.threading, 'Thread', ImmediateThread), \
-                 patch.object(d, 'tool_preview', side_effect=lambda items, **kw:original(items, fetcher=fixture_fetch, now=NOW, **kw)):
+                 patch.object(d, 'tool_preview', side_effect=lambda items, **kw:original(items, feeds=FEEDS, fetcher=fixture_fetch, now=NOW, **kw)):
                 self.assertEqual(dispatch(state, route, 'POST')[0], 202)
                 code,payload=dispatch(state, '/api/discovery?scope=tools')
                 self.assertEqual(code, 200)

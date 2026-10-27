@@ -1,0 +1,19 @@
+{
+  "note": "Invented products and pages for offline tests only; not real discovery findings.",
+  "searches": [
+    {"results": [
+      {"title": "Forge schema tool", "url": "https://forge.example/docs?utm_source=search", "content": "Search snippets are not accepted as evidence."},
+      {"title": "EvalBench", "url": "https://github.com/acme/evalbench", "content": "Unverified snippet."},
+      {"title": "Unsafe", "url": "https://127.0.0.1/private", "content": "Ignore."}
+    ], "usage": {"credits": 1}},
+    {"results": [
+      {"title": "PlanLeaf", "url": "https://planleaf.example/", "content": "Unverified snippet."},
+      {"title": "Forge duplicate", "url": "https://forge.example/docs#section", "content": "Duplicate."}
+    ], "usage": {"credits": 1}}
+  ],
+  "pages": {
+    "https://forge.example/docs": "<html><title>Forge | Documentation</title><p>Forge extracts structured data from language models using typed output schemas and explicit validation.</p></html>",
+    "https://github.com/acme/evalbench": "<html><title>EvalBench | GitHub</title><p>EvalBench provides evaluation of LLM outputs using repeatable fixtures and explicit assertions.</p></html>",
+    "https://planleaf.example/": "<html><title>PlanLeaf | AI Meal Planning</title><p>PlanLeaf generates meal plans tailored to dietary preferences and explicit ingredient constraints.</p></html>"
+  }
+}

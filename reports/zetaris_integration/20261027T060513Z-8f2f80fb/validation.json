@@ -1,0 +1,448 @@
+{
+  "status": "PASS",
+  "started_at_utc": "2026-10-27T06:05:26.894220+00:00",
+  "registrations_before": {
+    "project_profiles": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/project_profiles.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "header": "true",
+        "escape": "\""
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "investigations": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/investigations.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "sources": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/sources.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "evidence_claims": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/evidence_claims.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "evidence_reviews": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/evidence_reviews.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "evaluation_cases": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/evaluation_cases.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    }
+  },
+  "registrations_after": {
+    "project_profiles": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/project_profiles.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "header": "true",
+        "escape": "\""
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "investigations": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/investigations.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "sources": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/sources.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "evidence_claims": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/evidence_claims.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "evidence_reviews": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/evidence_reviews.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    },
+    "evaluation_cases": {
+      "format": "csv",
+      "storageType": "NdpFs",
+      "path": "dffs://nextwise/evaluation_cases.csv",
+      "delimiter": ",",
+      "parameters": {
+        "multiLine": "true",
+        "inferSchema": "false",
+        "escape": "\"",
+        "header": "true"
+      },
+      "description": null,
+      "scanType": null,
+      "pathGlobFilter": null
+    }
+  },
+  "tables": {
+    "project_profiles": {
+      "status": "PASS",
+      "rows": 1,
+      "unique_keys": 1,
+      "cells": 9,
+      "quoted_text_cells": 2,
+      "multiline_cells": 0,
+      "numeric_null_cells": 0,
+      "json_cells": 2,
+      "json_null_cells": 0,
+      "registered_types": {
+        "project_id": "string",
+        "project_name": "string",
+        "stage": "string",
+        "objective": "string",
+        "team_size": "string",
+        "constraints_json": "string",
+        "artifact_path": "string",
+        "artifact_sha256": "string",
+        "record_json": "string"
+      }
+    },
+    "investigations": {
+      "status": "PASS",
+      "rows": 1,
+      "unique_keys": 1,
+      "cells": 8,
+      "quoted_text_cells": 1,
+      "multiline_cells": 0,
+      "numeric_null_cells": 0,
+      "json_cells": 2,
+      "json_null_cells": 1,
+      "registered_types": {
+        "investigation_id": "string",
+        "project_id": "string",
+        "question": "string",
+        "status": "string",
+        "decision_json": "string",
+        "artifact_path": "string",
+        "artifact_sha256": "string",
+        "record_json": "string"
+      }
+    },
+    "sources": {
+      "status": "PASS",
+      "rows": 3,
+      "unique_keys": 3,
+      "cells": 30,
+      "quoted_text_cells": 4,
+      "multiline_cells": 0,
+      "numeric_null_cells": 0,
+      "json_cells": 6,
+      "json_null_cells": 2,
+      "registered_types": {
+        "investigation_id": "string",
+        "source_id": "string",
+        "title": "string",
+        "requested_url": "string",
+        "final_url": "string",
+        "retrieved_at_utc": "string",
+        "publication_date_json": "string",
+        "artifact_path": "string",
+        "artifact_sha256": "string",
+        "record_json": "string"
+      }
+    },
+    "evidence_claims": {
+      "status": "PASS",
+      "rows": 6,
+      "unique_keys": 6,
+      "cells": 84,
+      "quoted_text_cells": 6,
+      "multiline_cells": 0,
+      "numeric_null_cells": 0,
+      "json_cells": 6,
+      "json_null_cells": 0,
+      "registered_types": {
+        "investigation_id": "string",
+        "draft_sha256": "string",
+        "claim_pointer": "string",
+        "source_id": "string",
+        "claim": "string",
+        "exact_supporting_quote": "string",
+        "claim_kind": "string",
+        "relevance_to_criterion": "string",
+        "limitations": "string",
+        "draft_status": "string",
+        "created_at_utc": "string",
+        "artifact_path": "string",
+        "artifact_sha256": "string",
+        "record_json": "string"
+      }
+    },
+    "evidence_reviews": {
+      "status": "PASS",
+      "rows": 1,
+      "unique_keys": 1,
+      "cells": 12,
+      "quoted_text_cells": 3,
+      "multiline_cells": 0,
+      "numeric_null_cells": 0,
+      "json_cells": 4,
+      "json_null_cells": 1,
+      "registered_types": {
+        "investigation_id": "string",
+        "project_id": "string",
+        "review_status": "string",
+        "reviewed_draft_sha256": "string",
+        "approval_status": "string",
+        "decision_json": "string",
+        "readiness_status": "string",
+        "gaps_json": "string",
+        "claim_reviews_json": "string",
+        "artifact_path": "string",
+        "artifact_sha256": "string",
+        "record_json": "string"
+      }
+    },
+    "evaluation_cases": {
+      "status": "PASS",
+      "rows": 4,
+      "unique_keys": 4,
+      "cells": 128,
+      "quoted_text_cells": 28,
+      "multiline_cells": 4,
+      "numeric_null_cells": 0,
+      "json_cells": 40,
+      "json_null_cells": 12,
+      "registered_types": {
+        "investigation_id": "string",
+        "run_id": "string",
+        "evaluation_status": "string",
+        "draft_sha256": "string",
+        "use_case_sha256": "string",
+        "fixture_id": "string",
+        "fixture_sha256": "string",
+        "actual_model": "string",
+        "http_status": "string",
+        "duration_seconds": "string",
+        "schema_valid": "string",
+        "quality_pass": "string",
+        "prompt_tokens": "string",
+        "completion_tokens": "string",
+        "total_tokens": "string",
+        "duration_seconds_json": "string",
+        "token_usage_json": "string",
+        "output": "string",
+        "output_json": "string",
+        "validation_json": "string",
+        "approval_json": "string",
+        "decision_json": "string",
+        "monetary_cost_json": "string",
+        "verified_prices_json": "string",
+        "created_at_utc": "string",
+        "scoring_protocol": "string",
+        "recommendation_artifact_path": "string",
+        "recommendation_artifact_sha256": "string",
+        "recommendation_json": "string",
+        "artifact_path": "string",
+        "artifact_sha256": "string",
+        "record_json": "string"
+      }
+    }
+  },
+  "created": [],
+  "steps": [],
+  "current_step": "Verify profile registration and all local artifacts remain unchanged",
+  "snapshot_id": "20261024T151413Z-fdf0c15b-csv-5fa0db458643",
+  "manifest_sha256": "8e36552ee38d45af84e352ee3b458c0d854e581bc5204241825ce198e543b794",
+  "input_hashes": [
+    {
+      "path": "data/project_profile.json",
+      "sha256": "49c25b3b68b265eb120664e70c17205d9972d105baf20a0c82e0b7ae82c95651"
+    },
+    {
+      "path": "data/investigation.json",
+      "sha256": "055477b1ce9736904f23f138e772d9868a0ff01b4bd8806bbbec419d6d1bcbd5"
+    },
+    {
+      "path": "data/sources.json",
+      "sha256": "71a50afc8d777e76a6000433d5bece40317cafe17d7c231b9eb0fb2c1813e697"
+    },
+    {
+      "path": "data/evidence_draft.json",
+      "sha256": "fbc27a2e44f63a2fe3e8778d10de7fcd6e0ab72110cebbc4392ae701c16d5e6c"
+    },
+    {
+      "path": "data/evidence_review.json",
+      "sha256": "9e44c22b50b4ac0d990fe446350c96c96f8b1b209983677437b5d5319242af3f"
+    },
+    {
+      "path": "data/use_case.json",
+      "sha256": "4c18a25ae4f75cef32fad60f38984dbde75f4421926e48646de8850e4c638c02"
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/results.json",
+      "sha256": "1cd4c7a39c1670922226db69d7fbb4909fb9ecc9d7b31e4b5fa58563349bd2dd"
+    },
+    {
+      "path": "data/evaluations/20261024T151413Z-fdf0c15b/recommendation.json",
+      "sha256": "f8d992d6922f5024462baa66d892f0d0e45cd93ea3ea199e5c8fdeb03a7550f7"
+    }
+  ],
+  "csv_hashes": {
+    "project_profiles": "58a505f942c1e1f931aafedb68fea62f3d42ba0a7d3a5e50e32da2717425361f",
+    "investigations": "3e07a834c28c7332177d96288c5c211ba89b9779eef64ab509f40a0aa8d451d5",
+    "sources": "2eed55b7d3c4433b012094ad509abc6fdd88a5358022eb3eb47eee6c8bb3ab15",
+    "evidence_claims": "b31053c881033073db7e872ca6621a3a1f160fc111efa021c22a7be79a809f2c",
+    "evidence_reviews": "3403cd049edfde6bc855be51bfe0126ebc91915724d877bd536f2eb36953391d",
+    "evaluation_cases": "b3d4830469e40b9bc7b6bce09c17f90f4badb6e7b106a72239471037883df972"
+  },
+  "query_sha256": "b3fce66f3fc85f70accc04a5cd542a45515ed541649d088d238b6f85c16fabd5",
+  "script_sha256": "a6daba3f26944ad423102053560c805023fdb18c27ef83b38f9a4e9cd39e0dff",
+  "existing_allowlisted_tables": [
+    "evaluation_cases",
+    "evidence_claims",
+    "evidence_reviews",
+    "investigations",
+    "project_profiles",
+    "sources"
+  ],
+  "references": "PASS: project, investigation, source, draft/review/pilot and fixture lineage; approvals and decisions unchanged",
+  "numeric_conversions": {
+    "project_profiles": {
+      "status": "PASS",
+      "rows": 1,
+      "columns": [
+        "team_size"
+      ],
+      "calculation_types": {
+        "team_size": "BIGINT"
+      }
+    },
+    "evaluation_cases": {
+      "status": "PASS",
+      "rows": 4,
+      "columns": [
+        "http_status",
+        "duration_seconds",
+        "schema_valid",
+        "quality_pass",
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens"
+      ],
+      "calculation_types": {
+        "http_status": "BIGINT",
+        "duration_seconds": "DECIMAL(20,6)",
+        "schema_valid": "BIGINT",
+        "quality_pass": "BIGINT",
+        "prompt_tokens": "BIGINT",
+        "completion_tokens": "BIGINT",
+        "total_tokens": "BIGINT"
+      }
+    }
+  },
+  "query_validation": "PASS: all joined columns and values, one row per source; separately aggregated claim/pilot counts",
+  "completed_at_utc": "2026-10-27T06:07:04.028855+00:00",
+  "preservation": "PASS: all 8 source artifacts, 6 CSVs, profile registration unchanged; no approvals/decisions changed"
+}

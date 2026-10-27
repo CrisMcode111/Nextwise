@@ -21,7 +21,12 @@ const root=nodes.get('#tool-candidates');
 function descendants(node){return [node,...node.children.flatMap(descendants)];}
 assert.equal(root.children.filter(n=>n.tagName==='ARTICLE').length,3);
 assert.equal(root.textContent.split('Discovery candidate — not yet validated').length-1,3);
-assert(root.textContent.includes('coverage is incomplete'));
+if(preview.sources.some(source=>source.error))assert(root.textContent.includes('coverage is incomplete'));
+if(preview.scope.mode==='project'){
+  assert(root.textContent.includes('Needs identified from your saved project context'));
+  assert(root.textContent.includes('Limitations and unknowns'));
+  assert(!root.textContent.includes('Published null'));
+}
 assert(root.textContent.includes(preview.candidates[0].description));
 assert(!descendants(root).some(n=>['BUTTON','FORM','TEXTAREA'].includes(n.tagName)));
 const opportunity=nodes.get('#opportunities');

@@ -1,121 +1,126 @@
-# Manual tool discovery preview
+# Project-driven tool discovery and catalog fallback
 
-The hackathon expansion reuses `update_discovery.py`, its bounded fetcher,
-canonical URL handling, readable-text extractor and conservative project-context
-phrase rules. It uses the existing local authenticated API, discovery lock,
-manual button and polling. There is no additional service, scheduler, model
-integration, dependency or persistence format.
+**Check for updates** now uses bounded Tavily web search when `TAVILY_API_KEY`
+is available to the server, with the catalog described below as fallback. See
+[Tavily discovery](tavily-discovery.md) for request limits, credit consumption
+and mocked verification. No live Tavily request has been made for this integration.
+Both modes include established tools without requiring a recent release date.
 
-## Reviewed feed configuration
+## Needs and source selection
 
-Edit `data/discovery_feeds.json` to remove, reorder or configure feeds on the
-three reviewed HTTPS publisher origins. Other origins, credentials, non-HTTPS
-URLs, nonstandard ports and duplicate feed URLs are refused. Keep the NVIDIA
-entry for the existing coverage. Adding another publisher requires a code review
-of the origin allowlist and a real reachability/format check.
+The existing context loader reuses the approved profile and investigated task:
+generate/adapt recipes and meal plans to user constraints, with an extraction
+step that preserves explicit requirements and missing information. The prototype
+is maintained by one developer with limited time; costs and integration effort
+need justification. The application stack and extraction baseline remain unknown.
+Discovery does not inspect proprietary code. Tavily receives fixed public search
+phrases selected from project-need categories, not the project files, decisions,
+rationales, proprietary recipes, credentials or original free-text context.
 
-| Publisher | Exact feed URL | Manual check on 27 October 2026 |
+Local rules identify checks to investigate, not observed application defects:
+
+| Need | Candidate source | Official page |
 | --- | --- | --- |
-| NVIDIA | https://blogs.nvidia.com/feed/ | HTTP 200, RSS parsed |
-| OpenAI | https://openai.com/news/rss.xml | HTTP 200, RSS parsed |
-| Hugging Face | https://huggingface.co/blog/feed.xml | HTTP 200, RSS parsed |
+| Structured requirement extraction | Instructor | https://python.useinstructor.com/ |
+| Schema/type checks on extracted constraints | Pydantic | https://docs.pydantic.dev/latest/ |
+| Evaluation of model-backed extraction | promptfoo | https://www.promptfoo.dev/docs/intro/ |
 
-These are publisher-operated announcement feeds. Being reachable does not
-establish that an item is a tool release, relevant, correct or safe to adopt.
+The catalog is `data/discovery_tools.json`: at most four source pages on reviewed
+origins. Only sources matching project needs are fetched. Catalog entries are
+starting points, not findings: the fetched page must support both the product
+identity and a readable capability passage. An unrelated project task yields no
+matches. Adding an origin requires reviewing the source allowlist in code.
 
-## Behavior and limits
+## Manual workflow and boundaries
 
-1. Open the existing app and load or **Reopen saved discovery**. A successful
-   existing discovery read supplies the in-process exclusion snapshot. If it is
-   unavailable, the preview refuses to fetch rather than claim candidates are new.
-2. Choose **Check for updates**. The button POSTs to
-   `/api/discovery/check?scope=tools`; progress polling uses
-   `/api/discovery?scope=tools`. Neither preview endpoint reads or writes H-MEM.
-3. Each configured feed is fetched once, using the existing 2 MB response limit,
-   8-second socket timeout and 20-second read deadline. Redirects are restricted
-   to exact configured feed URLs, with the existing three-redirect maximum.
-   There are no automatic retries. Linked articles are never fetched.
-4. Parse RSS or Atom, rejecting DTD/entities. Require an explicit timezone-aware
-   publication date within the last 14 days, a title, at least 30 characters of
-   readable source description and a canonical HTTPS announcement URL on the
-   feed publisher's origin. Atom `updated` is not a publication date. Undated,
-   future, stale, malformed and untraceable items are excluded. Consider at most
-   ten recent eligible entries per feed; show descriptions of at most 600
-   characters, copied from readable source text.
-5. Require a launch/release signal in the title and an AI/product type in the
-   title or excerpt. Exclude generic news, funding, partnership, acquisition,
-   report, survey, tutorial, guide, conference, policy and case-study titles.
-   Reuse the local relevance function: a nearby positive capability phrase must
-   connect to structured requirement extraction, language-model integration
-   constraints, or recipe/meal-plan generation under dietary/user constraints.
-   Show matched reasons and their exact source phrases. These are questions to
-   investigate, not business-benefit claims.
-6. Deduplicate canonical URLs, including tracking-parameter/fragment variants,
-   and normalized title aliases against the loaded saved candidates and across
-   feeds. Also exclude original investigation source URLs. Prefer more explicit
-   project connections, then newer publication dates. Return at most three,
-   including zero when evidence is insufficient. An individual feed failure is
-   visible and does not discard results from other feeds.
+1. Load saved human decisions and saved discovery. Existing verified responses
+   supply process-local exclusion snapshots. Missing history blocks discovery
+   before any source request. Optional preview metadata never prevents readable
+   historical decisions from being returned or a saved choice being acknowledged.
+2. The button reuses the authenticated/origin-protected POST
+   `/api/discovery/check?scope=tools`, discovery lock and progress polling through
+   GET `/api/discovery?scope=tools`. These preview endpoints do not retrieve or
+   write H-MEM, query Zetaris or invoke a model.
+3. Catalog fallback reuses the bounded fetcher: 2 MB/source, 8-second socket timeout, 20-second read
+   deadline, and at most three redirects restricted to exact selected source URLs.
+   One fetch per selected source, no automatic retries, crawler or scheduler.
+   An unavailable source produces no inferred candidate; successful results remain.
+4. Reuse readable HTML extraction. Require a positive matching capability passage
+   of 40-700 characters. Display the exact passage as description and evidence,
+   with an untested project connection, source link, publisher, retrieval date
+   and limitations. No publication date, performance, savings or safety is inferred.
+   Web-discovered pages use the same passage criteria and reject redirects;
+   they are labelled as source pages with publisher ownership unverified.
+5. Exclude previously observed products using official-origin and configured-name
+   matches. Reuse the latest cached human decision per subject; Reject/Defer
+   records are matched through source URLs and names, including the original
+   investigation technology. No automatic resurfacing: changed page bytes alone
+   never count as meaningful new evidence. This version conservatively leaves
+   reconsideration of deferred/rejected tools outside the preview.
+6. Deduplicate URLs and tool identities; display at most three results in catalog
+   project-need order. Fewer results, including zero, are valid.
 
-Each card shows **Discovery candidate — not yet validated**, title, announcement
-link, publisher, publication date, source excerpt and local match reasons. There
-is no accept/adopt/prepare-opportunity action. The saved opportunities and genuine
-Defer Version 1 remain in their existing sections.
+Every card says **Discovery candidate — not yet validated**.
+Cards have no adoption, approval or prepare-opportunity action.
+They never enter the strict semantic validator or validated recommendation flow.
+Source statements are publisher claims; project connections are hypotheses.
 
-Results exist only in process/page memory. Restart loses them; a page reload
-does not reopen them through saved discovery. Another manual check can show the
-same unpersisted candidates. “New” means absent from the loaded saved snapshot,
-not independently verified as a first-ever product launch. The snapshot can be
-outdated if another process changes saved discovery; reopen it before checking.
-URL/title matching cannot resolve all differently named announcements of the
-same product. Sparse summaries and conservative rules can miss useful tools.
-Publisher dates and claims are not independently verified.
+Pydantic is a validation technology, not an AI model or recipe app. Schema checks
+cannot prove completeness or dietary safety. Instructor's LLM-backed extraction
+would need separate model access, cost and accuracy review. promptfoo's testing
+capabilities do not establish that the saved cases are integrated or sufficient.
+Nothing is installed or executed by discovery.
 
-## Preservation
+## Preservation and limits
 
-The original no-query `/api/discovery/check` and `Store.run()` still perform the
-legacy persisted four-resource check. The new button deliberately invokes only
-the transient preview. **Reopen saved discovery**, existing startup reads,
-semantic cache refresh, historical selection and decision actions retain their
-prior behavior; they are not part of the zero-write preview endpoints.
-No strict semantic validator, H-MEM adapter, Nightshift/Meterless model transport,
-NVIDIA legacy request scope or original decision record was modified. There is
-no path from these transient cards into semantic assessment or opportunities.
+The official H-MEM adapter, saved human decisions, strict semantic validator,
+Zetaris integration and Nightshift/NVIDIA request paths are unchanged. Existing
+history/read/save workflows retain their behavior. New code caches their already
+returned values; it adds no memory reads or writes. The preview itself reads
+approved local project files and selected public documentation only.
 
-## Verification
+The original persisted four-resource discovery and `Store.run()` remain intact.
+The previous 14-day, 30-entry recent-feed preview is retained for explicit
+`tool_preview(..., feeds=...)` callers and `recent_tool_preview()`. Its feed
+config and filtering rules are unchanged. The button defaults to Tavily when
+configured and falls back to the project catalog without a key or sufficient
+web evidence. Dynamic product identities distinguish repositories/models on
+shared GitHub and Hugging Face hosts.
+Legacy persisted discovery retains its ten-entry cap.
 
-Run these offline checks; fixture announcements do not describe real tools:
+Results are transient; restart loses them and reload does not reopen them as saved
+opportunities. Unpersisted results can recur on another click. Exclusions reflect
+this process's last loaded/saved snapshots; reopen history/discovery after
+external changes. Alias matching is conservative, not general product resolution.
+Fallback coverage is limited to the catalog; configured Tavily search can find
+previously unknown products. Useful results are not guaranteed.
 
-```powershell
-python -m unittest discover -s tests -p test_tool_discovery.py -v
-python -m unittest discover -s tests -p test_update_discovery.py -v
-python -m unittest discover -s tests -p test_semantic_discovery.py -v
-python -m unittest discover -s tests -p test_nextwise_app.py -v
-python -m unittest discover -s tests -p test_decision_workflow.py -v
-node --check web/app.js
-```
+## Verification on 27 October 2026
 
-All passed: **7 new preview tests**, **6 legacy discovery tests**, **7 semantic
-tests**, **9 app tests**, **6 decision tests**, plus JavaScript syntax checking.
-New tests use RSS/Atom fixtures, in-memory HTTP-handler dispatch, and the actual
-app script with a DOM fixture. They cover URL/title deduplication, dates,
-traceability, relevance and negation, unavailable/malformed feeds, zero results,
-caps, authentication/origin protection, overlap, missing exclusion snapshots,
-zero memory/model calls, safe rendering and manual preview routes. Existing
-tests use isolated temporary H-MEM and synthetic model transports. No tests
-fetch real external feeds.
+Passed offline: 5 project-source tests, 7 recent-preview tests, 6 legacy discovery
+tests, 9 app tests and 6 decision tests, plus JavaScript syntax checking. Tests
+cover actual UI-script rendering with a DOM fixture, safe text, project needs,
+source grounding, failed/unsupported sources, duplicate products, cached human
+Reject/Defer records, missing context/history, and zero model/memory calls.
+Fixtures make no external requests; legacy tests use isolated temporary H-MEM
+and synthetic transports.
 
-The separate manual live check successfully fetched and parsed all three real
-feeds. NVIDIA and OpenAI each supplied ten eligible recent entries before
-relevance filtering; Hugging Face supplied zero under the date/description/URL
-requirements. Against 13 saved candidate records, **zero candidates qualified**.
-See [the actual check record](../reports/tool_discovery/live_feed_check.json),
-including feed URLs, timestamps and response hashes. All production memory-file
-hashes matched before and after that check; no model or memory-bridge call ran.
-Only this development verification report was written, outside memory storage.
+One bounded live check made three official documentation requests. It found
+**Instructor** (structured data extraction) and **promptfoo** (testing AI models).
+**Pydantic's page was unavailable or unreadable to the checker**; no candidate
+was inferred and no retry was made. The result does not identify which transport
+or content condition caused that source failure. An initial attempt stopped on
+a history-shape error before any source request; this was fixed and covered by
+an offline test before the live check.
 
-Not verified: a positive project-relevant live discovery, linked article contents,
-actual tool suitability/integration/cost, or the updated screen in a real browser
-against the running authenticated production app. UI execution was checked
-offline; visual layout and full production startup were not rerun. No commit or
-push was made.
+See [actual source records](../reports/tool_discovery/project_source_check.json).
+The check reused 13 saved candidates and the original human decision, with no
+model or memory-bridge calls. Production memory hashes matched before/after.
+The development report is outside memory storage; the runtime preview writes
+neither reports nor H-MEM. No measured project benefit is established.
+
+Unverified: extraction/test execution, AI Raw Gourmet integration, provider
+costs/terms, application-stack compatibility, useful performance, and the new
+screen in a real authenticated production browser. The running server was not
+restarted; a normal restart is required to load new server code. No containers,
+model routes, decisions or registrations were changed. No commit or push.

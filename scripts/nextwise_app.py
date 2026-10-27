@@ -180,6 +180,8 @@ class State:
         self.discovery_lock = threading.Lock()
         self.discovery_status = {"running": False, "message": "Ready for a manual check."}
         self.tool_existing_items = None
+        self.tool_human_history = None
+        self.tool_opportunity_history = None
         self.tool_preview = None  # Process memory only; never sent to H-MEM.
 
 
@@ -202,6 +204,26 @@ def decision_call(state, operation, **fields):
             record["needs_review"] = True
             record["integrity_issues"].append("Live evidence could not be reconciled with the referenced snapshot")
     return result
+
+
+def cache_tool_decisions(state, result):
+    """Reuse an already verified response; the preview never retrieves memory."""
+    try:
+        investigation = json.loads((ROOT/'data/investigation.json').read_text(encoding='utf-8'))
+        technology = investigation['technology']
+    except (OSError, ValueError, KeyError):
+        state.tool_human_history = None
+        return  # Optional preview metadata must never block readable history or a saved choice.
+    state.tool_human_history = [{**record, 'technology':technology}
+                               for record in result['history']]
+
+
+def cache_tool_discovery(state, saved):
+    state.tool_existing_items = list(saved['items'].values())
+    recommendations = {record['id']:record for record in saved.get('opportunity_recommendations', [])}
+    state.tool_opportunity_history = [{**record,
+        'title':recommendations.get(record.get('recommendation_id'), {}).get('title', '')}
+        for record in saved.get('opportunity_decisions', [])]
 
 
 def make_handler(state, loader=None):
@@ -262,7 +284,7 @@ def make_handler(state, loader=None):
                 try:
                     import opportunity_workflow as opportunities
                     saved = state.discovery.reassess()
-                    state.tool_existing_items = list(saved['items'].values())
+                    cache_tool_discovery(state, saved)
                     self.respond(200, {"status": dict(state.discovery_status), "scope": discovery.config(), "semantic_review_supported":True,
                                        "discovery": saved, "opportunities": opportunities.view(state.discovery, saved)})
                 except Exception:
@@ -279,7 +301,9 @@ def make_handler(state, loader=None):
                     return
                 try:
                     if route.path == "/api/decisions":
-                        self.respond(200, decision_call(state, "decision_history"))
+                        result = decision_call(state, "decision_history")
+                        cache_tool_decisions(state, result)
+                        self.respond(200, result)
                     else:
                         params = parse_qs(route.query)
                         result = decision_call(state, "decision_evidence", decision_id=params.get("id", [""])[0], kind=params.get("kind", [""])[0])
@@ -326,6 +350,7 @@ def make_handler(state, loader=None):
                         result = opportunities.prepare(state.discovery, body.get('candidate_id'), body.get('revision_sha256'), body.get('assessment_cache_key'))
                     else:
                         result = opportunities.decide(state.discovery, body)
+                    cache_tool_discovery(state, result)
                     self.respond(200, {'discovery': result, 'opportunities': opportunities.view(state.discovery, result)})
                 except ValueError:
                     self.respond(409, {'message': 'The assessment, evidence, decision history or form is no longer valid. Reopen discovery and review the latest briefing; your draft is preserved.'})
@@ -338,8 +363,9 @@ def make_handler(state, loader=None):
             discovery_path = urlsplit(self.path).path
             tools_only = self.path == '/api/discovery/check?scope=tools'
             if self.path in ("/api/discovery/check", "/api/discovery/select") or tools_only:
-                if tools_only and state.tool_existing_items is None:
-                    self.respond(409, {'message':'Reopen saved discovery first so existing candidates can be excluded. No feeds were fetched.'})
+                if tools_only and (state.tool_existing_items is None or state.tool_human_history is None
+                                   or state.tool_opportunity_history is None):
+                    self.respond(409, {'message':'Load saved decisions and reopen saved discovery first so previously reviewed tools can be excluded. No sources were fetched.'})
                     return
                 body = None
                 if self.path.endswith('/select'):
@@ -361,18 +387,19 @@ def make_handler(state, loader=None):
                         try:
                             if tools_only:
                                 state.tool_preview = discovery.tool_preview(state.tool_existing_items,
+                                    decision_history=state.tool_human_history+state.tool_opportunity_history,
                                     progress=lambda msg: state.discovery_status.update(message=msg))
                                 state.discovery_status = {'running':False, 'message':
                                     'Tool candidate check complete. Results are not saved.' if state.tool_preview['status']=='success' else
-                                    'Tool candidate check incomplete: some feeds failed. Results are not saved.'}
+                                    'Tool candidate check incomplete: some sources failed. Results are not saved.'}
                                 return
                             result = state.discovery.run(progress=lambda msg: state.discovery_status.update(message=msg))
-                            state.tool_existing_items = list(result['items'].values())
+                            cache_tool_discovery(state, result)
                             run = result['runs'][-1]
                             state.discovery_status = {"running":False, "message":"Check complete." if run['status']=='success' else "Check incomplete: some sources failed. Successful results were saved; failed-source baselines were retained."}
                         except Exception:
                             state.discovery_status = {"running":False, "message":
-                                'Tool preview unavailable. Check the feed configuration; no results were saved.' if tools_only else
+                                'Tool preview unavailable. Check the source configuration; no results were saved.' if tools_only else
                                 "Discovery could not be confirmed. Last successful baselines remain. Check H-MEM storage, runtime and locks, then retry.", "failed":True}
                         finally: state.discovery_lock.release()
                     threading.Thread(target=work,daemon=True).start()
@@ -430,7 +457,9 @@ def make_handler(state, loader=None):
                     if self.path == "/api/decision":
                         if state.context is None or body.get("context") != state.context:
                             raise AppError("evidence_changed", "The evidence context changed. Reload and review it before saving. Your text has been kept.", 409)
-                        self.respond(200, decision_call(state, "decision_save", decision=body))
+                        result = decision_call(state, "decision_save", decision=body)
+                        cache_tool_decisions(state, result)
+                        self.respond(200, result)
                     else:
                         self.respond(200, payload)
                 finally:

@@ -199,6 +199,7 @@ def feed_items(raw, now):
 
 
 # Transient tool preview. These functions never call Store, H-MEM or a model.
+TOOL_ITEM_CAP = 30
 TOOL_LABEL = 'Discovery candidate — not yet validated'
 TOOL_FEEDS_PATH = ROOT/'data/discovery_feeds.json'
 TOOL_PUBLISHERS = {'blogs.nvidia.com': 'NVIDIA', 'openai.com': 'OpenAI', 'huggingface.co': 'Hugging Face'}
@@ -270,10 +271,10 @@ def tool_feed_items(raw, feed, now):
                           'source_feed':feed['url']})
         except (ValueError, TypeError, StopIteration, OverflowError):
             continue
-    return sorted(valid, key=lambda item:item['publication_date'], reverse=True)[:ITEM_CAP]
+    return sorted(valid, key=lambda item:item['publication_date'], reverse=True)[:TOOL_ITEM_CAP]
 
 
-def tool_preview(existing_items, *, fetcher=None, feeds=None, now=None, project=None, progress=lambda message:None):
+def recent_tool_preview(existing_items, *, fetcher=None, feeds=None, now=None, project=None, progress=lambda message:None):
     """Bounded source-only preview; existing_items is an already loaded snapshot.
 
     NEW means absent from the snapshot, not a verified first-ever product launch.
@@ -327,8 +328,133 @@ def tool_preview(existing_items, *, fetcher=None, feeds=None, now=None, project=
         if len(candidates) == 3: break
     return {'checked_at':now.isoformat(), 'candidates':candidates, 'sources':sources,
             'status':'partial_failure' if any(s['error'] for s in sources) else 'success',
-            'scope':{'feeds':feeds, 'lookback_days':LOOKBACK_DAYS, 'items_per_feed':ITEM_CAP},
+            'scope':{'feeds':feeds, 'lookback_days':LOOKBACK_DAYS, 'items_per_feed':TOOL_ITEM_CAP},
             'notice':'Source excerpts only; linked articles and suitability are unverified. New to the loaded candidate snapshot; not proof of a new product. Results are not saved.'}
+
+
+PROJECT_TOOLS_PATH = ROOT/'data/discovery_tools.json'
+PROJECT_TOOL_ORIGINS = {'python.useinstructor.com', 'docs.pydantic.dev', 'www.promptfoo.dev'}
+PROJECT_NEEDS = {
+    'structured_extraction': ('Extract explicit user requirements into structured data without silently filling gaps.',
+        r'\bstructured (?:outputs?|data|responses?)\b',
+        'Could be evaluated as a structured-extraction layer for the saved requirements task; correctness is untested.'),
+    'constraint_validation': ('Check the shape and types of extracted requirements before recipe or meal-plan generation.',
+        r'\bdata validation\b|\bvalidat(?:e|ion|ing)\b.{0,80}\b(?:types?|schemas?|data)\b',
+        'Could be evaluated for schema/type checks on extracted constraints; this does not establish semantic or dietary safety.'),
+    'extraction_evaluation': ('Evaluate whether extraction preserves explicit constraints and missing information.',
+        r'\b(?:evalua(?:tion|te|ting)|test(?:ing)?)\b.{0,100}\b(?:llms?|prompts?|ai|models?)\b|\b(?:llms?|prompts?|ai)\b.{0,100}\b(?:evaluat\w*|test\w*)\b',
+        'Could be evaluated for repeatable checks of extraction outputs using the saved synthetic cases; no test has been run.'),
+}
+
+
+def project_tools():
+    sources = json.loads(PROJECT_TOOLS_PATH.read_text(encoding='utf-8'))['tools']
+    if not isinstance(sources, list) or not 1 <= len(sources) <= 4:
+        raise ValueError('Configure one to four reviewed official product sources.')
+    seen = set()
+    for source in sources:
+        url = source['url']
+        if (not urlsplit(url).hostname or urlsplit(canonical(url)).hostname not in PROJECT_TOOL_ORIGINS
+                or source['need_id'] not in PROJECT_NEEDS or canonical(url) in seen
+                or not source['name'] or not source['publisher'] or not source['limitations']):
+            raise ValueError('Project tool source is outside the reviewed scope.')
+        seen.add(canonical(url))
+    return sources
+
+
+def project_needs(project):
+    # These are checks to investigate, never inferred defects in the application.
+    if 'requirements' not in project['task'].lower(): return []
+    return [{'id':key, 'description':value[0]} for key,value in PROJECT_NEEDS.items()
+            if key != 'constraint_validation' or 'recipes' in project['objective'].lower()]
+
+
+def catalog_tool_preview(existing_items, *, fetcher=None, feeds=None, now=None, project=None,
+                 progress=lambda message:None, decision_history=(), sources=None):
+    """Search a bounded official-source catalog by project need, without persistence.
+
+    Explicit feed callers retain the prior recent-announcement mode. Product
+    documentation has a retrieval date, not an invented publication/release date.
+    Rejected/deferred products stay excluded; a page hash change is not treated
+    as meaningful new evidence or authorization to reconsider a human decision.
+    """
+    if feeds is not None:
+        return recent_tool_preview(existing_items, fetcher=fetcher, feeds=feeds, now=now,
+                                   project=project, progress=progress)
+    now = now or datetime.now(timezone.utc)
+    project = context() if project is None else project
+    needs = project_needs(project)
+    need_ids = {need['id'] for need in needs}
+    sources = project_tools() if sources is None else sources
+    selected = [source for source in sources if source['need_id'] in need_ids]
+    approved = [source['url'] for source in selected]
+    fetcher = fetcher or (lambda url: fetch(url, approved_urls=approved))
+    # Latest choice per subject. Conservatively exclude all previously observed
+    # products too, rather than relabeling old candidates as new discoveries.
+    blocked = list(existing_items)
+    heads = {}
+    for record in decision_history:
+        subject = record.get('candidate_id') or record.get('investigation_id')
+        if not subject: raise ValueError('Decision snapshot has no subject identity.')
+        if subject not in heads or record.get('version', 0) > heads[subject].get('version', 0):
+            heads[subject] = record
+    blocked += [record for record in heads.values() if record.get('choice') in ('Reject','Defer')]
+    candidates, records, seen = [], [], set()
+    for source in selected:
+        name = source['name']
+        aliases = source.get('aliases', [name])
+        def same_tool(item):
+            refs = item.get('evidence_references', {})
+            url = item.get('url') or (refs.get('url') if isinstance(refs, dict) else None)
+            if url:
+                try:
+                    if urlsplit(canonical(url)).hostname == urlsplit(source['url']).hostname: return True
+                except ValueError: pass
+            title = item.get('title', '')+' '+item.get('technology', '')
+            return any(re.search(r'(?<!\w)'+re.escape(alias)+r'(?!\w)', title, re.I) for alias in aliases)
+        if any(same_tool(item) for item in blocked): continue
+        if canonical(source['url']) in seen or tool_identity(name) in seen: continue
+        seen.update((canonical(source['url']), tool_identity(name)))
+        progress('Checking official tool source: '+name)
+        record = {'url':source['url'], 'publisher':source['publisher'], 'error':None,
+                  'eligible_items':0, 'kind':'product_documentation'}
+        try:
+            result = fetcher(source['url'])
+            if result.get('error'): raise ValueError('Official source unavailable.')
+            extractor = collector.extract_page(result['raw'].decode('utf-8', errors='replace'))
+            text = extractor.text()
+            if not re.search(re.escape(name), (extractor.title() or '')+' '+text, re.I):
+                raise ValueError('Product identity not supported by the page.')
+            phrases = [re.sub(r'\s+', ' ', line).strip() for line in text.splitlines()]
+            evidence = next((phrase for phrase in phrases if 40 <= len(phrase) <= 700
+                and re.search(PROJECT_NEEDS[source['need_id']][1], phrase, re.I)
+                and not re.search(r'\b(?:not|unsupported|never)\b', phrase, re.I)), None)
+            if evidence:
+                record['eligible_items'] = 1
+                candidates.append({'title':name, 'url':canonical(source['url']), 'publisher':source['publisher'],
+                    'publication_date':None, 'retrieved_at':now.isoformat(), 'description':evidence,
+                    'label':TOOL_LABEL, 'kind':'product_documentation', 'need_id':source['need_id'],
+                    'reasons':[PROJECT_NEEDS[source['need_id']][2]], 'supporting_phrases':[evidence],
+                    'limitations':source['limitations']+['Project compatibility, accuracy, costs and integration effort remain unverified.'],
+                    'raw_sha256':sha(result['raw'])})
+        except Exception:
+            record['error'] = 'Official source unavailable or unreadable; no candidate inferred and no retry made.'
+        records.append(record)
+    return {'checked_at':now.isoformat(), 'candidates':candidates[:3], 'sources':records,
+            'status':'partial_failure' if any(record['error'] for record in records) else 'success',
+            'scope':{'mode':'project', 'needs':needs, 'source_limit':4},
+            'notice':'Matched against a small configured catalog of official product documentation, including existing tools. Source excerpts support capabilities, not project benefits. Previously seen, rejected or deferred products are excluded. Results are not saved.'}
+
+
+def tool_preview(existing_items, *, fetcher=None, feeds=None, now=None, project=None,
+                 progress=lambda message:None, decision_history=(), sources=None):
+    """A manual check only: bounded Tavily search, with the catalog as fallback."""
+    if feeds is not None or sources is not None:
+        return catalog_tool_preview(existing_items, fetcher=fetcher, feeds=feeds, now=now,
+            project=project, progress=progress, decision_history=decision_history, sources=sources)
+    import tavily_discovery
+    return tavily_discovery.discover(existing_items, fetcher=fetcher, now=now, project=project,
+        progress=progress, decision_history=decision_history)
 
 
 class Store:

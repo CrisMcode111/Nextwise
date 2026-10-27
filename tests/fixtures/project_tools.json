@@ -1,0 +1,6 @@
+{
+  "note": "Synthetic offline page text for testing only; not a live finding or a publisher quotation.",
+  "Instructor": "Instructor is a Python library for structured output extraction from LLMs into typed objects.",
+  "Pydantic": "Pydantic provides data validation using Python type annotations for structured objects.",
+  "promptfoo": "promptfoo is a tool for evaluating LLM applications with repeatable tests and custom assertions."
+}

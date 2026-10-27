@@ -192,25 +192,33 @@ function paintDiscovery(d){
 }
 function paintToolCandidates(preview){
   const target=$('#tool-candidates');target.replaceChildren();
-  el('h3','','Potential new tools',target);
-  if(!preview){paragraph('No candidate preview is available. Check for updates to try the configured feeds.',target);return;}
+  el('h3','','Tools to investigate for your project',target);
+  if(!preview){paragraph('No candidate preview is available. Check for updates to check the configured official sources.',target);return;}
   paragraph(`Checked ${preview.checked_at}. ${preview.notice}`,target,'meta');
-  paragraph(`At most 3 candidates; ${preview.scope.lookback_days}-day window, up to ${preview.scope.items_per_feed} recent items per feed. No model calls.`,target,'meta');
-  if(!preview.candidates.length)paragraph('No new tool candidates met the local evidence rules in the checked feeds.',target,'notice');
+  if(preview.search){
+    const search=preview.search;
+    paragraph(search.status==='not_configured'?'Web search is not configured; using the existing catalog.':`Web search: ${search.status.replaceAll('_',' ')}. ${search.requests_attempted} basic search request(s) attempted; ${search.credits_if_attempts_billed} credits expected if billed. Check limit: ${search.maximum_credits} credits. No retries.`,target,'meta');
+  }
+  if(preview.scope.mode==='project'){
+    el('h4','','Needs identified from your saved project context',target);list(preview.scope.needs.map(need=>need.description),target);
+    paragraph('Up to 3 candidates, including existing products. Current documentation is checked; no recent-release requirement and no model calls.',target,'meta');
+  }else paragraph(`At most 3 candidates; ${preview.scope.lookback_days}-day window, up to ${preview.scope.items_per_feed} recent items per feed. No model calls.`,target,'meta');
+  if(!preview.candidates.length)paragraph('No new tool candidates met the project evidence and history rules in the checked sources.',target,'notice');
   preview.candidates.forEach(item=>{
     const row=el('article','card',null,target);
     paragraph('Discovery candidate — not yet validated',row,'notice');
     el('h4','',item.title,row);
-    paragraph(`${item.publisher} · Published ${item.publication_date}`,row,'meta');
-    link('Publisher announcement (not independently validated)',item.url,row);
+    paragraph(`${item.publisher} · ${['product_documentation','discovered_product'].includes(item.kind)?`Source checked ${item.retrieved_at}; release date not inferred`:`Published ${item.publication_date}`}`,row,'meta');
+    link(item.kind==='discovered_product'?'Source page (publisher identity unverified)':'Official source (claims not independently validated)',item.url,row);
     paragraph(item.description,row,'copy');
-    el('h4','','Why it may be relevant — local phrase matches',row);list(item.reasons,row);
+    el('h4','','Why it may help — untested project connection',row);list(item.reasons,row);
+    if(item.limitations?.length){el('h4','','Limitations and unknowns',row);list(item.limitations,row);}
     const evidence=details('Supporting source phrases',row);list(item.supporting_phrases,evidence);
   });
-  const sources=details('Feeds checked and coverage',target);
+  const sources=details('Sources checked and coverage',target);
   preview.sources.forEach(source=>{
     link(source.publisher,source.url,sources);
-    paragraph(source.error||`${source.eligible_items} dated recent items examined; publisher claims remain unverified.`,sources,source.error?'notice':'meta');
+    paragraph(source.error||(['product_documentation','discovered_product'].includes(source.kind)?`${source.eligible_items?'Supporting capability passage found.':'No supporting capability passage found.'} Product suitability remains unverified.`:`${source.eligible_items} dated recent items examined; publisher claims remain unverified.`),sources,source.error?'notice':'meta');
   });
 }
 async function readDiscovery(){

@@ -12,15 +12,24 @@ See [demo readiness and recording sequence](docs/demo-readiness.md).
 
 ## Manual update discovery
 
-**Hackathon tool preview:** **Check for updates** now reads the NVIDIA, OpenAI
-and Hugging Face announcement feeds configured in `data/discovery_feeds.json`.
+**Project-driven tool preview:** **Check for updates** uses Tavily Search when
+the server environment contains `TAVILY_API_KEY`, searching beyond the catalog
+for existing or new tools and checking source-page evidence. The existing
+`data/discovery_tools.json` catalog remains the fallback when the key is missing,
+search fails or fewer than three web candidates qualify. No additional package
+is required. A normal AI Raw Gourmet check uses two basic searches: **2 Tavily
+credits**, at most five results per search, four dynamic source-page attempts
+and zero retries. No Tavily Extract, Crawl, Research or generated answers are used.
 It shows at most three **Discovery candidate — not yet validated** records in a
-separate Potential new tools section. This is a transient preview, not an
+separate Tools to investigate for your project section. This is a transient preview, not an
 opportunity or a semantic assessment; it makes no model calls or memory writes.
-First reopen saved discovery so the already loaded candidates can be excluded.
+First load saved decisions and reopen saved discovery so previously seen,
+rejected or deferred products can be excluded. A changed page alone never
+overrides a human decision.
 The legacy persisted discovery API/scripts and saved opportunity workflow below
 retain their existing behavior. The button no longer invokes the persisted
-fixed-page check. See [preview scope and verification](docs/tool-discovery-preview.md).
+fixed-page check. See [Tavily limits and setup](docs/tavily-discovery.md) and
+[catalog fallback scope](docs/tool-discovery-preview.md).
 
 ### From a validated candidate to your decision
 

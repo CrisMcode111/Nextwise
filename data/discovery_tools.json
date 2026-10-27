@@ -1,0 +1,28 @@
+{
+  "tools": [
+    {
+      "name": "Instructor",
+      "publisher": "Instructor documentation",
+      "url": "https://python.useinstructor.com/",
+      "aliases": ["Instructor", "useinstructor"],
+      "need_id": "structured_extraction",
+      "limitations": ["Structured output does not prove that user constraints were extracted correctly. Model access and any model usage costs need separate review; discovery runs no model."]
+    },
+    {
+      "name": "Pydantic",
+      "publisher": "Pydantic documentation",
+      "url": "https://docs.pydantic.dev/latest/",
+      "aliases": ["Pydantic"],
+      "need_id": "constraint_validation",
+      "limitations": ["A validation technology, not a recipe generator or an AI model. Schema/type validation cannot establish dietary safety or recover omitted requirements. Python integration must be assessed."]
+    },
+    {
+      "name": "promptfoo",
+      "publisher": "promptfoo documentation",
+      "url": "https://www.promptfoo.dev/docs/intro/",
+      "aliases": ["promptfoo"],
+      "need_id": "extraction_evaluation",
+      "limitations": ["An evaluation tool, not proof of production quality. Fixtures and assertions must reflect the project task; live model-based evaluations would require separate authorization."]
+    }
+  ]
+}
