@@ -1,22 +1,75 @@
 # Nextwise
 
-A local prototype that helps a solo founder inspect whether a technical update
-deserves further testing. It connects approved project context, dated sources,
-qualified claims, a saved four-case pilot, an existing AI-assisted proposal and
-an explicit human decision with evidence links.
+Nextwise is an AI discovery assistant for entrepreneurs. It helps answer:
+**Which AI tools could help my business, why should I care, and what should I try next?**
+It connects a business project to source-backed opportunities, makes uncertainty
+visible and keeps the entrepreneur in control.
+This hackathon prototype demonstrates the workflow; fully autonomous, reliable
+business assessment is not yet proven.
 
-This demonstration resumes existing
-results through live Zetaris queries and official H-MEM retrieval. Refresh,
-decision save and restart do **not** call a model or rerun an experiment.
-See [demo readiness and recording sequence](docs/demo-readiness.md).
+**[Try the live Nextwise demo →](https://nextwise-pied.vercel.app)**
 
-For the isolated public demo prepared for Vercel, see
-[public demo build and deployment steps](docs/vercel-demo.md). It reuses this UI
-and source-evidence logic with new public example context and browser-only demo
-choices. It cannot access private services or spend Tavily credits. No deployment
-has been performed; continue using the existing local startup below as before.
+## Discover → Explain → Decide → Remember
 
-## Manual update discovery
+1. **Discover:** start with your project description or document and identify
+   relevant tools through bounded discovery or a clearly labelled guided scenario.
+2. **Explain:** see the source, possible business benefit, uncertainty and one
+   practical next step.
+3. **Decide:** choose an opportunity to explore. Selecting it starts no trial,
+   purchase or automatic implementation.
+4. **Remember:** keep the choice for later—browser-local in the public demo;
+   linked to evidence and decision history through H-MEM in the local application.
+
+## What the guided demo demonstrates
+
+Enter: **“AI Raw Gourmet is an application that generates and adapts recipes and
+meal plans to user constraints.”** Review the project, then find opportunities.
+
+The **Guided demo — pre-verified opportunities** flow presents **DishGen** and
+**Samsung Food+**, with official sources, conditional business benefits,
+limitations and next steps. **Explore this** confirms a choice and remembers it
+in that browser. Existing dismissals remain respected.
+
+“Pre-verified” means product identity and advertised capabilities were checked
+on official pages—not that outputs, dietary safety, integration or business
+benefits were tested. This is prepared guidance, **not live AI discovery**.
+Other projects use limited, rule-based public-source discovery and may return
+fewer or no matches. Private services and paid APIs are disconnected.
+
+The public URL is deployed. **The latest guided-demo and visual refinements in
+this checkout have been tested locally in Chrome but have not been deployed.**
+See the [guided demo walkthrough and limitations](docs/guided-hackathon-demo.md).
+
+## Technology and verification
+
+| Technology | Local application: implemented and verified scope | Public demo |
+| --- | --- | --- |
+| **Tavily** | Bounded web-search adapter implemented and tested with mocked responses; live Tavily discovery remains unverified. | Disabled; no Tavily credits used. |
+| **Meterless / Nemotron** | Live model routing demonstrated through Meterless/Nightshift; strict evidence validation is implemented. Useful end-to-end business reasoning remains unproven. | No model calls; guided assessments are prepared in advance. |
+| **H-MEM** | Official adapter with verified artifact retrieval and persistent, versioned human decisions. | Disconnected; choices stay in browser storage. |
+| **Zetaris** | Verified local SQL reads across six project and evidence tables, with lineage checks. | Disconnected; no private records exposed. |
+| **Vercel** | Isolated HTML/JavaScript and Python serverless bundle, tested offline and in Chrome. | Hosts the deployed public application; latest local changes await deployment. |
+
+## Technical documentation
+
+Start with [local demo readiness](docs/demo-readiness.md) or the
+[public demo architecture and build guide](docs/vercel-demo.md). Implementation
+details: [Tavily discovery](docs/tavily-discovery.md),
+[business assessment contract and limits](docs/business-assessment.md),
+[H-MEM integration](docs/hmem-integration.md),
+[human decisions](docs/human-decisions.md) and
+[Zetaris integration](docs/zetaris-data-integration.md).
+The guides include historical verification records; the deployment status above
+distinguishes the existing public site from newer local changes.
+
+## Detailed local operation and verification
+
+The local application resumes saved results through live Zetaris queries and
+official H-MEM retrieval. Refresh, decision save and restart do **not** call a
+model or rerun an experiment. The existing setup, evidence rules and historical
+results are preserved below.
+
+### Manual update discovery
 
 **Project-driven tool preview:** **Check for updates** uses Tavily Search when
 the server environment contains `TAVILY_API_KEY`, searching beyond the catalog
@@ -37,7 +90,7 @@ retain their existing behavior. The button no longer invokes the persisted
 fixed-page check. See [Tavily limits and setup](docs/tavily-discovery.md) and
 [catalog fallback scope](docs/tool-discovery-preview.md).
 
-### From a validated candidate to your decision
+#### From a validated candidate to your decision
 
 Reopen saved discovery, expand a candidate and choose **Prepare opportunity
 briefing**. This action rechecks its saved snapshot, exact quotations, current
@@ -210,7 +263,7 @@ Actual milestone verification is recorded in
 preservation and zero-call cache replay. `python scripts/check_discovery_live_browser.py`
 checks the real authenticated view without model calls or real selections.
 
-## Existing dependencies
+### Existing dependencies
 
 | Component | Existing requirement |
 | --- | --- |
@@ -225,7 +278,7 @@ Nightshift/Meterless at port 8088 and access to Nemotron are **not required for
 displaying the saved investigation or recording a human decision**. Historical
 model-execution scripts are separate from the application.
 
-## Exact Windows startup order
+### Exact Windows startup order
 
 1. Start Docker Desktop. In its Containers view, start the **existing Zetaris
    application group** if stopped; leave its volumes, file store and registrations
@@ -270,7 +323,7 @@ Zetaris API, driver, UI and PostgreSQL containers are running. Restore those
 existing services rather than recreating volumes or registrations. SQL failures
 show only a safe HTTP status or failure category, never response contents.
 
-## Recording a real human decision
+### Recording a real human decision
 
 Beside the AI proposal, **Your decision** offers Adopt, Test, Defer and Reject
 with no preselected choice. Write a rationale and optionally a next action or
@@ -284,7 +337,7 @@ choice does not approve pending reviews, verify publisher claims or authorize
 models, experiments or deployment. Original artifact decision fields stay null;
 the human choice is a separate linked record. See [decision persistence](docs/human-decisions.md).
 
-## Stop, resume and recover
+### Stop, resume and recover
 
 - **Normal restart:** wait for any save to finish, press Ctrl+C, run the startup
   command again, enter the key privately and reload the page. Saved decisions
@@ -317,7 +370,7 @@ the human choice is a separate linked record. See [decision persistence](docs/hu
   resuming. The artifact import described in [H-MEM integration](docs/hmem-integration.md)
   can seed an initial snapshot, but cannot reconstruct lost human decision history.
 
-## Delivery verification
+### Delivery verification
 
 Run only these focused checks for the frozen demonstration; they use existing
 data and do not call models:
@@ -344,7 +397,7 @@ Historical `analyze_sources.py`, `evaluate_extraction.py --live` and model probe
 scripts execute new requests; they are **not startup or recording steps**.
 Do not run the registration/import/export workflows for routine playback.
 
-## Git and recording hygiene
+### Git and recording hygiene
 
 Commit candidates contain code, approved artifacts, exported CSVs and sanitized
 reports. `.env`, `.venv/`, `node_modules/`, `__pycache__/`, `data/collected/` and
