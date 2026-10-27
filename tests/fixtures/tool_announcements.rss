@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- Synthetic offline announcements, not real product records. -->
+<rss version="2.0"><channel><title>Synthetic fixture</title>
+<item><title>Introducing Fixture LLM API</title><link>https://openai.com/index/fixture-api/?utm_source=fixture#top</link><pubDate>Mon, 26 Oct 2026 09:00:00 GMT</pubDate><description>A language model supports structured outputs for extracting user requirements.</description></item>
+<item><title>New Fixture recipe app</title><link>https://openai.com/index/fixture-recipes/</link><pubDate>Sun, 25 Oct 2026 09:00:00 GMT</pubDate><description>An AI app generates recipes that respect dietary preferences.</description></item>
+<item><title>New AI funding report</title><link>https://openai.com/index/fixture-news/</link><pubDate>Mon, 26 Oct 2026 09:00:00 GMT</pubDate><description>A language model supports structured outputs for user requirements.</description></item>
+<item><title>Introducing Fixture image app</title><link>https://openai.com/index/fixture-images/</link><pubDate>Mon, 26 Oct 2026 09:00:00 GMT</pubDate><description>An AI app generates beautiful images of planets and stars.</description></item>
+<item><title>Introducing Undated LLM API</title><link>https://openai.com/index/undated/</link><description>A language model supports structured outputs for user requirements.</description></item>
+<item><title>Introducing Stale LLM API</title><link>https://openai.com/index/stale/</link><pubDate>Mon, 01 Jun 2026 09:00:00 GMT</pubDate><description>A language model supports structured outputs for user requirements.</description></item>
+<item><title>Introducing Future LLM API</title><link>https://openai.com/index/future/</link><pubDate>Wed, 28 Oct 2026 09:00:00 GMT</pubDate><description>A language model supports structured outputs for user requirements.</description></item>
+<item><title>Introducing Untraceable LLM API</title><link>https://evil.invalid/fixture/</link><pubDate>Mon, 26 Oct 2026 09:00:00 GMT</pubDate><description>A language model supports structured outputs for user requirements.</description></item>
+</channel></rss>

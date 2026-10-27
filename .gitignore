@@ -2,3 +2,5 @@
 .venv/
 __pycache__/
 data/collected/
+node_modules/
+data/memory/

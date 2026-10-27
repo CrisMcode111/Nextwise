@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!-- Synthetic offline announcements, not real product records. -->
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Synthetic fixture</title>
+<entry><title>Announcing Fixture LLM API</title><link rel="alternate" href="https://huggingface.co/blog/fixture-api"/><published>2026-10-26T10:00:00Z</published><summary>A language model supports structured outputs for extracting user requirements.</summary></entry>
+<entry><title>Introducing Fixture SDK</title><link href="https://huggingface.co/blog/fixture-sdk"/><published>2026-10-26T10:00:00Z</published><summary type="html">&lt;p&gt;A language model offers an OpenAI-compatible API for hosted inference.&lt;/p&gt;</summary></entry>
+<entry><title>Introducing Missing Publication API</title><link href="https://huggingface.co/blog/missing-date"/><updated>2026-10-26T10:00:00Z</updated><summary>A language model supports structured outputs for user requirements.</summary></entry>
+</feed>

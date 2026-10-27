@@ -55,8 +55,8 @@ def article_url(url):
     return value
 
 
-def fetch(url):
-    approved = {canonical(u) for u in config()['pages']+[FEED]}
+def fetch(url, *, approved_urls=None):
+    approved = {canonical(u) for u in (config()['pages']+[FEED] if approved_urls is None else approved_urls)}
     class Redirects(HTTPRedirectHandler):
         count = 0
         def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -196,6 +196,139 @@ def feed_items(raw, now):
         unique.append(item); urls.add(item['url'])
         if item['guid']: guids.add(item['guid'])
     return unique[:ITEM_CAP], {'rss_items':len(entries), 'eligible_unique_items':len(unique), 'excluded_items':rejected}
+
+
+# Transient tool preview. These functions never call Store, H-MEM or a model.
+TOOL_LABEL = 'Discovery candidate — not yet validated'
+TOOL_FEEDS_PATH = ROOT/'data/discovery_feeds.json'
+TOOL_PUBLISHERS = {'blogs.nvidia.com': 'NVIDIA', 'openai.com': 'OpenAI', 'huggingface.co': 'Hugging Face'}
+ATOM = '{http://www.w3.org/2005/Atom}'
+
+
+def tool_feeds():
+    """Local configuration is limited to the three reviewed publisher origins."""
+    feeds = json.loads(TOOL_FEEDS_PATH.read_text(encoding='utf-8'))['feeds']
+    if not isinstance(feeds, list) or not 1 <= len(feeds) <= 4:
+        raise ValueError('Configure one to four approved feeds.')
+    urls = set()
+    for feed in feeds:
+        if not isinstance(feed, dict) or not isinstance(feed.get('url'), str) or not urlsplit(feed['url']).hostname:
+            raise ValueError('Feed requires an absolute approved HTTPS URL.')
+        url = canonical(feed['url'])
+        host = urlsplit(url).hostname
+        if host not in TOOL_PUBLISHERS or feed.get('publisher') != TOOL_PUBLISHERS[host] or url in urls:
+            raise ValueError('Feed publisher, origin or identity is outside the reviewed scope.')
+        urls.add(url)
+    return feeds
+
+
+def tool_identity(title):
+    """Conservative title alias, in addition to canonical URL identity."""
+    value = re.sub(r'^(?:introducing|announcing|meet|new|launching)\s*[:—-]?\s*', '', title, flags=re.I)
+    return re.sub(r'[^\w]+', ' ', value.casefold()).strip()
+
+
+def tool_feed_items(raw, feed, now):
+    if b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():
+        raise ValueError('DTD/entities are not accepted')
+    root = ET.fromstring(raw)
+    atom = root.tag == ATOM+'feed'
+    if atom:
+        entries = root.findall(ATOM+'entry')
+    elif root.tag == 'rss' and root.find('channel') is not None:
+        entries = root.findall('./channel/item')
+    else:
+        raise ValueError('Expected RSS or Atom')
+    valid = []
+    for entry in entries:
+        try:
+            prefix = ATOM if atom else ''
+            def field(name):
+                node = entry.find(prefix+name)
+                return ''.join(node.itertext()).strip() if node is not None else ''
+            if atom:
+                url = next(n.get('href', '') for n in entry.findall(ATOM+'link') if n.get('rel', 'alternate') == 'alternate')
+                # updated is not publication evidence.
+                published = datetime.fromisoformat(field('published').replace('Z', '+00:00'))
+                summary = field('summary') or field('content')
+            else:
+                url = field('link')
+                published = parsedate_to_datetime(field('pubDate'))
+                summary = field('description')
+            if published.tzinfo is None: continue
+            published = published.astimezone(timezone.utc)
+            if not now-timedelta(days=LOOKBACK_DAYS) <= published <= now: continue
+            if not urlsplit(url).hostname: continue
+            url = canonical(url)
+            if urlsplit(url).hostname != urlsplit(feed['url']).hostname or urlsplit(url).path in ('', '/'):
+                continue
+            _, title = readable(field('title'))
+            _, text = readable(summary)
+            if not title or len(title) > 300 or len(text) < 30: continue
+            valid.append({'title':title, 'url':url, 'publisher':feed['publisher'],
+                          'publication_date':published.isoformat(), 'description':text[:600],
+                          'source_feed':feed['url']})
+        except (ValueError, TypeError, StopIteration, OverflowError):
+            continue
+    return sorted(valid, key=lambda item:item['publication_date'], reverse=True)[:ITEM_CAP]
+
+
+def tool_preview(existing_items, *, fetcher=None, feeds=None, now=None, project=None, progress=lambda message:None):
+    """Bounded source-only preview; existing_items is an already loaded snapshot.
+
+    NEW means absent from the snapshot, not a verified first-ever product launch.
+    No persistence, article retrieval, model requests or automatic retries.
+    """
+    feeds = tool_feeds() if feeds is None else feeds
+    now = now or datetime.now(timezone.utc)
+    project = context() if project is None else project
+    approved = [f['url'] for f in feeds]
+    fetcher = fetcher or (lambda url: fetch(url, approved_urls=approved))
+    urls, titles = set(), set()
+    for item in existing_items:
+        try: urls.add(canonical(item['url']))
+        except (ValueError, KeyError): pass
+        if item.get('title'): titles.add(tool_identity(item['title']))
+    for url in config()['pages']:
+        urls.add(canonical(url))
+    sources, eligible = [], []
+    for feed in feeds:
+        progress('Checking tool announcement feed: '+feed['publisher'])
+        record = {'url':feed['url'], 'publisher':feed['publisher'], 'error':None, 'eligible_items':0}
+        try:
+            result = fetcher(feed['url'])
+            if result.get('error'): raise ValueError('Feed unavailable; coverage is incomplete.')
+            items = tool_feed_items(result['raw'], feed, now)
+            record['eligible_items'] = len(items)
+            record['raw_sha256'] = sha(result['raw'])
+            for item in items:
+                title = item['title']
+                # An announcement signal and an actual AI product type are both required.
+                if not re.search(r'\b(?:introducing|announcing|launch(?:es|ing|ed)?|releas(?:e|es|ed|ing)|unveil(?:s|ed)?|new|now available)\b', title, re.I): continue
+                if re.search(r'\b(?:news|funding|partnership|acquisition|report|survey|tutorial|guide|conference|policy|case study|how to)\b', title, re.I): continue
+                if not re.search(r'\b(?:ai|llm|language model|model|assistant|agent|sdk|api|app|tool|platform)\b', title+' '+item['description'], re.I): continue
+                assessment = relevance(title+'. '+item['description'], project)
+                if not assessment['matches']: continue
+                eligible.append({**item, 'label':TOOL_LABEL,
+                                 'reasons':[m['connection'] for m in assessment['matches']],
+                                 'supporting_phrases':[m['supporting_phrase'] for m in assessment['matches']]})
+        except Exception:
+            record['error'] = 'Feed unavailable or invalid; coverage is incomplete. No retry was made.'
+        sources.append(record)
+    candidates = []
+    # A known URL can also identify a cross-publisher title alias in this check.
+    titles.update(tool_identity(item['title']) for item in eligible if item['url'] in urls)
+    eligible.sort(key=lambda x:(x['publication_date'], x['url']), reverse=True)
+    for item in sorted(eligible, key=lambda x:-len(x['reasons'])):
+        identity = tool_identity(item['title'])
+        if item['url'] in urls or identity in titles: continue
+        urls.add(item['url']); titles.add(identity)
+        candidates.append(item)
+        if len(candidates) == 3: break
+    return {'checked_at':now.isoformat(), 'candidates':candidates, 'sources':sources,
+            'status':'partial_failure' if any(s['error'] for s in sources) else 'success',
+            'scope':{'feeds':feeds, 'lookback_days':LOOKBACK_DAYS, 'items_per_feed':ITEM_CAP},
+            'notice':'Source excerpts only; linked articles and suitability are unverified. New to the loaded candidate snapshot; not proof of a new product. Results are not saved.'}
 
 
 class Store:

@@ -1,0 +1,7 @@
+{
+  "feeds": [
+    {"publisher": "NVIDIA", "url": "https://blogs.nvidia.com/feed/"},
+    {"publisher": "OpenAI", "url": "https://openai.com/news/rss.xml"},
+    {"publisher": "Hugging Face", "url": "https://huggingface.co/blog/feed.xml"}
+  ]
+}

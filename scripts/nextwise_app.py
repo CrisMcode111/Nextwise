@@ -179,6 +179,8 @@ class State:
         self.discovery = discovery.Store(self.memory_root)
         self.discovery_lock = threading.Lock()
         self.discovery_status = {"running": False, "message": "Ready for a manual check."}
+        self.tool_existing_items = None
+        self.tool_preview = None  # Process memory only; never sent to H-MEM.
 
 
 def decision_call(state, operation, **fields):
@@ -241,6 +243,10 @@ def make_handler(state, loader=None):
             if not self.allowed():
                 return
             route = urlsplit(self.path)
+            if route.path == '/api/discovery' and route.query == 'scope=tools':
+                if not self.allowed(session=True): return
+                self.respond(200, {'status':dict(state.discovery_status), 'tool_preview':state.tool_preview})
+                return
             if route.path == "/api/discovery":
                 if not self.allowed(session=True): return
                 if (state.discovery.directory/'discovery-run.lock').exists():
@@ -256,6 +262,7 @@ def make_handler(state, loader=None):
                 try:
                     import opportunity_workflow as opportunities
                     saved = state.discovery.reassess()
+                    state.tool_existing_items = list(saved['items'].values())
                     self.respond(200, {"status": dict(state.discovery_status), "scope": discovery.config(), "semantic_review_supported":True,
                                        "discovery": saved, "opportunities": opportunities.view(state.discovery, saved)})
                 except Exception:
@@ -328,7 +335,12 @@ def make_handler(state, loader=None):
                     state.lock.release()
                     state.discovery_lock.release()
                 return
-            if self.path in ("/api/discovery/check", "/api/discovery/select"):
+            discovery_path = urlsplit(self.path).path
+            tools_only = self.path == '/api/discovery/check?scope=tools'
+            if self.path in ("/api/discovery/check", "/api/discovery/select") or tools_only:
+                if tools_only and state.tool_existing_items is None:
+                    self.respond(409, {'message':'Reopen saved discovery first so existing candidates can be excluded. No feeds were fetched.'})
+                    return
                 body = None
                 if self.path.endswith('/select'):
                     try:
@@ -342,15 +354,26 @@ def make_handler(state, loader=None):
                 if not state.discovery_lock.acquire(blocking=False):
                     self.respond(409, {"message": "Discovery or selection is already running. Wait for it to finish."})
                     return
-                if self.path.endswith('/check'):
+                if discovery_path.endswith('/check'):
+                    if tools_only: state.tool_preview = None
                     state.discovery_status = {"running": True, "message": "Starting bounded public-source check…"}
                     def work():
                         try:
+                            if tools_only:
+                                state.tool_preview = discovery.tool_preview(state.tool_existing_items,
+                                    progress=lambda msg: state.discovery_status.update(message=msg))
+                                state.discovery_status = {'running':False, 'message':
+                                    'Tool candidate check complete. Results are not saved.' if state.tool_preview['status']=='success' else
+                                    'Tool candidate check incomplete: some feeds failed. Results are not saved.'}
+                                return
                             result = state.discovery.run(progress=lambda msg: state.discovery_status.update(message=msg))
+                            state.tool_existing_items = list(result['items'].values())
                             run = result['runs'][-1]
                             state.discovery_status = {"running":False, "message":"Check complete." if run['status']=='success' else "Check incomplete: some sources failed. Successful results were saved; failed-source baselines were retained."}
                         except Exception:
-                            state.discovery_status = {"running":False, "message":"Discovery could not be confirmed. Last successful baselines remain. Check H-MEM storage, runtime and locks, then retry.", "failed":True}
+                            state.discovery_status = {"running":False, "message":
+                                'Tool preview unavailable. Check the feed configuration; no results were saved.' if tools_only else
+                                "Discovery could not be confirmed. Last successful baselines remain. Check H-MEM storage, runtime and locks, then retry.", "failed":True}
                         finally: state.discovery_lock.release()
                     threading.Thread(target=work,daemon=True).start()
                     self.respond(202, {"status":dict(state.discovery_status)})

@@ -12,6 +12,16 @@ See [demo readiness and recording sequence](docs/demo-readiness.md).
 
 ## Manual update discovery
 
+**Hackathon tool preview:** **Check for updates** now reads the NVIDIA, OpenAI
+and Hugging Face announcement feeds configured in `data/discovery_feeds.json`.
+It shows at most three **Discovery candidate — not yet validated** records in a
+separate Potential new tools section. This is a transient preview, not an
+opportunity or a semantic assessment; it makes no model calls or memory writes.
+First reopen saved discovery so the already loaded candidates can be excluded.
+The legacy persisted discovery API/scripts and saved opportunity workflow below
+retain their existing behavior. The button no longer invokes the persisted
+fixed-page check. See [preview scope and verification](docs/tool-discovery-preview.md).
+
 ### From a validated candidate to your decision
 
 Reopen saved discovery, expand a candidate and choose **Prepare opportunity
@@ -48,7 +58,8 @@ project-relevant live discovery assessment; the original two accepted low-releva
 assessments and later rejected reassessments are not evidence of live end-to-end
 success. No model allowance is expanded by preparing a briefing.
 
-Open the existing local app and choose **Check for updates**. The existing
+The legacy persisted discovery check (`python scripts/update_discovery.py`)
+preserves the existing investigation while checking approved sources. The existing
 investigation stays visible while progress is shown. Discovery can run before
 Zetaris key entry: it uses the approved local project context, public sources
 and a separate official H-MEM namespace, not live SQL or a model.

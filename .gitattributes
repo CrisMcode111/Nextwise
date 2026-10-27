@@ -1,0 +1,2 @@
+# Keep pinned upstream files byte-identical across Windows checkouts.
+vendor/meterless/** -text

@@ -2,6 +2,7 @@
 const $ = s => document.querySelector(s);
 let pendingHashNavigation=false;
 let discoveryBusy=false, discoveryReading=false, discoveryTimer=null;
+let toolCheckActive=false;
 const selectionDrafts=new Map();
 const opportunityDrafts=new Map();
 let opportunityBusy=false;
@@ -122,7 +123,7 @@ function paintDiscovery(d){
   const scope=$('#discovery-scope'), target=$('#discovery-results');
   const expanded=expandedDisclosures($('#discovery'));
   scope.replaceChildren();target.replaceChildren();
-  const limits=details('Approved source scope and limits',scope);
+  const limits=details('Saved discovery source scope and limits',scope);
   list([...d.scope.pages,d.scope.feed],limits);
   paragraph(`At most ${d.scope.item_cap} recent feed items within ${d.scope.lookback_days} days. Feed and three fixed pages only; linked articles are not fetched. Missing, invalid or future publication dates are excluded.`,limits);
   paragraph(`${d.scope.max_response_bytes} bytes/source; ${d.scope.socket_timeout_seconds}s socket timeout; ${d.scope.source_deadline_seconds}s read deadline (a blocked read can add one socket timeout); at most ${d.scope.max_redirects} redirects. ${d.scope.destinations}`,limits);
@@ -189,22 +190,46 @@ function paintDiscovery(d){
   });
   restoreDisclosures(expanded);
 }
+function paintToolCandidates(preview){
+  const target=$('#tool-candidates');target.replaceChildren();
+  el('h3','','Potential new tools',target);
+  if(!preview){paragraph('No candidate preview is available. Check for updates to try the configured feeds.',target);return;}
+  paragraph(`Checked ${preview.checked_at}. ${preview.notice}`,target,'meta');
+  paragraph(`At most 3 candidates; ${preview.scope.lookback_days}-day window, up to ${preview.scope.items_per_feed} recent items per feed. No model calls.`,target,'meta');
+  if(!preview.candidates.length)paragraph('No new tool candidates met the local evidence rules in the checked feeds.',target,'notice');
+  preview.candidates.forEach(item=>{
+    const row=el('article','card',null,target);
+    paragraph('Discovery candidate — not yet validated',row,'notice');
+    el('h4','',item.title,row);
+    paragraph(`${item.publisher} · Published ${item.publication_date}`,row,'meta');
+    link('Publisher announcement (not independently validated)',item.url,row);
+    paragraph(item.description,row,'copy');
+    el('h4','','Why it may be relevant — local phrase matches',row);list(item.reasons,row);
+    const evidence=details('Supporting source phrases',row);list(item.supporting_phrases,evidence);
+  });
+  const sources=details('Feeds checked and coverage',target);
+  preview.sources.forEach(source=>{
+    link(source.publisher,source.url,sources);
+    paragraph(source.error||`${source.eligible_items} dated recent items examined; publisher claims remain unverified.`,sources,source.error?'notice':'meta');
+  });
+}
 async function readDiscovery(){
   clearTimeout(discoveryTimer);
   if(loading||decisionSaving||opportunityBusy){discoveryTimer=setTimeout(readDiscovery,1000);return;}
   if(discoveryReading)return;
   discoveryReading=true;
-  try{const r=await fetch('/api/discovery');const d=await r.json();if(!r.ok)throw new Error(d.message);discoveryBusy=d.status.running;$('#check-updates').disabled=discoveryBusy;$('#discovery-status').textContent=d.status.message;
+  try{const r=await fetch(toolCheckActive?'/api/discovery?scope=tools':'/api/discovery');const d=await r.json();if(!r.ok)throw new Error(d.message);discoveryBusy=d.status.running;$('#check-updates').disabled=discoveryBusy;$('#discovery-status').textContent=d.status.message;
     // Keep the current inventory and any typed selection reason intact while polling.
-    if(!discoveryBusy)paintDiscovery(d);
+    if(!discoveryBusy){if(toolCheckActive){paintToolCandidates(d.tool_preview);toolCheckActive=false;}else paintDiscovery(d);}
     if(discoveryBusy)discoveryTimer=setTimeout(readDiscovery,1000);
   }catch(e){$('#discovery-status').textContent=e.message||'Local discovery service unavailable; reopen saved discovery to retry.';$('#check-updates').disabled=false;
-    $('#discovery-overview').textContent='Saved updates could not be refreshed';
-    $('#opportunities-status').textContent='We could not refresh saved opportunities. Any briefing below is from the previous load; no new recommendation has been confirmed.';
+    if(toolCheckActive){toolCheckActive=false;discoveryBusy=false;paintToolCandidates(null);}
+    else {$('#discovery-overview').textContent='Saved updates could not be refreshed';
+      $('#opportunities-status').textContent='We could not refresh saved opportunities. Any briefing below is from the previous load; no new recommendation has been confirmed.';}
   }
   finally{discoveryReading=false;}
 }
-$('#check-updates').onclick=async()=>{if(discoveryBusy)return;discoveryBusy=true;$('#check-updates').disabled=true;$('#discovery-status').textContent='Starting check…';try{const r=await fetch('/api/discovery/check',{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(d.message);await readDiscovery();}catch(e){discoveryBusy=false;$('#check-updates').disabled=false;$('#discovery-status').textContent=e.message;}};
+$('#check-updates').onclick=async()=>{if(discoveryBusy)return;discoveryBusy=true;toolCheckActive=true;$('#check-updates').disabled=true;$('#discovery-status').textContent='Starting check…';paintToolCandidates(null);try{const r=await fetch('/api/discovery/check?scope=tools',{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(d.message);await readDiscovery();}catch(e){discoveryBusy=false;toolCheckActive=false;$('#check-updates').disabled=false;$('#discovery-status').textContent=e.message;}};
 $('#reload-discovery').onclick=readDiscovery;
 // Initial discovery waits for investigation/decision reads, so H-MEM context
 // verification cannot starve the authenticated investigation's startup read.
