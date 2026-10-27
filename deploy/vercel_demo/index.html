@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nextwise — Your next business step</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script><script src="/project.js" defer></script><script src="/demo.js" defer></script></head>
+<body class="public-demo">
+<header class="topbar"><a class="brand" href="/">nextwise <span class="beta">PUBLIC DEMO</span></a><span>Small steps. Clear reasons.</span></header>
+<main id="main">
+  <div class="intro"><p class="eyebrow">YOUR NEXT STEP · PUBLIC DEMO</p><h1>What are you working on?</h1><p class="copy">Tell me a little about your project. I’ll check what our small set of sources can offer. These are ideas to explore, not tested recommendations.</p></div>
+  <div class="assistant-layout">
+  <section class="card project-panel" aria-labelledby="project-heading">
+    <h2 id="project-heading">Your project</h2>
+    <label for="project-text">Describe your goal and what you need help with</label>
+    <textarea id="project-text" rows="8" maxlength="12000"></textarea>
+    <label for="project-file">Or choose a PDF or TXT file</label>
+    <input id="project-file" type="file" accept=".pdf,.txt,application/pdf,text/plain">
+    <p class="meta">Read only in this browser. Nothing from your project or file is uploaded or saved. Up to 2 MB, 20 PDF pages and 12,000 characters. Text-based PDFs only; please review extraction.</p>
+    <button id="review-project" class="button quiet" type="button">Review project</button>
+    <p id="project-status" role="status"></p>
+    <div id="project-review"></div>
+    <button id="find-ideas" class="button" type="button" disabled>Find opportunities for my project</button>
+  </section>
+  <section class="opportunity-panel" aria-label="Ideas for your project">
+  <div id="assistant-identity" class="assistant-identity" data-processing="false" aria-hidden="true"><svg class="discovery-spiral" viewBox="40 5 78 90" focusable="false"><defs><linearGradient id="spiral-colors" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#73986d"/><stop offset=".6" stop-color="#93ad7c"/><stop offset="1" stop-color="#c8a65d"/></linearGradient></defs><path class="spiral-curve" d="M76 45 a1 1 0 0 1 -1 1 a1 1 0 0 1 -1 -1 a2 2 0 0 1 2 -2 a3 3 0 0 1 3 3 a5 5 0 0 1 -5 5 a8 8 0 0 1 -8 -8 a13 13 0 0 1 13 -13 a21 21 0 0 1 21 21 a34 34 0 0 1 -34 34"/><g class="spiral-traveler"><path class="spiral-star" d="M0 -1.1 .28 -.28 1.1 0 .28 .28 0 1.1 -.28 .28 -1.1 0 -.28 -.28Z"/></g><g class="spiral-traveler"><path class="spiral-star" d="M0 -.8 .2 -.2 .8 0 .2 .2 0 .8 -.2 .2 -.8 0 -.2 -.2Z"/></g><g class="spiral-traveler"><path class="spiral-star" d="M0 -1 .25 -.25 1 0 .25 .25 0 1 -.25 .25 -1 0 -.25 -.25Z"/></g><g class="spiral-traveler"><path class="spiral-star" d="M0 -.7 .18 -.18 .7 0 .18 .18 0 .7 -.18 .18 -.7 0 -.18 -.18Z"/></g></svg></div>
+  <div id="search-progress" role="status" hidden><span id="progress-message"></span></div>
+  <p id="state" role="status" aria-live="polite">Tell me about your business to get started.</p>
+  <p id="guided-notice" class="notice" role="status" hidden></p>
+  <section id="selection-status" class="selection-confirmation" role="status" aria-label="Your selected next step" aria-live="polite" hidden></section>
+  <section id="tool-candidates" aria-label="Ideas for your business"></section>
+  <details class="card" id="demo-details"><summary>About these suggestions & your choices</summary>
+    <p>Your reviewed project guides the search. Up to two source-backed opportunities are shown; fewer if the sources cannot support two. These are unvalidated ideas, not proven recommendations. Private services and paid search are disconnected.</p>
+    <div id="demo-context"></div><div id="demo-evidence"></div>
+    <p id="discovery-status" role="status"></p>
+    <h3>Your choices on this browser</h3><div id="demo-choices"></div>
+    <button id="clear-choices" class="button quiet" type="button">Clear this browser’s demo choices</button>
+    <p id="choice-status" role="status" aria-live="polite"></p>
+  </details>
+  </section></div>
+</main>
+<footer>Nextwise <span>A little context. A clear next step. Your choice.</span></footer>
+</body></html>

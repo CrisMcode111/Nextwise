@@ -1,0 +1,52 @@
+{
+  "meal_planning": {
+    "label": "Help customers find meals that fit their preferences",
+    "project_pattern": "\\b(?:meal plans?|meal planning|plan meals|menus|recipes)\\b.{0,100}\\b(?:customers?|clients?|preferences|dietary|families|parents)\\b|\\b(?:customers?|clients?|preferences|dietary|families|parents)\\b.{0,100}\\b(?:meal plans?|meal planning|plan meals|menus|recipes)\\b",
+    "capability_pattern": "\\b(?:meal plans?|meal planning|recipes|menus)\\b",
+    "query": "AI meal planning in:description",
+    "what": "An AI product described as helping with recipes or meal plans.",
+    "why": "This may help you prepare meal ideas for the customer preferences you described.",
+    "action": "Try one fictional customer request on its product website. Check every preference yourself before using a plan with a real customer.",
+    "caution": "Food preferences, allergies and dietary suitability still need human review; no dietary safety has been established."
+  },
+  "customer_support": {
+    "label": "Spend less time answering routine customer questions",
+    "project_pattern": "\\b(?:customers?|clients?|guests?|buyers)\\b.{0,100}\\b(?:questions?|enquiries|inquiries|support|replies|messages)\\b|\\b(?:answer|reply|respond|handling|answering)\\b.{0,100}\\b(?:questions?|enquiries|inquiries|customers?|clients?)\\b",
+    "capability_pattern": "\\b(?:customer (?:support|service)|helpdesk|support (?:assistant|agent)|answer.{0,40}(?:customer|questions))\\b",
+    "query": "AI customer support in:description",
+    "what": "An AI product described as helping answer customer questions.",
+    "why": "This may reduce the time you spend drafting answers to the routine questions you mentioned.",
+    "action": "Open its product website and try one common customer question with invented details. Compare the answer with what you would send.",
+    "caution": "Accuracy, customer-data handling and the need for human approval remain unverified."
+  },
+  "appointments": {
+    "label": "Make customer bookings easier to manage",
+    "project_pattern": "\\b(?:appointments?|bookings?|book (?:clients|customers|visits)|missed appointments|no[- ]shows)\\b|\\bschedul\\w*\\b.{0,60}\\b(?:clients?|customers?|visits|meetings)\\b",
+    "capability_pattern": "\\b(?:appointments?|bookings?|scheduling|calendar assistant)\\b",
+    "query": "AI scheduling app in:description",
+    "what": "An AI product described as helping with bookings or scheduling.",
+    "why": "This may help you manage the booking work you described; it has not been shown to prevent missed appointments.",
+    "action": "Try booking one fictional appointment on its website. Check reminders, cancellation rules and pricing before connecting your calendar.",
+    "caution": "Calendar compatibility, reminders, customer consent and any effect on missed appointments remain unverified."
+  },
+  "marketing_content": {
+    "label": "Create a first draft for reaching more customers",
+    "project_pattern": "\\b(?:marketing|social media|promot\\w*|advertis\\w*|write posts|create content|attract (?:more )?(?:customers|clients)|reach (?:more )?(?:customers|clients))\\b",
+    "capability_pattern": "\\b(?:marketing|social media|content creation|copywriting|write.{0,30}(?:posts|content))\\b",
+    "query": "AI marketing app in:description",
+    "what": "An AI product described as helping draft marketing content.",
+    "why": "This may give you a first draft for the promotion work you mentioned, rather than starting from a blank page.",
+    "action": "Use its product website to draft one short post from a non-sensitive business description. Review its facts and tone before publishing anything.",
+    "caution": "Content accuracy, usage rights, brand fit and any increase in customers remain unverified."
+  },
+  "business_admin": {
+    "label": "Spend less time reading and organizing paperwork",
+    "project_pattern": "\\b(?:invoices?|receipts?|paperwork|bookkeeping)\\b|\\b(?:read|process|extract|summarize|organize|handling)\\b.{0,100}\\b(?:documents?|emails?|messages|orders?)\\b",
+    "capability_pattern": "\\b(?:invoices?|receipts?|paperwork|bookkeeping|document (?:processing|assistant)|email assistant)\\b",
+    "query": "AI document assistant in:description",
+    "what": "An AI product described as helping handle documents or routine paperwork.",
+    "why": "This may reduce repeated reading or copying in the paperwork task you described.",
+    "action": "Try a made-up document on its product website. Check the result against the original before considering real business records.",
+    "caution": "Document accuracy, privacy, retention, legal obligations and integration effort remain unverified."
+  }
+}

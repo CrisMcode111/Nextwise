@@ -1,0 +1,38 @@
+{
+  "label": "Guided demo — pre-verified opportunities",
+  "scope": "Prepared for AI Raw Gourmet's stated recipe and meal-plan generation/adaptation goal. Official product identity and advertised capabilities were checked on 27 October 2026. Business benefits are hypotheses, not tested outcomes. No live AI discovery or product trial is running.",
+  "candidates": [
+    {
+      "demo_source_id": "guided-dishgen",
+      "title": "DishGen",
+      "url": "https://www.dishgen.com/",
+      "publisher": "DishGen",
+      "retrieved_at": "2026-10-27",
+      "description": "DishGen can generate all-new recipes and meal plans on demand.",
+      "business_summary": "A ready-to-use AI recipe and meal-planning product that accepts ingredient and dietary requests, according to its official page.",
+      "business_benefit": "Could help you compare a ready-made recipe-drafting approach with AI Raw Gourmet's planned way of adapting recipes to customer constraints before building more features.",
+      "next_step": "Compare one public DishGen recipe example with a fictional customer's preferences and note which details need human correction.",
+      "limitations": [
+        "Official-page verification only: no recipe generation, accuracy test or integration trial was performed.",
+        "Suitability for raw-food constraints, allergies and nutrition is unverified. Human review is necessary.",
+        "Check usage limits, data terms and commercial reuse rights before using outputs in your business; the site advertises commercial rights under its Pro offering. No subscription or generation is started here."
+      ]
+    },
+    {
+      "demo_source_id": "guided-samsung-food-plus",
+      "title": "Samsung Food+",
+      "url": "https://samsungfood.com/food-plus/",
+      "publisher": "Samsung Food",
+      "retrieved_at": "2026-10-27",
+      "description": "Personalize recipes with AI",
+      "business_summary": "A consumer meal-planning subscription with AI recipe personalization and tailored weekly plans, advertised on its official page.",
+      "business_benefit": "Could give you a concrete benchmark for preference-based weekly planning, helping you decide which personalization steps matter for AI Raw Gourmet before investing in them.",
+      "next_step": "Review the official weekly-planning description and write a checklist of preferences your own meal-planning journey must preserve.",
+      "limitations": [
+        "Official-page verification only: no meal plan, account, trial or subscription was tested.",
+        "The advertised personalization and tailored plans are mobile-app features in a subscription product. Country availability and current terms need checking.",
+        "This is a consumer product to evaluate or benchmark, not a verified integration for AI Raw Gourmet. Raw-food suitability, dietary safety and commercial reuse remain unverified."
+      ]
+    }
+  ]
+}

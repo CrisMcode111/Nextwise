@@ -4,3 +4,4 @@ __pycache__/
 data/collected/
 node_modules/
 data/memory/
+.nextwise-vercel-demo/

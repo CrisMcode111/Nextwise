@@ -1,0 +1,3 @@
+# Fail closed if Vercel CLI is accidentally run from the private repository root.
+# Deploy only the generated .nextwise-vercel-demo directory; see docs/vercel-demo.md.
+**

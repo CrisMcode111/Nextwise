@@ -10,6 +10,12 @@ results through live Zetaris queries and official H-MEM retrieval. Refresh,
 decision save and restart do **not** call a model or rerun an experiment.
 See [demo readiness and recording sequence](docs/demo-readiness.md).
 
+For the isolated public demo prepared for Vercel, see
+[public demo build and deployment steps](docs/vercel-demo.md). It reuses this UI
+and source-evidence logic with new public example context and browser-only demo
+choices. It cannot access private services or spend Tavily credits. No deployment
+has been performed; continue using the existing local startup below as before.
+
 ## Manual update discovery
 
 **Project-driven tool preview:** **Check for updates** uses Tavily Search when

@@ -1,0 +1,12 @@
+[35mREADME.md[m[36m:[m[32m22[m[36m:[mthe server environment contains `[1;31mTAVILY_API_KEY[m`, searching beyond the catalog
+[35mdocs/tavily-discovery.md[m[36m:[m[32m11[m[36m:[mProvide `[1;31mTAVILY_API_KEY[m` in the environment of the Nextwise server process before
+[35mdocs/tool-discovery-preview.md[m[36m:[m[32m3[m[36m:[m**Check for updates** now uses bounded Tavily web search when `[1;31mTAVILY_API_KEY[m`
+[35mscripts/tavily_discovery.py[m[36m:[m[32m207[m[36m:[m    key = os.environ.get('[1;31mTAVILY_API_KEY[m','').strip()
+[35mtests/test_analyze_sources.py[m[36m:[m[32m272[m[36m:[m                       "[1;31msk-offlineExampleKey[m", "nvapi-offlineExampleKey", "url-password"]
+[35mtests/test_analyze_sources.py[m[36m:[m[32m275[m[36m:[m            "type": "[1;31msk-offlineExampleKey[m", "code": "nvapi-offlineExampleKey",
+[35mtests/test_project_tool_discovery.py[m[36m:[m[32m22[m[36m:[m        guard=patch.dict('os.environ',{'[1;31mTAVILY_API_KEY[m':''})
+[35mtests/test_public_demo.py[m[36m:[m[32m81[m[36m:[m                          'state.discovery','[1;31mTAVILY_API_KEY[m','api.tavily.com','localhost:8888','127.0.0.1:8088'):
+[35mtests/test_public_demo.py[m[36m:[m[32m139[m[36m:[m        with patch.dict('os.environ',{'[1;31mTAVILY_API_KEY[m':'DO_NOT_EXPOSE_TAVILY','ZETARIS_API_KEY':'DO_NOT_EXPOSE_SQL'}), \
+[35mtests/test_public_demo.py[m[36m:[m[32m307[m[36m:[m        with patch.object(module,'build_opener',return_value=opener) as build,patch.dict('os.environ',{'[1;31mTAVILY_API_KEY[m':'SECRET_DO_NOT_USE','GITHUB_TOKEN':'SECRET_DO_NOT_USE'}):
+[35mtests/test_tavily_discovery.py[m[36m:[m[32m32[m[36m:[m                      patch.dict('os.environ',{'[1;31mTAVILY_API_KEY[m':KEY})):
+[35mtests/test_tavily_discovery.py[m[36m:[m[32m118[m[36m:[m        with patch.dict('os.environ',{'[1;31mTAVILY_API_KEY[m':''}):
