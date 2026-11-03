@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from urllib.request import Request, HTTPRedirectHandler, ProxyHandler, build_opener
 
 import update_discovery as d
+import runtime_config
 
 ENDPOINT = 'https://api.tavily.com/search'
 MAX_SEARCHES = 2
@@ -204,7 +205,7 @@ def discover(existing, *, fetcher=None, now=None, project=None, progress=lambda 
     project = d.context() if project is None else project
     queries = plans(project)
     blocked = blocked_records(existing,decision_history)
-    key = os.environ.get('TAVILY_API_KEY','').strip()
+    key = runtime_config.secret('TAVILY_API_KEY')
     accounting = {'provider':'Tavily','requests_attempted':0,'expected_credits_per_request':1,
                   'maximum_credits':min(MAX_SEARCHES,len(queries)) if key else 0,'retry_count':0,
                   'status':'not_configured' if not key else 'ready'}

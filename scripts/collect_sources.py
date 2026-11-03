@@ -14,8 +14,9 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+import runtime_config
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = runtime_config.settings().artifact_root
 INVESTIGATION_PATH = ROOT / "data" / "investigation.json"
 SOURCES_INDEX_PATH = ROOT / "data" / "sources.json"
 SNAPSHOT_DIR = ROOT / "data" / "collected" / "snapshots"

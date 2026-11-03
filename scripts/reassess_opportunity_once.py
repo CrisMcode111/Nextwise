@@ -6,6 +6,7 @@ No source retrieval, human decision writes or original-investigation writes.
 import argparse
 import copy
 import getpass
+import runtime_config
 import json
 from pathlib import Path
 import re
@@ -248,7 +249,7 @@ def main():
     if not sys.stdin.isatty():
         raise SystemExit('Use interactive PowerShell for hidden runtime-token entry; no echoed fallback.')
     try:
-        with socket.create_connection(('127.0.0.1', 8088), timeout=3): pass
+        runtime_config.settings().meterless_probe()
     except OSError:
         raise SystemExit('Nightshift is not listening. No model request sent.') from None
     with warnings.catch_warnings():

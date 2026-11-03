@@ -11,10 +11,11 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import runtime_config
 
-ROOT = Path(__file__).resolve().parents[1]
-BRIDGE = ROOT / "scripts" / "hmem_bridge.ts"
-DEFAULT_MEMORY_ROOT = ROOT / "data" / "memory" / "hmem"
+ROOT = runtime_config.settings().artifact_root
+BRIDGE = runtime_config.CODE_ROOT / "scripts" / "hmem_bridge.ts"
+DEFAULT_MEMORY_ROOT = runtime_config.settings().memory_root
 ARTIFACT_PATHS = {
     "project_profile": "data/project_profile.json",
     "investigation": "data/investigation.json",
@@ -38,12 +39,12 @@ def import_artifacts(paths=None) -> list[dict[str, str]]:
 
 
 def call_bridge(request: dict) -> dict:
-    node = shutil.which("node")
+    node = shutil.which(runtime_config.settings().node)
     if node is None:
         raise RuntimeError("Node.js with experimental TypeScript transformation is required; nothing was installed.")
     completed = subprocess.run(
         [node, "--experimental-transform-types", str(BRIDGE)],
-        input=json.dumps(request), capture_output=True, encoding="utf-8", cwd=ROOT,
+        input=json.dumps(request), capture_output=True, encoding="utf-8", cwd=runtime_config.CODE_ROOT,
         timeout=60, check=False,
     )
     try:

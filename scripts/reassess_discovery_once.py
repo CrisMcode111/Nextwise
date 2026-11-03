@@ -2,6 +2,7 @@
 import argparse
 import csv
 import getpass
+import runtime_config
 import io
 import json
 import os
@@ -257,7 +258,7 @@ def main():
             'prompt_characters':sum(len(m['content']) for m in inputs['messages']),'contract_version':semantic.CONTRACT_VERSION}));return
     if not sys.stdin.isatty():raise SystemExit('Use an interactive PowerShell console for hidden token entry; no echoed fallback.')
     try:
-        with socket.create_connection(('127.0.0.1',8088),timeout=3):pass
+        runtime_config.settings().meterless_probe()
     except OSError:raise SystemExit('Meterless is not listening; no request sent.') from None
     with warnings.catch_warnings():
         warnings.simplefilter('error',getpass.GetPassWarning)

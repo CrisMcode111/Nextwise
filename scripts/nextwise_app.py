@@ -12,16 +12,17 @@ import socket
 import threading
 from urllib.parse import urlsplit, parse_qs
 import warnings
+import runtime_config
 
 import export_zetaris as exporter
 import integrate_zetaris as integration
 import investigation_memory as memory
 import update_discovery as discovery
 
-ROOT = Path(__file__).resolve().parents[1]
-WEB = ROOT / "web"
+ROOT = runtime_config.settings().artifact_root
+WEB = runtime_config.CODE_ROOT / "web"
 INVESTIGATION = "nemotron-lightning-requirements-extraction"
-PORT = 8765
+PORT = runtime_config.settings().port
 KINDS = dict(zip(exporter.INPUTS, ("project_profile", "investigation", "sources", "evidence_draft",
                                   "evidence_review", "use_case", "evaluation_results", "evaluation_recommendation")))
 
@@ -52,7 +53,7 @@ def retrieve_memory(root=memory.DEFAULT_MEMORY_ROOT):
         result = memory.call_bridge({"operation": "resume", "investigation_id": INVESTIGATION,
                                     "memory_root": str(root)})
     except Exception:
-        raise AppError("memory", "Investigation memory is unavailable. Check the local Node runtime and H-MEM store.") from None
+        raise AppError("memory", "Investigation memory is unavailable. Check the configured Node runtime and H-MEM store.") from None
     if not result.get("ok"):
         raise AppError("memory", "The persisted investigation could not be retrieved. No local-file substitute was used.")
     return result
@@ -167,8 +168,10 @@ def load_investigation(client, retrieve=retrieve_memory):
 
 
 class State:
-    def __init__(self, memory_root=None):
-        self.key = None
+    def __init__(self, memory_root=None, api_key=None):
+        self.config = runtime_config.settings()
+        self.key = api_key
+        self.unattended = api_key is not None
         self.lock = threading.Lock()
         self.need_key = threading.Event()
         self.need_key.set()
@@ -244,19 +247,24 @@ def make_handler(state, loader=None):
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
             if cookie:
-                self.send_header("Set-Cookie", f"nextwise={state.cookie}; HttpOnly; SameSite=Strict; Path=/")
+                secure = '; Secure' if state.config.public_origin.startswith('https://') else ''
+                self.send_header("Set-Cookie", f"nextwise={state.cookie}; HttpOnly; SameSite=Strict; Path=/{secure}")
             self.end_headers()
             self.wfile.write(data)
 
         def allowed(self, session=False, post=False):
             hosts = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
+            origins = {"http://" + host for host in hosts}
+            if state.config.public_origin:
+                hosts.add(urlsplit(state.config.public_origin).netloc)
+                origins.add(state.config.public_origin)
             if self.headers.get("Host") not in hosts or self.headers.get("Sec-Fetch-Site") == "cross-site":
                 self.respond(403, {"code": "origin", "message": "Open Nextwise directly on its local address."})
                 return False
             if session and f"nextwise={state.cookie}" not in self.headers.get("Cookie", "").split("; "):
                 self.respond(401, {"code": "authentication", "message": "Open the local Nextwise page to begin a session."})
                 return False
-            if post and self.headers.get("Origin") not in {"http://"+host for host in hosts}:
+            if post and self.headers.get("Origin") not in origins:
                 self.respond(403, {"code": "origin", "message": "This request must come from the local Nextwise page."})
                 return False
             return True
@@ -265,6 +273,14 @@ def make_handler(state, loader=None):
             if not self.allowed():
                 return
             route = urlsplit(self.path)
+            if route.path == '/health/live' and not route.query:
+                self.respond(200, {'status': 'alive'})
+                return
+            if route.path == '/health/ready' and not route.query:
+                from runtime_health import check_dependencies
+                result = check_dependencies(state.config, network=True, key=state.key)
+                self.respond(200 if result['ready'] else 503, result)
+                return
             if route.path == '/api/discovery' and route.query == 'scope=tools':
                 if not self.allowed(session=True): return
                 self.respond(200, {'status':dict(state.discovery_status), 'tool_preview':state.tool_preview})
@@ -429,7 +445,9 @@ def make_handler(state, loader=None):
                 self.respond(404, {"code": "missing", "message": "Action not found."})
                 return
             if state.key is None:
-                self.respond(401, {"code": "authentication", "message": "Enter the masked Zetaris key in the local PowerShell console, then try again."})
+                message = ('Configure the server Zetaris secret and restart the backend.' if state.unattended else
+                           'Enter the masked Zetaris key in the local PowerShell console, then try again.')
+                self.respond(401, {"code": "authentication", "message": message})
                 return
             if not state.lock.acquire(blocking=False):
                 self.respond(409, {"code": "loading", "message": "The investigation is already loading. Please wait."})
@@ -472,7 +490,9 @@ def make_handler(state, loader=None):
                 if "HTTP 401" in str(exc) or "HTTP 403" in str(exc):
                     state.key = None
                     state.need_key.set()
-                    self.respond(401, {"code": "authentication", "message": "Zetaris rejected the key or its permissions. Enter a valid key in the private console."})
+                    recovery = ('Correct the configured server secret and restart the backend.' if state.unattended else
+                                'Enter a valid key in the private console.')
+                    self.respond(401, {"code": "authentication", "message": "Zetaris rejected the key or its permissions. " + recovery})
                 else:
                     # Expose only fixed diagnostics, never exception contents or response bodies.
                     http = re.fullmatch(r'HTTP (\d{3}); response body suppressed',str(exc))
@@ -488,14 +508,51 @@ def make_handler(state, loader=None):
     return Handler
 
 
-def main():
-    state = State()
+def main(argv=None):
+    import argparse
+    import json
+    import signal
+    import sys
+    parser = argparse.ArgumentParser(description='Nextwise backend; unattended mode never prompts or calls models.')
+    parser.add_argument('--unattended', action='store_true')
+    args = parser.parse_args(argv)
     try:
-        server = LocalHTTPServer(("127.0.0.1", PORT), make_handler(state))
+        config = runtime_config.settings()
+        key = runtime_config.secret('NEXTWISE_ZETARIS_API_KEY')
+        unattended = args.unattended or runtime_config.boolean('NEXTWISE_UNATTENDED') or bool(key)
+        if unattended:
+            from runtime_health import check_dependencies
+            report = check_dependencies(config, key=key)
+            if not report['ready']:
+                print(json.dumps(report), file=sys.stderr, flush=True)
+                return 1
+        elif not sys.stdin.isatty():
+            raise runtime_config.ConfigError('No interactive console. Set NEXTWISE_ZETARIS_API_KEY or its _FILE secret and use --unattended.')
+    except runtime_config.ConfigError as error:
+        print(str(error), file=sys.stderr, flush=True)
+        return 1
+    state = State(api_key=key)
+    key = None
+    try:
+        server = LocalHTTPServer((config.host, config.port), make_handler(state))
     except OSError:
-        print(f"Nextwise could not bind port {PORT}. If an instance is already running, use it or stop it in its own console before restarting. No credential was requested.",flush=True)
-        return
+        print('Nextwise could not bind NEXTWISE_HOST/NEXTWISE_PORT. Check the address and existing listener.', file=sys.stderr, flush=True)
+        return 1
     server.daemon_threads = True
+    if unattended:
+        def stop(*_):
+            raise KeyboardInterrupt()
+        previous = signal.signal(signal.SIGTERM, stop)
+        print('Nextwise unattended listener started. /health/ready checks dependencies; no inference is started.', flush=True)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            state.key = None
+            server.server_close()
+            signal.signal(signal.SIGTERM, previous)
+        return 0
     threading.Thread(target=server.serve_forever, daemon=True).start()
     print(f"Nextwise is running at http://127.0.0.1:{PORT}", flush=True)
     print("The API key stays in this process only. Ctrl+C stops the app and clears it.", flush=True)
@@ -519,4 +576,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

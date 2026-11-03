@@ -52,6 +52,10 @@ See the [guided demo walkthrough and limitations](docs/guided-hackathon-demo.md)
 
 ## Technical documentation
 
+For unattended backend packaging and its remaining clean-environment verification
+gates, see [the runtime guide](docs/runtime.md). This preserves the existing pilot
+and H-MEM; it does not enable AI calls or change the public Vercel demo.
+
 Start with [local demo readiness](docs/demo-readiness.md) or the
 [public demo architecture and build guide](docs/vercel-demo.md). Implementation
 details: [Tavily discovery](docs/tavily-discovery.md),

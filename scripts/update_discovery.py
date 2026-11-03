@@ -17,8 +17,9 @@ import xml.etree.ElementTree as ET
 
 import collect_sources as collector
 import investigation_memory as memory
+import runtime_config
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = runtime_config.settings().artifact_root
 FEED = 'https://blogs.nvidia.com/feed/'
 MAX_BYTES = 2_000_000
 TIMEOUT = 8

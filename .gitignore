@@ -5,3 +5,6 @@ data/collected/
 node_modules/
 data/memory/
 .nextwise-vercel-demo/
+.env.runtime
+.env.runtime.*
+deploy/runtime/secrets/

@@ -19,7 +19,8 @@ from datetime import datetime, timezone
 
 import analyze_sources as transport_helpers
 
-ROOT = Path(__file__).resolve().parents[1]
+import runtime_config
+ROOT = runtime_config.settings().artifact_root
 USE_CASE = ROOT / "data/use_case.json"
 SCHEMA_PATH = ROOT / "data/extraction_schema.json"
 FIELDS = ["meal", "people_count", "excluded_food_category_as_stated", "ready_within_minutes",

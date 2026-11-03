@@ -10,11 +10,12 @@ import urllib.error
 import urllib.request
 import uuid
 import warnings
+import runtime_config
 
-ROOT = Path(__file__).resolve().parents[1]
-SNAPSHOT = ROOT / "data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643"
+ROOT = runtime_config.settings().artifact_root
+SNAPSHOT = runtime_config.settings().snapshot
 REPORT = ROOT / "reports/zetaris_project_profiles_validation.json"
-ENDPOINT = "http://localhost:8888/api/v1.0/sql-editor/sqls/run"
+ENDPOINT = runtime_config.settings().zetaris_url + "/api/v1.0/sql-editor/sqls/run"
 SQL = "SELECT * FROM nextwise.project_profiles"
 
 
@@ -126,7 +127,7 @@ def query_once():
     payload = {"queryId": str(uuid.uuid4()), "sql": SQL, "source": "SqlEditor", "limit": 100}
     request = urllib.request.Request(ENDPOINT, data=json.dumps(payload).encode("utf-8"), method="POST",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
-                 "X-Org-ID": "1", "X-Request-ID": str(uuid.uuid4())})
+                 "X-Org-ID": runtime_config.settings().zetaris_org, "X-Request-ID": str(uuid.uuid4())})
     del api_key
     try:
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())

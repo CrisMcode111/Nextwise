@@ -1,0 +1,42 @@
+name: nextwise-runtime
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/runtime/Dockerfile
+    image: nextwise-backend:local
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    # Preserve loopback-only access until real application authentication exists.
+    ports:
+      - "127.0.0.1:${NEXTWISE_PUBLISHED_PORT:-8765}:8765"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NEXTWISE_ZETARIS_URL: ${NEXTWISE_ZETARIS_URL:-http://host.docker.internal:8888}
+      NEXTWISE_ZETARIS_ORG_ID: ${NEXTWISE_ZETARIS_ORG_ID:-1}
+      NEXTWISE_METERLESS_URL: ${NEXTWISE_METERLESS_URL:-http://host.docker.internal:8088}
+      NEXTWISE_MODEL: ${NEXTWISE_MODEL:-meterless/auto}
+      NEXTWISE_REQUIRE_METERLESS: ${NEXTWISE_REQUIRE_METERLESS:-false}
+      NEXTWISE_DEPENDENCY_TIMEOUT: ${NEXTWISE_DEPENDENCY_TIMEOUT:-3}
+      NEXTWISE_ZETARIS_API_KEY_FILE: /run/secrets/zetaris_api_key
+    secrets:
+      - zetaris_api_key
+    volumes:
+      - type: bind
+        source: ${NEXTWISE_ARTIFACTS_DIR:?Set NEXTWISE_ARTIFACTS_DIR to an existing directory containing data/}
+        target: /artifacts
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NEXTWISE_HMEM_DIR:?Set NEXTWISE_HMEM_DIR to the complete existing H-MEM directory}
+        target: /memory
+        bind:
+          create_host_path: false
+secrets:
+  zetaris_api_key:
+    file: ${NEXTWISE_ZETARIS_SECRET_FILE:?Set NEXTWISE_ZETARIS_SECRET_FILE to a private existing key file}

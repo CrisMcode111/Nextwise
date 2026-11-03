@@ -1,0 +1,15 @@
+# Only application code and pinned reference files enter the image.
+**
+!deploy/
+!deploy/runtime/
+!deploy/runtime/Dockerfile
+!scripts/
+!scripts/**
+!web/
+!web/**
+!vendor/
+!vendor/meterless/
+!vendor/meterless/**
+**/node_modules/**
+**/__pycache__/**
+**/.env*

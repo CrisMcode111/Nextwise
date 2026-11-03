@@ -24,6 +24,9 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import html_extract  # noqa: E402
+import runtime_config
+
+ROOT = runtime_config.settings().artifact_root
 
 INVESTIGATION_PATH = ROOT / "data" / "investigation.json"
 SOURCES_INDEX_PATH = ROOT / "data" / "sources.json"
@@ -31,8 +34,8 @@ EVIDENCE_DRAFT_PATH = ROOT / "data" / "evidence_draft.json"
 EXCERPT_SELECTION_PATH = ROOT / "data" / "excerpt_selection.json"
 PREVIEW_PATH = ROOT / "data" / "collected" / "analysis_preview.json"
 
-ENDPOINT = "http://127.0.0.1:8088/v1/chat/completions"
-MODEL = "meterless/auto"
+ENDPOINT = runtime_config.settings().completions_url
+MODEL = runtime_config.settings().model
 TIMEOUT_SECONDS = 180
 MAX_TOKENS = 4096
 MAX_CLAIMS = 6

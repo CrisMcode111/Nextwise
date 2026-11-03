@@ -5,6 +5,7 @@ import json
 import sys
 import socket
 import warnings
+import runtime_config
 import semantic_discovery as semantic
 import update_discovery as discovery
 
@@ -50,8 +51,8 @@ def main():
         return
     if not sys.stdin.isatty():raise SystemExit('Use an interactive PowerShell console for private runtime-token entry; no echoed fallback.')
     try:
-        with socket.create_connection(('127.0.0.1',8088),timeout=3):pass
-    except OSError:raise SystemExit('Existing Meterless runtime is not listening on port 8088. No model request was sent.') from None
+        runtime_config.settings().meterless_probe()
+    except OSError:raise SystemExit('Configured Meterless gateway is unreachable. No model request was sent.') from None
     with warnings.catch_warnings():
         warnings.simplefilter('error',getpass.GetPassWarning)
         token=getpass.getpass('Meterless Runtime token (hidden; at most 3 requests, no retries): ').strip()

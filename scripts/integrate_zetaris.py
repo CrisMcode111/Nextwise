@@ -16,13 +16,14 @@ import urllib.error
 import urllib.request
 import uuid
 import warnings
+import runtime_config
 
 import export_zetaris as exporter
 import validate_zetaris_profile as profile
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = runtime_config.settings().artifact_root
 SNAPSHOT = profile.SNAPSHOT
-QUERY = ROOT / "scripts/sql/nextwise_investigation.sql"
+QUERY = runtime_config.CODE_ROOT / "scripts/sql/nextwise_investigation.sql"
 PARAMS = {"header": "true", "inferSchema": "false", "multiLine": "true", "escape": '"'}
 TABLES = tuple(exporter.KEYS)
 ALLOWED_CREATE = TABLES[1:]
@@ -39,7 +40,7 @@ def sha(path):
 
 def read_snapshot():
     manifest = json.loads((SNAPSHOT / "manifest.json").read_text(encoding="utf-8"))
-    snapshot, outputs = exporter.build()  # Pure validation; writes nothing.
+    snapshot, outputs = exporter.build(root=ROOT)  # Pure validation; writes nothing.
     require(snapshot == manifest["snapshot_id"], "Snapshot identity changed")
     for name, raw in outputs.items():
         require((SNAPSHOT / name).read_bytes() == raw, f"Snapshot bytes differ: {name}")
@@ -223,18 +224,20 @@ def compare_join(expected, names, rows):
 
 
 class Client:
-    def __init__(self, key):
+    def __init__(self, key, *, timeout=60):
         self._key = key
+        self.config = runtime_config.settings()
+        self.timeout = timeout
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), profile.NoRedirect())
 
     def request(self, path, payload=None, missing_ok=False):
-        request = urllib.request.Request("http://localhost:8888"+path,
+        request = urllib.request.Request(self.config.zetaris_url+path,
             data=json.dumps(payload).encode("utf-8") if payload is not None else None,
             method="POST" if payload is not None else "GET",
             headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json",
-                     "X-Org-ID": "1", "X-Request-ID": str(uuid.uuid4())})
+                     "X-Org-ID": self.config.zetaris_org, "X-Request-ID": str(uuid.uuid4())})
         try:
-            with self.opener.open(request, timeout=60) as response:
+            with self.opener.open(request, timeout=self.timeout) as response:
                 return json.loads(response.read())
         except urllib.error.HTTPError as exc:
             code = exc.code
