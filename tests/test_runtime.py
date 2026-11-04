@@ -47,6 +47,7 @@ class RuntimeTests(unittest.TestCase):
         c = config.settings()
         self.assertEqual(c.artifact_root, ROOT)
         self.assertEqual(c.memory_root, ROOT / 'data/memory/hmem')
+        self.assertEqual(c.zetaris_url, 'http://127.0.0.1:8888')
         self.assertEqual(c.completions_url, 'http://127.0.0.1:8088/v1/chat/completions')
         self.assertEqual(c.port, 8765)
         self.assertFalse(c.require_meterless)

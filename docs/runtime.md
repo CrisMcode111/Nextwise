@@ -49,7 +49,7 @@ credentials, queries or fragments. HTTPS is appropriate for remote services.
 | `NEXTWISE_ZETARIS_SNAPSHOT` | Existing `20261024T151413Z-fdf0c15b-csv-5fa0db458643` under the artifact tree. Overrides location, not snapshot identity. |
 | `NEXTWISE_HOST`, `NEXTWISE_PORT` | `127.0.0.1`, `8765`; container listens on `0.0.0.0` internally. |
 | `NEXTWISE_PUBLIC_ORIGIN` | Empty; optional exact external origin for an independently secured reverse proxy. Adds Host/Origin acceptance and Secure cookies for HTTPS. |
-| `NEXTWISE_ZETARIS_URL` | `http://localhost:8888`; base URL, optionally with a reverse-proxy path prefix. |
+| `NEXTWISE_ZETARIS_URL` | `http://127.0.0.1:8888` for native Python; avoids IPv6-first `localhost` when Docker publishes only IPv4 loopback. Compose uses `http://host.docker.internal:8888`. Base URL may include a reverse-proxy path prefix. |
 | `NEXTWISE_ZETARIS_ORG_ID` | `1`; organization header. Existing database name `nextwise` is preserved. |
 | `NEXTWISE_ZETARIS_API_KEY` / `_FILE` | Required for unattended startup. Prefer a private UTF-8 secret file. Never provide both. |
 | `NEXTWISE_METERLESS_URL` | `http://127.0.0.1:8088`; transport appends `/v1/chat/completions`. |

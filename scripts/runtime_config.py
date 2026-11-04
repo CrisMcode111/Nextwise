@@ -103,7 +103,7 @@ class Settings:
             path('NEXTWISE_MEMORY_ROOT', artifacts / 'data/memory/hmem'),
             path('NEXTWISE_ZETARIS_SNAPSHOT', artifacts / 'data/zetaris_exports/20261024T151413Z-fdf0c15b-csv-5fa0db458643'),
             os.environ.get('NEXTWISE_HOST', '127.0.0.1'), integer('NEXTWISE_PORT', 8765), origin,
-            url('NEXTWISE_ZETARIS_URL', 'http://localhost:8888'), org,
+            url('NEXTWISE_ZETARIS_URL', 'http://127.0.0.1:8888'), org,
             url('NEXTWISE_METERLESS_URL', 'http://127.0.0.1:8088'), model,
             os.environ.get('NEXTWISE_NODE', 'node'), integer('NEXTWISE_DEPENDENCY_TIMEOUT', 3, maximum=30),
             boolean('NEXTWISE_REQUIRE_METERLESS'))
