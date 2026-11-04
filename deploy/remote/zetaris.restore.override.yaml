@@ -1,0 +1,39 @@
+# Merge AFTER a PRIVATE copy of the original zetaris-platform/docker-compose.yml.
+# Never use this against the local source stack. Restore existing state first.
+# Compose >=2.24.4 is required for !override and !reset.
+services:
+  postgres:
+    ports: !reset []
+  driver:
+    ports: !reset []
+    # Restored state replaces the original one-time init dependency.
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+  api:
+    ports: !override
+      - "127.0.0.1:8888:8888"
+      - "127.0.0.1:8889:8889"
+  ui:
+    ports: !override
+      - "127.0.0.1:3000:3000"
+  init:
+    profiles: !override [manual-recovery-only]
+  bootstrap:
+    profiles: !override [manual-recovery-only]
+  caddy:
+    profiles: !override [manual-recovery-only]
+    ports: !reset []
+volumes:
+  pgdata:
+    external: true
+    name: zetaris_pgdata
+  customer-data:
+    external: true
+    name: zetaris_customer-data
+  driver-data:
+    external: true
+    name: zetaris_driver-data
+  driver-logs:
+    external: true
+    name: zetaris_driver-logs

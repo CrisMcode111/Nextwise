@@ -3,6 +3,7 @@ import copy
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,6 +20,7 @@ import nextwise_app as app
 import project_workflow as workflow
 import runtime_config
 import runtime_health
+import project_adapters as adapters
 
 PAGE = b'<html><title>CycleHelp</title><p>CycleHelp answers customer questions using a shop\'s published opening hours and repair policies.</p></html>'
 URL = 'https://example.com/cyclehelp'
@@ -181,6 +183,65 @@ class ProjectWorkflowTests(unittest.TestCase):
         self.assertEqual(reopened['decisions'], [])
         self.assertEqual(list(reopened['operations'].values())[-1]['status'], 'failed')
 
+    def test_configured_adapters_lifecycle_approval_limits_and_restart(self):
+        env = {'NEXTWISE_PROJECT_PROVIDERS_ENABLED': 'true',
+               'NEXTWISE_PROJECT_SEARCH_LIMIT': '1', 'NEXTWISE_PROJECT_ASSESSMENT_LIMIT': '2'}
+        env = {**{k: v for k, v in os.environ.items() if not k.startswith(('NEXTWISE_', 'TAVILY_'))}, **env}
+        def model(token, messages, **options):
+            request = self.model_calls[-1]
+            self.assertEqual(options['endpoint'], 'http://127.0.0.1:8088/v1/chat/completions')
+            self.assertNotIn('Defer Version 1', json.dumps(options['response_schema']))
+            self.assertNotIn('1/4', json.dumps(options['response_schema']))
+            self.assertEqual(options['max_response_bytes'], workflow.semantic.MAX_RESPONSE_BYTES)
+            return {'ok': True, 'http_status': 200, 'data': {'choices': [{'finish_reason': 'stop',
+                'message': {'role': 'assistant', 'content': mocked_assessment(request)}}]}}
+        actual_assess = adapters.assess
+        def capture(request):
+            self.model_calls.append(copy.deepcopy(request))
+            return actual_assess(request)
+        with patch.dict(os.environ, env, clear=True), \
+             patch.object(adapters.config, 'secret', return_value='synthetic-test-only') as secrets, \
+             patch.object(adapters.tavily, 'search', return_value=[{'url': URL, 'title': 'CycleHelp'}]) as search, \
+             patch.object(adapters.tavily, 'public_page', return_value={'raw': PAGE}) as fetch, \
+             patch.object(adapters.analyzer, 'request_claims', side_effect=model) as model_call:
+            backend = app.State(self.root)
+            secrets.assert_not_called(); search.assert_not_called(); model_call.assert_not_called()
+            self.projects = backend.projects
+            self.projects.assessor = capture
+            state = self.create()
+            before = hashes(self.root)
+            with self.assertRaises(workflow.WorkflowError):
+                self.act(state, 'discover', query='public policy support tools')
+            self.assertEqual(before, hashes(self.root)); secrets.assert_not_called()
+            state = self.act(state, 'discover', query='public policy support tools', authorize_external_request=True)
+            candidate = next(iter(state['items']))
+            state = self.act(state, 'assess', candidate_id=candidate, authorize_external_request=True)
+            state = self.act(state, 'brief', assessment_id=state['assessments'][-1]['id'])
+            self.assertEqual(state['decisions'], [])  # A model result never approves itself.
+            state = self.projects.act(state['project']['id'], 'decide', self.decision_body(state))
+            self.assertEqual(search.call_count, 1); self.assertEqual(fetch.call_count, 1)
+            self.assertEqual(model_call.call_count, 1)
+            # Default startup wiring and persisted limits survive a backend restart.
+            self.projects = app.State(self.root).projects
+            self.assertEqual(self.projects.read(state['project']['id'])['decisions'], state['decisions'])
+            with self.assertRaises(workflow.WorkflowError):
+                self.act(state, 'discover', query='another public support query', authorize_external_request=True)
+            self.assertEqual(search.call_count, 1)
+            model_call.return_value = None
+            model_call.side_effect = RuntimeError('synthetic-test-only')
+            body = {'request_id': str(uuid.uuid4()), 'expected_version': state['version'],
+                    'candidate_id': candidate, 'authorize_external_request': True}
+            with self.assertRaises(workflow.WorkflowError) as error:
+                self.projects.act(state['project']['id'], 'assess', body)
+            self.assertNotIn('synthetic-test-only', str(error.exception))
+            state = app.State(self.root).projects.read(state['project']['id'])
+            with self.assertRaises(workflow.WorkflowError):
+                self.act(state, 'assess', candidate_id=candidate, authorize_external_request=True)
+            self.assertEqual(model_call.call_count, 2)  # Failed attempts consume the allowance too.
+            self.assertEqual(len(state['assessments']), 1)
+            for path in (self.root/'projects').rglob('*'):
+                if path.is_file(): self.assertNotIn(b'synthetic-test-only', path.read_bytes())
+
     def test_snapshot_tampering_blocks_decision_and_marks_briefing_stale(self):
         state = self.briefing()
         item = next(iter(state['items'].values()))
@@ -265,6 +326,39 @@ class ProjectWorkflowTests(unittest.TestCase):
 
 
 class ProjectPageTests(unittest.TestCase):
+    def test_provider_confirmation_is_required_before_post(self):
+        program = r'''
+const fs=require('fs'), vm=require('vm'), assert=require('node:assert/strict');
+const calls=[], notices=[];
+let approved=false;
+const context=vm.createContext({crypto:{randomUUID:()=>'test-request'},
+  document:{querySelector:()=>({replaceChildren(){}})},
+  window:{confirm:message=>{notices.push(message);return approved;}},
+  fetch:async(path, options)=>{
+    calls.push({path,options});
+    return {ok:true,json:async()=>({projects:[],transports:{},project:{id:'project'}})};
+  }});
+vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),context);
+(async()=>{
+  await new Promise(resolve=>setImmediate(resolve)); calls.length=0;
+  await vm.runInContext(`(async()=>{
+    project={project:{id:'project'},version:0}; render=()=>{};
+    await mutate('discover',{query:'public query'});
+    await mutate('assess',{candidate_id:'source'});
+  })()`,context);
+  assert.equal(calls.length,0); assert.equal(notices.length,2);
+  approved=true;
+  await vm.runInContext(`mutate('assess',{candidate_id:'source'})`,context);
+  const posts=calls.filter(call=>call.options?.method==='POST');
+  assert.equal(posts.length,1);
+  assert.equal(JSON.parse(posts[0].options.body).authorize_external_request,true);
+  assert.match(notices.at(-1),/project brief and saved public evidence/);
+})().catch(error=>{console.error(error);process.exitCode=1;});
+'''
+        result = subprocess.run(['node', '-e', program, str(ROOT/'web/projects.js')],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_saved_decision_is_not_transferred_to_a_new_briefing(self):
         program = r'''
 const fs = require('node:fs'), vm = require('node:vm'), assert = require('node:assert/strict');

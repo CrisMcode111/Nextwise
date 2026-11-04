@@ -31,9 +31,12 @@ def request_id(body):
 
 
 class Projects:
-    def __init__(self, memory_root, *, searcher=None, fetcher=None, assessor=None):
+    def __init__(self, memory_root, *, searcher=None, fetcher=None, assessor=None, external_limits=None):
         self.directory = Path(memory_root).resolve() / 'projects'
         self.searcher, self.fetcher, self.assessor = searcher, fetcher, assessor
+        self.external_limits = dict(external_limits or {})
+        require(all(k in ('discover', 'assess') and type(v) is int and v > 0
+                    for k, v in self.external_limits.items()), 'Invalid external attempt limits.')
 
     def store(self, project_id):
         require(isinstance(project_id, str) and re.fullmatch(r'project-[a-f0-9]{32}', project_id),
@@ -133,6 +136,11 @@ class Projects:
                 require(callable(self.searcher) and callable(self.fetcher), 'Search and page transports are not enabled.')
             if action == 'assess':
                 require(callable(self.assessor), 'Assessment transport is not enabled.')
+            if action in self.external_limits:
+                require(body.get('authorize_external_request') is True,
+                        'Explicit approval of this external request is required.')
+                attempts = sum(op['action'] == action for op in state['operations'].values())
+                require(attempts < self.external_limits[action], 'Project external attempt limit reached.')
             # Reserve before an external attempt. Interrupted or failed requests never retry silently.
             state['operations'][rid] = {'action': action, 'fingerprint': fingerprint, 'status': 'started'}
             state = store.save(state)

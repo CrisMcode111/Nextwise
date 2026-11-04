@@ -292,6 +292,7 @@ def request_claims(
     token: str, messages: list[dict[str, str]], *, json_output: bool = True,
     max_tokens: int | None = None, max_response_bytes: int | None = None,
     response_schema: dict[str, Any] | None = None,
+    endpoint: str | None = None, model: str | None = None,
 ) -> dict[str, Any]:
     """Send one client attempt. Schema mode is opt-in, with no format fallback.
 
@@ -305,7 +306,7 @@ def request_claims(
         if not isinstance(response_schema, dict) or response_schema.get("type") != "object":
             raise ValueError("response_schema must be an object schema from the discovery contract.")
     payload = {
-        "model": MODEL,
+        "model": model if model is not None else MODEL,
         "stream": False,
         "max_tokens": max_tokens if max_tokens is not None else MAX_TOKENS,
         "messages": messages,
@@ -316,7 +317,7 @@ def request_claims(
             "name": "nextwise_discovery", "strict": True, "schema": response_schema,
         }} if response_schema is not None else {"type": "json_object"})
     request = urllib.request.Request(
-        ENDPOINT,
+        endpoint if endpoint is not None else ENDPOINT,
         data=json.dumps(payload).encode("utf-8"),
         method="POST",
         headers={
@@ -424,6 +425,8 @@ def request_claims(
             "raw_body": None,
             "error": "connection error: " + sanitize_server_text(str(exc), token, messages),
         }
+    finally:
+        request.remove_header("Authorization")
 
 
 def message_content(data: dict[str, Any]) -> str | None:

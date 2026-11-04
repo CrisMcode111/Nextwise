@@ -35,22 +35,41 @@ in that project's `runs/` directory. Neither pilot namespace is reused or overwr
 Project reads do not touch access counters or append ledger entries. Project input is
 immutable in V1; create a separate project for a revised brief.
 
-Transports are disabled by default. `Projects(memory_root, searcher=..., fetcher=...,
-assessor=...)` or `State(..., project_services=...)` supplies explicit adapters:
+Production transports are connected through `project_adapters.configured_services`.
+They remain off until `NEXTWISE_PROJECT_PROVIDERS_ENABLED=true`. No configuration
+was enabled and no actual credentials were changed during implementation.
 
-- `searcher(reviewed_query)` returns the existing Tavily search result list. A future
-  authorized adapter can call `tavily_discovery.search` with its protected key.
-- `fetcher(public_https_url)` returns the existing `public_page` shape: raw bytes and
-  an error indicator. The production adapter must retain that function's public-DNS
-  pinning, redirect rejection and size limits.
-- `assessor(prepared_request)` receives the project, verified source passages, staged
-  claim bank and messages, and returns the assessment JSON text. The existing model
-  transport can be supplied only after explicit authorization and budget configuration.
+For native Python, set protected `TAVILY_API_KEY_FILE` and
+`NEXTWISE_METERLESS_TOKEN_FILE` paths. The files must contain the replacement
+service key and runtime bearer token respectively, one line each. Do not put their
+values in shell commands or Git. Provider keys remain inside Meterless; its runtime
+token is a separate credential. Startup/list/reopen do not read either file.
 
-No live adapter or simulated default is automatically selected. The UI disables
-unconfigured search/assessment actions; saved briefing review and human decisions
-remain available. Tests inject clearly mocked providers. Provider usefulness,
-quality, credits and costs are not measured by those tests.
+Set `NEXTWISE_METERLESS_URL` to the origin (without `/v1`), using HTTPS or loopback
+through a private tunnel, and `NEXTWISE_MODEL` to the approved model. Plain HTTP
+to a remote hostname is rejected before the token is read. The existing bounded
+`analyze_sources.request_claims` sends one schema-constrained completion, without
+redirects, proxy discovery, tools, retries or format fallback. Incomplete/refused,
+tool-bearing or credential-echoing answers are rejected. Existing source and
+business validators still decide whether the result may be persisted.
+
+The Tavily adapter reuses basic search (up to five leads) and `public_page` with
+public-DNS pinning, redirect rejection and bounded downloads. It sends only the
+reviewed query; the model receives the reviewed brief and saved evidence. The UI
+discloses these transfers and requires confirmation on each external action.
+API clients must supply `authorize_external_request: true` for discover/assess.
+
+`NEXTWISE_PROJECT_SEARCH_LIMIT` defaults to 2 and
+`NEXTWISE_PROJECT_ASSESSMENT_LIMIT` to 4 (each accepts 1..100). These bound lifetime
+attempts per project, including failed/interrupted requests, across backend restarts.
+They are not an account-wide monetary budget: set account/provider spending limits
+before enabling. No background calls follow a briefing or decision. A successful
+request replay returns its saved result without a new approval/call.
+
+Tests can explicitly supply `Projects(..., searcher=..., fetcher=..., assessor=...)`
+or `State(..., project_services=...)`; explicit `{}` disables transports. There is
+no simulated default. Tests mock providers, not evidence validation or persistence.
+Provider usefulness, model schema support, usage and cost remain unverified live.
 
 API: POST `/api/projects` creates a project; GET lists projects; GET
 `/api/projects/<id>` reopens one. POST `/api/projects/<id>/discover`, `/assess`,
@@ -71,5 +90,6 @@ block sockets, and compare both pilot namespaces and original memory before/afte
 
 ```powershell
 python -B -m unittest discover -s tests -p test_project_workflow.py -v
+python -B -m unittest discover -s tests -p test_project_adapters.py -v
 python -B -m unittest discover -s tests -p test_runtime_process.py -v
 ```

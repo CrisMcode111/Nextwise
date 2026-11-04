@@ -108,7 +108,7 @@ def prepare(store,item,context):
     key=digest({'policy':POLICY,'source':source,'project_context_sha256':context_hash})
     return {'source':source,'context_sha256':context_hash,'cache_key':key}
 
-def output_contract(batch):
+def output_contract(batch, context=None):
     text={'type':'string','minLength':TEXT_MIN,'maxLength':TEXT_MAX}
     nullable={**text,'type':['string','null']}
     gaps={'type':'array','minItems':1,'maxItems':GAP_CAP,
@@ -126,6 +126,9 @@ def output_contract(batch):
     fields['source_observation']['description']='Required: describe the capability or subject in the supplied passages; distinguish publisher statements from project hypotheses.'
     fields['project_need']['description']='Name the specific approved task/constraint addressed, or explain what connection the supplied material does not establish.'
     fields['existing_findings_connection']['description']='Registry membership is supplied fact. For an existing source explain the saved 1/4 pilot, evaluator limitations and Defer Version 1, even if relevance is low; otherwise null.'
+    if context and context.get('assessment_mode') == 'business-brief-v1':
+        fields['existing_findings_connection'] = {
+            'type': 'null', 'description': 'No historical investigation is supplied for this project; return null.'}
     assert set(fields)==FIELDS
     return {'type':'object','additionalProperties':False,'required':['assessments'],
         'properties':{'assessments':{'type':'array','minItems':len(batch),'maxItems':len(batch),

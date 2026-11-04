@@ -165,13 +165,16 @@ class HttpErrorTests(unittest.TestCase):
     TOKEN = "offline-test-placeholder"
 
     def request_with_error(self, error, json_output=True):
-        with patch("urllib.request.urlopen", side_effect=error) as open_url:
+        def fail(request, **kwargs):
+            self.assertEqual(request.get_header("Authorization"), f"Bearer {self.TOKEN}")
+            raise error
+        with patch("urllib.request.urlopen", side_effect=fail) as open_url:
             messages = [{"role": "user", "content": "test"}]
             result = analyzer.request_claims(self.TOKEN, messages, json_output=json_output)
         open_url.assert_called_once()
         request = open_url.call_args.args[0]
         self.assertEqual(request.full_url, analyzer.ENDPOINT)
-        self.assertEqual(request.get_header("Authorization"), f"Bearer {self.TOKEN}")
+        self.assertIsNone(request.get_header("Authorization"))
         self.assertEqual(request.get_header("Meterless-app"), "nextwise")
         self.assertEqual(request.get_header("Meterless-scope"), "user")
         self.assertEqual(request.get_header("Meterless-tier-split"), "off")

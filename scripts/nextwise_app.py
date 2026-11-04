@@ -178,7 +178,10 @@ class State:
         self.cookie = secrets.token_urlsafe(32)
         self.memory_root = Path(memory_root or memory.DEFAULT_MEMORY_ROOT).resolve()
         from project_workflow import Projects
-        self.projects = Projects(self.memory_root, **(project_services or {}))
+        if project_services is None:
+            from project_adapters import configured_services
+            project_services = configured_services()
+        self.projects = Projects(self.memory_root, **project_services)
         self.project_only = False
         self.context = None
         self.evidence_warning = False

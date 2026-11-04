@@ -27,6 +27,13 @@ async function listProjects() {
 }
 async function openProject(id) { project = await api('/api/projects/' + id); render(); }
 async function mutate(stage, fields) {
+  if (stage === 'discover' || stage === 'assess') {
+    const disclosure = stage === 'discover'
+      ? 'Send these reviewed public search terms to Tavily and fetch up to four public pages? This uses one search attempt and may consume credits.'
+      : 'Send this project brief and saved public evidence to Meterless for one assessment? It may use a paid model provider. This uses one assessment attempt.';
+    if (!window.confirm(disclosure)) return;
+    fields = {...fields, authorize_external_request:true};
+  }
   const result = await api(`/api/projects/${project.project.id}/${stage}`, {
     request_id:crypto.randomUUID(), expected_version:project.version, ...fields});
   project = await api('/api/projects/' + result.project.id); render();
