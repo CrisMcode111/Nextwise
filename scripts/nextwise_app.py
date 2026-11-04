@@ -168,7 +168,7 @@ def load_investigation(client, retrieve=retrieve_memory):
 
 
 class State:
-    def __init__(self, memory_root=None, api_key=None):
+    def __init__(self, memory_root=None, api_key=None, project_services=None):
         self.config = runtime_config.settings()
         self.key = api_key
         self.unattended = api_key is not None
@@ -177,6 +177,9 @@ class State:
         self.need_key.set()
         self.cookie = secrets.token_urlsafe(32)
         self.memory_root = Path(memory_root or memory.DEFAULT_MEMORY_ROOT).resolve()
+        from project_workflow import Projects
+        self.projects = Projects(self.memory_root, **(project_services or {}))
+        self.project_only = False
         self.context = None
         self.evidence_warning = False
         self.discovery = discovery.Store(self.memory_root)
@@ -273,12 +276,34 @@ def make_handler(state, loader=None):
             if not self.allowed():
                 return
             route = urlsplit(self.path)
+            if state.project_only and route.path not in ('/', '/projects', '/projects.js', '/style.css', '/health/live', '/health/ready') and not route.path.startswith('/api/projects'):
+                self.respond(404, {'code': 'missing', 'message': 'Project mode does not expose pilot routes.'})
+                return
+            if route.path == '/api/projects' or route.path.startswith('/api/projects/'):
+                if not self.allowed(session=True): return
+                try:
+                    if route.query: raise ValueError()
+                    parts = route.path.strip('/').split('/')
+                    if len(parts) == 2:
+                        result = {'projects': state.projects.list(), 'transports': {
+                            'search': callable(state.projects.searcher) and callable(state.projects.fetcher),
+                            'assessment': callable(state.projects.assessor)}}
+                    elif len(parts) == 3:
+                        result = state.projects.read(parts[2])
+                    else: raise ValueError()
+                    self.respond(200, result)
+                except ValueError:
+                    self.respond(409, {'code': 'project', 'message': 'Project could not be read or failed integrity checks.'})
+                except Exception:
+                    self.respond(503, {'code': 'project_storage', 'message': 'Project storage is unavailable; no history was replaced.'})
+                return
             if route.path == '/health/live' and not route.query:
                 self.respond(200, {'status': 'alive'})
                 return
             if route.path == '/health/ready' and not route.query:
                 from runtime_health import check_dependencies
-                result = check_dependencies(state.config, network=True, key=state.key)
+                result = (check_dependencies(state.config, project_only=True) if state.project_only else
+                          check_dependencies(state.config, network=True, key=state.key))
                 self.respond(200 if result['ready'] else 503, result)
                 return
             if route.path == '/api/discovery' and route.query == 'scope=tools':
@@ -329,11 +354,13 @@ def make_handler(state, loader=None):
                 finally:
                     state.lock.release()
                 return
-            paths = {"/": ("index.html", "text/html; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+            paths = {"/": ("projects.html" if state.project_only else "index.html", "text/html; charset=utf-8"),
+                     "/projects": ("projects.html", "text/html; charset=utf-8"), "/projects.js": ("projects.js", "text/javascript; charset=utf-8"),
+                     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                      "/style.css": ("style.css", "text/css; charset=utf-8")}
             if self.path in paths:
                 file, kind = paths[self.path]
-                self.respond(200, (WEB/file).read_bytes(), kind, cookie=self.path == "/")
+                self.respond(200, (WEB/file).read_bytes(), kind, cookie=self.path in ("/", "/projects"))
             elif self.path == "/api/status":
                 if self.allowed(session=True):
                     self.respond(200, {"authenticated": state.key is not None})
@@ -342,6 +369,28 @@ def make_handler(state, loader=None):
 
         def do_POST(self):
             if not self.allowed(session=True, post=True):
+                return
+            if self.path == '/api/projects' or self.path.startswith('/api/projects/'):
+                try:
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < length <= 65536 or self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
+                        raise ValueError()
+                    body = json.loads(self.rfile.read(length).decode('utf-8'))
+                    if not isinstance(body, dict): raise ValueError()
+                    parts = self.path.strip('/').split('/')
+                    if len(parts) == 2:
+                        result = state.projects.create(body)
+                    elif len(parts) == 4:
+                        result = state.projects.act(parts[2], parts[3], body)
+                    else: raise ValueError()
+                    self.respond(200, result)
+                except ValueError:
+                    self.respond(409, {'code': 'project', 'message': 'Project action could not be accepted. Check the form, enabled transports and latest saved version; no result was accepted automatically.'})
+                except Exception:
+                    self.respond(503, {'code': 'project_storage', 'message': 'Project persistence could not be confirmed. Keep your draft and reopen saved history before retrying.'})
+                return
+            if state.project_only:
+                self.respond(404, {'code': 'missing', 'message': 'Project mode does not expose pilot actions.'})
                 return
             if self.path in ('/api/discovery/recommend', '/api/discovery/decision'):
                 try:
@@ -515,14 +564,15 @@ def main(argv=None):
     import sys
     parser = argparse.ArgumentParser(description='Nextwise backend; unattended mode never prompts or calls models.')
     parser.add_argument('--unattended', action='store_true')
+    parser.add_argument('--projects', action='store_true')
     args = parser.parse_args(argv)
     try:
         config = runtime_config.settings()
-        key = runtime_config.secret('NEXTWISE_ZETARIS_API_KEY')
-        unattended = args.unattended or runtime_config.boolean('NEXTWISE_UNATTENDED') or bool(key)
+        key = '' if args.projects else runtime_config.secret('NEXTWISE_ZETARIS_API_KEY')
+        unattended = args.unattended or args.projects or runtime_config.boolean('NEXTWISE_UNATTENDED') or bool(key)
         if unattended:
             from runtime_health import check_dependencies
-            report = check_dependencies(config, key=key)
+            report = (check_dependencies(config, project_only=True) if args.projects else check_dependencies(config, key=key))
             if not report['ready']:
                 print(json.dumps(report), file=sys.stderr, flush=True)
                 return 1
@@ -532,6 +582,7 @@ def main(argv=None):
         print(str(error), file=sys.stderr, flush=True)
         return 1
     state = State(api_key=key)
+    state.project_only = args.projects
     key = None
     try:
         server = LocalHTTPServer((config.host, config.port), make_handler(state))

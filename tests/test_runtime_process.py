@@ -17,6 +17,40 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RuntimeProcessTests(unittest.TestCase):
+    def test_projects_mode_starts_without_pilot_zetaris_or_existing_memory(self):
+        with tempfile.TemporaryDirectory(prefix='nextwise-new-project-runtime-') as tmp:
+            folder = Path(tmp)
+            with socket.socket() as reservation:
+                reservation.bind(('127.0.0.1', 0)); port = reservation.getsockname()[1]
+            env = {k: v for k, v in os.environ.items() if not k.startswith(('NEXTWISE_', 'TAVILY_API_KEY'))}
+            env.update(NEXTWISE_ARTIFACT_ROOT=str(folder/'no-pilot'), NEXTWISE_MEMORY_ROOT=str(folder/'new-memory'),
+                       NEXTWISE_HOST='127.0.0.1', NEXTWISE_PORT=str(port))
+            process = subprocess.Popen([sys.executable, '-B', 'scripts/serve_runtime.py', '--projects'],
+                cwd=ROOT, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            try:
+                opener = build_opener(ProxyHandler({}))
+                base = f'http://127.0.0.1:{port}'
+                deadline = time.monotonic()+20
+                while True:
+                    if process.poll() is not None: self.fail('Project runtime exited before liveness.')
+                    try:
+                        with opener.open(base+'/health/live', timeout=1) as result:
+                            self.assertEqual(json.load(result), {'status': 'alive'})
+                        break
+                    except (URLError, TimeoutError):
+                        if time.monotonic()>deadline: self.fail('Project runtime startup timed out.')
+                        time.sleep(.05)
+                with opener.open(base+'/health/ready', timeout=15) as result:
+                    ready = json.load(result)
+                self.assertTrue(ready['ready'])
+                self.assertEqual(ready['scope'], 'project_runtime_only')
+                with opener.open(base+'/projects', timeout=3) as result:
+                    self.assertIn(b'Your Nextwise projects', result.read())
+                self.assertFalse((folder/'new-memory').exists())
+                self.assertFalse((folder/'no-pilot').exists())
+            finally:
+                process.terminate(); process.communicate(timeout=10)
+
     def test_unattended_process_with_local_node_and_fake_sql(self):
         queries = []
         class SQL(http.server.BaseHTTPRequestHandler):

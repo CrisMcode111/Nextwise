@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nextwise projects</title><link rel="stylesheet" href="/style.css"><script src="/projects.js" defer></script></head>
+<body><main id="main" class="card" style="max-width:900px;margin:2rem auto">
+<h1>Your Nextwise projects</h1>
+<p>Create a project, review saved evidence, and keep your decisions with their supporting briefing. The original pilot remains separate.</p>
+<p id="status" role="status" aria-live="polite"></p>
+<form id="create-project">
+<label>Project name <input name="name" required maxlength="200"></label>
+<label>Your goal, situation and constraints <textarea name="brief" required minlength="10" maxlength="12000"></textarea></label>
+<label><input type="checkbox" name="reviewed" required> I reviewed this text and removed information I do not want shared with an assessment provider.</label>
+<button class="button" type="submit">Save project</button>
+</form>
+<section><h2>Saved projects</h2><div id="projects"></div></section>
+<section id="workspace" hidden><h2 id="project-name"></h2><p id="project-brief"></p>
+<button id="reopen" class="button quiet">Reload saved history</button>
+<form id="discover"><label>Reviewed public search terms <input name="query" required minlength="10" maxlength="500"></label><button class="button" type="submit">Discover and save evidence</button></form>
+<p id="transport-note"></p><div id="sources"></div><div id="briefings"></div>
+<details><summary>Saved workflow history</summary><pre id="history"></pre></details>
+</section></main></body></html>

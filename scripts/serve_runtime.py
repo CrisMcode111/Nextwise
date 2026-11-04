@@ -3,11 +3,15 @@ import sys
 from runtime_config import ConfigError, settings
 
 
-def main():
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--projects', action='store_true', help='Project workflows without pilot or Zetaris startup requirements.')
+    args = parser.parse_args(argv)
     try:
         settings()  # Validate before importing modules with configured path constants.
         import nextwise_app
-        return nextwise_app.main(['--unattended'])
+        return nextwise_app.main(['--unattended'] + (['--projects'] if args.projects else []))
     except ConfigError as error:
         print(str(error), file=sys.stderr, flush=True)
         return 1

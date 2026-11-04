@@ -11,7 +11,7 @@ from runtime_config import CODE_ROOT, ConfigError, secret, settings
 INVESTIGATION = 'nemotron-lightning-requirements-extraction'
 
 
-def check_dependencies(config=None, *, network=False, key=None):
+def check_dependencies(config=None, *, network=False, key=None, project_only=False):
     config = config or settings()
     checks = []
 
@@ -44,6 +44,10 @@ def check_dependencies(config=None, *, network=False, key=None):
         for item in manifest['files']:
             need(hashlib.sha256((CODE_ROOT / item['local_path']).read_bytes()).hexdigest() == item['sha256'])
     check('hmem_vendor', vendor, 'Pinned H-MEM files are missing or differ from upstream.json; restore the pinned files.')
+
+    if project_only:
+        return {'ready': all(c['status'] == 'ok' for c in checks),
+                'scope': 'project_runtime_only', 'model_requests': 0, 'checks': checks}
 
     def artifacts():
         import integrate_zetaris as integration
