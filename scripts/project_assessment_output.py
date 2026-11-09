@@ -15,8 +15,8 @@ UNKNOWNS = (
     'Project-specific costs are unknown.',
     'Compatibility with the project environment is unverified.',
 )
-# Conservative generation policy: keep quantification in publisher quotations,
-# not in generated project prose (including numbers written in words).
+# Quantified outcomes remain forbidden; exact saved project constraints may be
+# repeated as facts, never reused as numerical benefits or estimates.
 QUANTIFIED = re.compile(
     r'\d|[%$\u20ac\u00a3]|\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|'
     r'eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|'
@@ -25,6 +25,31 @@ QUANTIFIED = re.compile(
     r'quarter\w*|\w+fold)\b', re.I)
 REASONING_FIELDS = ('project_need', 'application_hypothesis', 'priority_reason', 'next_step',
                     'investigation_question')
+BRIEF_CONSTRAINT = re.compile(
+    r'\bteam\s+size\s*:\s*\d+\b(?!\.\d)|\bWindows\s+\d+(?:\.\d+)*\b|'
+    r'\b\d+(?:\.\d+)?\s+[KMGT]i?B\s+RAM\b', re.I)
+OUTCOME_CONTEXT = re.compile(
+    r'\b(?:sav\w*|reduc\w*|improv\w*|increas\w*|decreas\w*|gain\w*|'
+    r'boost\w*|achiev\w*|cut\w*|benefit\w*|perform\w*|accura\w*|'
+    r'latenc\w*|throughput|faster|slower|cheaper|cost\w*|pric\w*|'
+    r'estimat\w*|forecast\w*|baseline\w*|target\w*)\b', re.I)
+
+
+def quantified_outcome(text, brief):
+    """Exempt whole saved constraint facts, not their reusable number tokens."""
+    if not QUANTIFIED.search(text):
+        return False
+    if OUTCOME_CONTEXT.search(text):
+        return True
+    for match in BRIEF_CONSTRAINT.finditer(brief):
+        fact = match.group()
+        # A label's colon is presentation, not a different numerical fact.
+        pattern = r'\s+'.join(re.escape(word) for word in fact.split())
+        if re.match(r'team\s+size\s*:', fact, re.I):
+            number = re.search(r'\d+$', fact).group()
+            pattern = r'team\s+size\s*:?\s*' + re.escape(number)
+        text = re.sub(r'(?<!\w)' + pattern + r'(?!\w|\.\d|%)', '', text, flags=re.I)
+    return bool(QUANTIFIED.search(text))
 
 
 def claims(request):
@@ -49,6 +74,7 @@ def contract(request):
     for field in REASONING_FIELDS:
         fields[field]['description'] = (
             'No numerical project benefits, targets, baselines or prices, even in words. '
+            'Exact team-size, Windows-version and RAM facts from the saved brief may be repeated as constraints only. '
             'Publisher benchmarks do not establish project performance. '
             'A non-null hypothesis must start Hypothesis:, remain conditional, and explicitly say unverified.')
     item['required'] = sorted(fields)
@@ -79,7 +105,9 @@ def messages(request):
         'could/may/might, and unverified/untested/unproven/not measured/not established. '
         'Do not transfer publisher benchmarks into project baselines, benefits, targets or next steps. '
         'Keep all generated project prose, including project_need, limitations and missing_information, '
-        'entirely unquantified, including numbers written as words. Quantities belong only in saved quotations. '
+        'unquantified except exact team-size, Windows-version and RAM facts already in the saved brief. '
+        'Repeat whole constraint facts, not bare numbers or changed units. Never reuse them as benefits, '
+        'performance claims or estimates. Other quantities belong only in saved quotations. '
         'Applicability, costs and compatibility remain unknown; '
         'include these exact missing_information entries: ' + json.dumps(UNKNOWNS) + '. '
         'Do not assert readiness, compatibility, savings or gains without project-specific proof. '
@@ -103,14 +131,15 @@ def materialize(content, request):
     value['source_observation'] = bank[observation]['exact_quote']
     value['evidence'] = [{k: bank[i][k] for k in ('source_id', 'passage_id', 'exact_quote')}
                          for i in evidence]
+    brief = request['context']['profile']['objective']
     for field in REASONING_FIELDS:
         text = value.get(field)
-        if isinstance(text, str) and QUANTIFIED.search(text):
+        if isinstance(text, str) and quantified_outcome(text, brief):
             raise semantic.AssessmentError('generation_quantified_outcome', field,
-                'Project reasoning must remain unquantified; no assessment accepted.')
+                'Only exact saved constraint facts may be quantified; no assessment accepted.')
     for field in ('limitations', 'missing_information'):
         texts = value.get(field)
-        if isinstance(texts, list) and any(isinstance(t, str) and QUANTIFIED.search(t) for t in texts):
+        if isinstance(texts, list) and any(isinstance(t, str) and quantified_outcome(t, brief) for t in texts):
             raise semantic.AssessmentError('generation_quantified_outcome', field,
                 'Keep quantities in saved publisher quotations, not generated project prose.')
     gaps = value.get('missing_information')
