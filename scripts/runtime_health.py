@@ -80,9 +80,11 @@ def check_dependencies(config=None, *, network=False, key=None, project_only=Fal
                                                timeout=config.dependency_timeout).sql('SELECT 1 AS nextwise_health')
             need(len(rows) == 1 and len(rows[0]) == 1 and str(rows[0][0]) == '1')
         check('zetaris_sql', sql, 'Zetaris SQL is unavailable, unauthorized or returned an invalid health result. Check URL, organization, key and service readiness.')
-        check('meterless_tcp', config.meterless_probe,
-              'Meterless gateway is unreachable. Start the configured gateway; no inference was attempted.',
-              required=config.require_meterless)
+        if config.require_meterless:
+            check('meterless_tcp', config.meterless_probe,
+                  'Meterless gateway is unreachable. Start the configured gateway; no inference was attempted.')
+        else:
+            checks.append({'name': 'meterless_tcp', 'status': 'not_checked', 'required': False})
     else:
         checks.append({'name': 'service_connectivity', 'status': 'not_checked', 'required': False})
     return {'ready': all(c['status'] == 'ok' for c in checks if c['required']),

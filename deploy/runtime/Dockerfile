@@ -2,7 +2,7 @@
 # Image digests and a clean Linux build still require verification before release.
 FROM node:24.22.2-bookworm-slim AS node
 FROM python:3.11.9-slim-bookworm
-RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 libatomic1 ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 nextwise \
     && useradd --uid 10001 --gid 10001 --no-create-home nextwise
@@ -15,6 +15,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
     NEXTWISE_HOST=0.0.0.0 NEXTWISE_PORT=8765 NEXTWISE_UNATTENDED=true \
     NEXTWISE_ARTIFACT_ROOT=/artifacts NEXTWISE_MEMORY_ROOT=/memory
 USER 10001:10001
+# Fail a future Linux build if the copied Node binary or TS bridge cannot load.
+# Import only: no H-MEM store is opened and no provider is contacted.
+RUN node --experimental-transform-types --input-type=module \
+    --eval "await import('./vendor/meterless/hmem/reference/src/index.ts')"
 EXPOSE 8765
 HEALTHCHECK --interval=30s --timeout=90s --start-period=30s --retries=3 \
     CMD ["python", "-B", "scripts/probe_runtime.py"]

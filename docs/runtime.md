@@ -8,6 +8,11 @@ initialize memory, import artifacts, register Zetaris tables or start inference.
 The backend image and Compose definition have **not been built or started in a
 clean environment**. Packaging is implemented; deployment success is unverified.
 
+For remote V1, use the current [remote runbook](../deploy/remote/README.md) and
+[resolved service requirements](deployment-prerequisites.md). The sections below
+describe the original local packaging; the remote overlays provide saved-work
+deployment separately from optional AI activation.
+
 ## Prerequisites and unresolved service definitions
 
 The backend needs Python 3.11+, Node 24+ with TypeScript transformation, the pinned
@@ -75,6 +80,19 @@ and any relocated paths/URLs through the service manager environment, then run:
 python -B scripts/serve_runtime.py
 ```
 
+For the existing private Compose settings file, native startup can load its
+protected key-file paths explicitly:
+
+```powershell
+python -B scripts/serve_runtime.py --env-file .env.runtime
+```
+
+This maps `NEXTWISE_ZETARIS_SECRET_FILE` to the native API-key-file setting and
+converts `host.docker.internal` service URLs to the same ports on `127.0.0.1`.
+Existing process settings take precedence. The file is parsed as assignments,
+never executed, and credential values are never printed. Provider usage remains
+off unless explicitly configured and separately authorized through the interface.
+
 No terminal input is requested. Missing credentials, incompatible Node, missing
 memory or invalid pilot artifacts stop startup with fixed dependency diagnostics.
 No empty store is created. SIGTERM/Ctrl+C closes the listener. The original
@@ -139,8 +157,9 @@ private; setting `NEXTWISE_PUBLIC_ORIGIN` does not make it safe for anonymous ac
 - `GET /health/live`: listener is alive; no dependency access.
 - `GET /health/ready`: checks Python/Node, pinned vendor hashes, exact CSV/artifact
   lineage and structural/read-write access to existing stores, then one authenticated
-  Zetaris `SELECT 1` and a Meterless TCP connection. Returns 503 on required failure;
-  an optional gateway failure remains visible with readiness true.
+  Zetaris `SELECT 1` and, when `NEXTWISE_REQUIRE_METERLESS=true`, a Meterless TCP
+  connection. Returns 503 on required failure. Otherwise Meterless is marked
+  `not_checked`, with no connection attempt or wait for an optional runtime.
 - `python -B scripts/runtime_health.py`: the same local checks, **no network**.
   Without a configured Zetaris key it correctly exits 1 with a credential error.
 - Add `--network` only when dependency access is intended. This makes the bounded

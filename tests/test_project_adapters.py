@@ -24,6 +24,15 @@ class AdapterTests(unittest.TestCase):
         self.request = {'messages': [{'role': 'user', 'content': 'Reviewed project evidence'}],
                         'prepared': {'source': {'candidate_id': 'source'}},
                         'context': {'assessment_mode': 'business-brief-v1'}}
+        # These are transport-isolation tests, not claim-generation fixtures.
+        # The real contract/materialization boundary has its own offline replay.
+        for name, kwargs in (
+                ('messages', {'side_effect': lambda request: request['messages']}),
+                ('contract', {'side_effect': lambda request: adapters.semantic.output_contract(
+                    [request['prepared']], request['context'])}),
+                ('materialize', {'side_effect': lambda content, request: content})):
+            p = patch.object(adapters.output, name, **kwargs)
+            p.start(); self.addCleanup(p.stop)
         self.response = {'ok': True, 'http_status': 200, 'data': {'choices': [
             {'finish_reason': 'stop', 'message': {'role': 'assistant', 'content': '{"assessments":[]}'}}]}}
 

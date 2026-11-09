@@ -13,6 +13,51 @@ class ConfigError(ValueError):
     """Diagnostics name the setting, never its potentially secret value."""
 
 
+def load_native_env(filename):
+    """Load an explicit private runtime file without shell evaluation or logging.
+
+    Compose uses host.docker.internal; native Python reaches those same published
+    local ports over loopback. Existing process settings take precedence.
+    """
+    try:
+        lines = Path(filename).read_text(encoding='utf-8-sig').splitlines()
+    except OSError:
+        raise ConfigError('The runtime env file must exist and be readable.') from None
+    values = {}
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        name, separator, value = line.partition('=')
+        name, value = name.strip(), value.strip()
+        if (not separator or not re.fullmatch(r'[A-Z][A-Z0-9_]*', name)
+                or not (name.startswith('NEXTWISE_') or name in ('TAVILY_API_KEY', 'TAVILY_API_KEY_FILE'))):
+            raise ConfigError('The runtime env file must contain Nextwise/Tavily assignments only.')
+        if value.startswith(('"', "'")):
+            if len(value) < 2 or value[-1] != value[0]:
+                raise ConfigError('The runtime env file contains an unmatched quote.')
+            value = value[1:-1]
+        values[name] = value
+    for source, target in (
+        ('NEXTWISE_ZETARIS_SECRET_FILE', 'NEXTWISE_ZETARIS_API_KEY_FILE'),
+        ('NEXTWISE_TAVILY_SECRET_FILE', 'TAVILY_API_KEY_FILE'),
+        ('NEXTWISE_METERLESS_SECRET_FILE', 'NEXTWISE_METERLESS_TOKEN_FILE'),
+    ):
+        if source in values:
+            values.setdefault(target, values[source])
+    for name, value in values.items():
+        os.environ.setdefault(name, value)
+    for name in ('NEXTWISE_ZETARIS_URL', 'NEXTWISE_METERLESS_URL'):
+        value = os.environ.get(name)
+        if value:
+            try:
+                parsed = urlsplit(value)
+                if parsed.hostname == 'host.docker.internal' and not parsed.username and not parsed.password:
+                    os.environ[name] = parsed._replace(netloc='127.0.0.1' + (':' + str(parsed.port) if parsed.port else '')).geturl()
+            except ValueError:
+                raise ConfigError(f'{name} must be a valid HTTP(S) service URL.') from None
+
+
 def secret(name, *, required=False):
     value = os.environ.get(name, '').strip()
     filename = os.environ.get(name + '_FILE', '').strip()
@@ -110,7 +155,9 @@ class Settings:
 
     @property
     def completions_url(self):
-        return self.meterless_url + '/v1/chat/completions'
+        # Runtime cards may give a service root or an OpenAI-compatible /v1 base.
+        base = self.meterless_url
+        return base + ('/chat/completions' if base.endswith('/v1') else '/v1/chat/completions')
 
     def meterless_probe(self):
         """TCP connectivity only. Never sends HTTP, credentials or a model request."""

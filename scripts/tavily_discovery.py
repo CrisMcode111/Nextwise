@@ -7,6 +7,7 @@ import os
 import re
 import socket
 import ssl
+import sys
 import time
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
@@ -58,9 +59,11 @@ def search(query, key):
         if usage is not None and (type(usage) is not int or usage != 1): raise SearchUnavailable()
         return result['results'][:RESULTS_PER_SEARCH]
     except HTTPError as error:
+        print(f'Tavily search HTTP {error.code}; no retry made.', file=sys.stderr, flush=True)
         error.close()
         raise SearchUnavailable() from None
-    except Exception:
+    except Exception as error:
+        print(f'Tavily search failed ({type(error).__name__}); no retry made.', file=sys.stderr, flush=True)
         raise SearchUnavailable() from None
     finally:
         request.remove_header('Authorization')

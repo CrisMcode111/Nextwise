@@ -56,22 +56,32 @@ def verify():
         require(env['NEXTWISE_HOST'] == '127.0.0.1' and env['NEXTWISE_PORT'] == '8765', 'Backend not loopback-only.')
         require(env['NEXTWISE_ZETARIS_URL'] == 'http://127.0.0.1:8888'
                 and env['NEXTWISE_METERLESS_URL'] == 'http://127.0.0.1:18088', 'Service routes incorrect.')
-        require(env['NEXTWISE_REQUIRE_METERLESS'] == 'true'
-                and env['NEXTWISE_DEPENDENCY_TIMEOUT'] == '15', 'Full-stack readiness requirement lost.')
-        require(env['NEXTWISE_ZETARIS_API_KEY_FILE'] == '/run/secrets/zetaris_api_key'
-                and env['TAVILY_API_KEY_FILE'] == '/run/secrets/tavily_api_key'
-                and env['NEXTWISE_METERLESS_TOKEN_FILE'] == '/run/secrets/meterless_token', 'Secret-file settings missing.')
+        require(env['NEXTWISE_REQUIRE_METERLESS'] == 'false'
+                and env['NEXTWISE_DEPENDENCY_TIMEOUT'] == '15', 'Saved-work readiness defaults changed.')
+        require(env['NEXTWISE_ZETARIS_API_KEY_FILE'] == '/run/secrets/zetaris_api_key', 'Zetaris secret-file setting missing.')
+        require('TAVILY_API_KEY_FILE' not in env and 'NEXTWISE_METERLESS_TOKEN_FILE' not in env,
+                'Disabled providers still require credentials.')
         require(env['NEXTWISE_PROJECT_PROVIDERS_ENABLED'] == 'false'
                 and env['NEXTWISE_PROJECT_SEARCH_LIMIT'] == '2'
                 and env['NEXTWISE_PROJECT_ASSESSMENT_LIMIT'] == '4', 'Project authorization defaults changed.')
         require(not any(k.endswith(('API_KEY', 'TOKEN')) for k in env), 'Inline credential setting detected.')
-        require({s['source'] for s in backend['secrets']} == {'zetaris_api_key', 'tavily_api_key', 'meterless_token'}, 'Secret mounts changed.')
+        require({s['source'] for s in backend['secrets']} == {'zetaris_api_key'}, 'Disabled providers still mount secrets.')
         mounts = {m['target']: m for m in backend['volumes']}
         require(mounts['/artifacts']['read_only'] and not mounts['/memory'].get('read_only', False), 'Persistence mount permissions wrong.')
         require(mounts['/app/data']['read_only'] and mounts['/app/data']['source'].replace('\\', '/').endswith('/artifacts/data'),
                 'Original artifact references are unavailable to the TS decision validator.')
         require(all(not m.get('bind', {}).get('create_host_path', True) for m in mounts.values()), 'Missing paths could be initialized silently.')
         require(not (folder/'artifacts').exists() and not (folder/'hmem').exists(), 'Offline validation created data directories.')
+
+        providers = render([ROOT/'deploy/runtime/compose.yaml', REMOTE/'backend.override.yaml',
+                            REMOTE/'providers.override.yaml'], env_file, folder)['services']['backend']
+        provider_env = providers['environment']
+        require(provider_env['NEXTWISE_REQUIRE_METERLESS'] == 'true', 'Provider route requirement lost.')
+        require(provider_env['NEXTWISE_PROJECT_PROVIDERS_ENABLED'] == 'false', 'Providers enabled without explicit opt-in.')
+        require(provider_env['TAVILY_API_KEY_FILE'] == '/run/secrets/tavily_api_key'
+                and provider_env['NEXTWISE_METERLESS_TOKEN_FILE'] == '/run/secrets/meterless_token', 'Provider secret-file settings missing.')
+        require({s['source'] for s in providers['secrets']} == {'zetaris_api_key', 'tavily_api_key', 'meterless_token'},
+                'Provider secret mounts changed.')
 
         # Structural fixture for the privately retained original Zetaris definition.
         # No image is downloaded and no original private .env is accessed.

@@ -45,14 +45,17 @@ function render() {
   q('#discover button').disabled = !transports.search;
   q('#transport-note').textContent = transports.search && transports.assessment
     ? 'Evidence and assessments are requested only by your explicit actions.'
-    : 'Search or assessment is not enabled in this instance. Saved evidence and human decisions remain available.';
+    : transports.assessment
+      ? 'Assessments use your saved evidence. New discovery is disabled in this instance.'
+      : 'Search or assessment is not enabled in this instance. Saved evidence and human decisions remain available.';
   q('#sources').replaceChildren(); q('#briefings').replaceChildren();
   for (const item of Object.values(project.items)) {
     const row = node('article', '', q('#sources')); row.className = 'card';
     node('h3', item.title, row); const link = node('a', 'Publisher source', row); link.href = item.url; link.rel = 'noreferrer';
     node('p', 'Saved ' + item.retrieved_at + '. Publisher statements are evidence of a claim, not proof of suitability.', row);
     const assess = node('button', 'Assess against my project', row); assess.disabled = !transports.assessment;
-    assess.onclick = () => action(() => mutate('assess', {candidate_id:item.id}));
+    assess.onclick = () => action(() => mutate('assess', {candidate_id:item.id,
+      context_candidate_ids:Object.keys(project.items).filter(id => id !== item.id).sort()}));
     const latest = project.assessments.filter(a => a.candidate_id === item.id).at(-1);
     if (latest) {
       const brief = node('button', 'Prepare validated briefing', row);
@@ -66,6 +69,13 @@ function render() {
     node('p', 'Provisional recommendation: ' + brief.recommended_choice, row);
     for (const text of [...brief.risks,...brief.uncertainty]) node('p', text, row);
     for (const evidence of brief.supporting_evidence) node('blockquote', evidence.exact_quote, row);
+    if (brief.context_evidence_references?.length) {
+      node('p', 'Additional saved publisher pages considered as context; quoted evidence above belongs to the primary source.', row);
+      for (const source of brief.context_evidence_references) {
+        const link = node('a', source.title, row); link.href = source.url; link.rel = 'noreferrer';
+        node('br', '', row);
+      }
+    }
     const head = project.decisions.filter(d => d.candidate_id === brief.candidate_id).at(-1);
     const attached = project.decisions.filter(d => d.briefing_id === brief.id).at(-1);
     if (attached) node('p', `Human decision Version ${attached.version}: ${attached.choice}. ${attached.rationale}`, row);

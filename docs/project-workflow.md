@@ -45,13 +45,32 @@ service key and runtime bearer token respectively, one line each. Do not put the
 values in shell commands or Git. Provider keys remain inside Meterless; its runtime
 token is a separate credential. Startup/list/reopen do not read either file.
 
-Set `NEXTWISE_METERLESS_URL` to the origin (without `/v1`), using HTTPS or loopback
+Set `NEXTWISE_METERLESS_URL` to the service root or `/v1` base, using HTTPS or loopback
 through a private tunnel, and `NEXTWISE_MODEL` to the approved model. Plain HTTP
 to a remote hostname is rejected before the token is read. The existing bounded
 `analyze_sources.request_claims` sends one schema-constrained completion, without
 redirects, proxy discovery, tools, retries or format fallback. Incomplete/refused,
 tool-bearing or credential-echoing answers are rejected. Existing source and
 business validators still decide whether the result may be persisted.
+
+`NEXTWISE_PROJECT_FREE_ONLY=true` adds Meterless's `max_price: 0` request budget
+and an empty `models` fallback chain. Pin the approved concrete model as well.
+The installed runtime applies this to premium-stage budgets; this is not a
+guaranteed account billing cap. Zero catalog prices require owner acceptance
+of that pricing estimate or a provider-side billing guard before dispatch.
+This does not disable provider-internal retries: the installed Meterless cloud
+transport has its own retry layer. A strict no-retry authorization therefore also
+requires a verified runtime/provider no-retry configuration before dispatch.
+
+The project UI includes the other saved pages as context in the same primary-source
+assessment request. It still requests exactly one assessment and validates every
+quoted claim against the primary source's immutable claim bank. The additional
+sources are hash-verified, included in the input digest, and identified in the
+briefing. Reopening a briefing or saving a decision rechecks those inputs too.
+`NEXTWISE_PROJECT_SEARCH_ENABLED=false` disables search/page transports while
+allowing an explicitly authorized assessment of existing evidence. Lifetime
+assessment limits count earlier failures; new approval increases the allowance
+without resetting that history.
 
 The Tavily adapter reuses basic search (up to five leads) and `public_page` with
 public-DNS pinning, redirect rejection and bounded downloads. It sends only the

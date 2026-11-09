@@ -1,81 +1,89 @@
-# V1 external prerequisites (2026-11-04)
+# V1 remote deployment prerequisites
 
-No hosting choice or purchase is made here. Project provider wiring is implemented;
-see [project workflow](project-workflow.md) for opt-in configuration and approval.
-No provider request, runtime launch, rebuild or volume modification was performed.
+Updated 2026-11-09. Preparation only: no paid calls, provisioning, registry pulls,
+credential reads or data modifications. No completed tests repeated.
 
-## Meterless compatibility
+## What the existing architecture can deploy
 
-The existing client uses bearer-authenticated `/v1/chat/completions`, model
-`meterless/auto` by default, with bounded schema-constrained JSON. Endpoint/model
-are configurable per attempt. An HTTPS service or private tunnel ending at
-backend loopback can carry this protocol; the route is not established here.
+The complete Python backend, web UI and Node H-MEM bridge run as one persistent
+Linux amd64 container. Restore the original Zetaris Docker stack on that host or
+another private always-on host. Preserve the entire H-MEM store, exact artifact/CSV
+bytes, catalog, file stores, private installation settings and encryption keys.
+Private browser access uses SSH forwarding; the laptop becomes only a client.
 
-The [official guide](https://meterless.ai/help.html) documents full runtime
-endpoints on Windows, Mac M5+ and DGX Spark. DGX is a persistent systemd service;
-Windows currently has no start-at-login support. The Linux Node companion is a
-relay connector to an existing model server, not a generic x86 Linux runtime.
-The browser Session Hotspot refuses structured JSON output and depends on an open
-tab, so it does not satisfy this adapter. `ns` is a loopback-only CLI; this Python
-HTTP client does not depend on it.
+`deploy/remote/backend.override.yaml` supports saved evidence, decisions and project
+history without a Meterless host or Tavily/Meterless secret files. It still needs
+real Zetaris and original pilot data. AI operations remain disabled. Readiness
+skips optional Meterless connectivity rather than waiting for an absent runtime.
 
-These are current public docs, not certification of the installed hackathon build.
-Before deployment: confirm a supported always-on runtime, private reachability,
-replacement runtime token and provider keys, an approved model supporting the
-requested schema and token budget, and account spending limits. A separately
-approved live acceptance request is still necessary; mocks establish no live
-provider compatibility, authentication, answer quality or cost.
+## Meterless: compatibility boundary
 
-## Zetaris requirements
+The [official guide](https://meterless.ai/help.html) documents full endpoints on
+Windows x64, Mac M5+ and DGX Spark. DGX explicitly supports headless installation
+and a persistent system service. Windows supports CPU mode but has no built-in
+start at login. A generic Linux amd64 full runtime is not documented. The vendored
+H-MEM reference is portable memory code, not an inference daemon.
 
-The [official hardware page](https://kbase.zetaris.com/knowledge/product-hardware-requirements)
-specifies 4 vCPU, 32 GB RAM and 256 GB SSD for an Azure application-server VM.
-That is a deployment-specific reference, not a proven minimum for these Docker
-images. The [Tanzu installation guide](https://kbase.zetaris.com/knowledge/installing-zetaris-on-vmware)
-recommends at least 2 CPU and 8 GB RAM **per executor**, plus PostgreSQL and
-persistent storage. It does not establish an 8 GB total-stack requirement.
+The browser Session Hotspot needs an open tab and rejects structured output.
+The Linux Persistent Hotspot companion forwards to an existing model server; it
+runs no model and its strict-schema compatibility is not established by the guide.
+Neither is an established drop-in replacement for Nextwise's model adapter.
 
-Existing local packaging uses amd64 images, PostgreSQL, driver, API and UI, with
-four original persistent volumes and retained private installation/encryption
-configuration. The prior idle observation (about 3.25 GiB across those containers)
-is not a peak-memory test. No code-level limit proves a smaller supported host;
-full sizing depends on Spark driver/executors, concurrency, disk growth and headroom.
-The retained `conf/spark-defaults.conf` contained no active allowlisted numeric
-driver/executor memory, core or instance overrides in the read-only check. This
-does not resolve image defaults or establish a supported deployment minimum.
+Full AI needs an independently hosted supported runtime, a model accepting strict
+`response_format` JSON schema, non-streaming responses and the 4096-token project
+budget. Use HTTPS or a private tunnel ending at backend loopback, protected token
+files and the existing per-action authorization and persisted attempt limits.
+Service-root and `/v1` base URLs now both construct the right completions URL,
+including a gateway prefix. No schema fallback or direct-provider bypass was added.
 
-Before deployment: obtain Zetaris confirmation for sizing and hackathon image/licence
-portability, restore access to the private registry with approved replacement
-credentials, preserve original installation identity and encryption keys, and
-prepare a consistent database/filesystem/writable-layer backup. Test restore,
-table hashes, H-MEM history and realistic peak usage on a separate destination.
-Never run init/bootstrap over the original volumes.
+Merge `deploy/remote/providers.override.yaml` last to mount the provider secrets
+and require runtime connectivity. Providers stay disabled until explicitly enabled
+in the env file. An open TCP port proves neither authentication nor schema support.
+A supported remote runtime/release, authorized model access and permission for a
+later live acceptance request remain external. A laptop-hosted tunnel does not
+meet independent deployment.
 
-## Remaining acceptance gates
+## Zetaris: hosting requirements resolved
 
-Approve credential rotations without embedding values in commands, source or
-reports; provision replacements in protected files after they exist. No keys were
-revoked or replaced here. Keep provider calls disabled until authorized.
+The current [official Docker bundle guide](https://github.com/zetaris/getting-started/blob/main/docs/install/updated_zetaris_installation_guide.md)
+documents Linux Docker Engine, amd64 images, 4 CPUs and **8 GB available to Docker**
+recommended (preflight rejects below 6 GB), and 15 GB free disk plus data/logs.
+Its example settings are `ZSPARK_DRIVER_MEM=2g`, `ZSPARK_DRIVER_CORES=2`,
+`ZSPARK_MASTER_URL=local[2]` and `ZETARIS_API_MAX_HEAP=1g`. Apply only to a matching
+private bundle that consumes those variables; preserve existing installation
+settings for the initial restore rather than guessing at its version's mapping.
 
-After selecting supported service arrangements: verify image digests and a clean
-Linux build, private routing, protected-file permissions for UID 10001, restored
-data integrity, restart persistence and backup recovery. Public access additionally
-needs authentication and TLS; the current private session/origin checks are not
-multi-user authentication. No deployment or push is part of this change.
+The earlier Azure 32 GB server reference and Tanzu per-executor guidance are not
+requirements for this bundle. Vendor sizing confirmation is no longer a blanket
+blocker for planning the Docker route.
 
-## Offline verification
+For cohosting Nextwise and Zetaris, **4 vCPU / 16 GB RAM / 80 GB SSD** is an engineering
+planning recommendation, not a measured production minimum or a selected purchase.
+It allows headroom for Nextwise's 1 GB limit, the OS and backups. Previously recorded
+images and writable layers already occupied about 18 GB, so 15 GB total disk would
+not fit this preserved installation. Increase disk for the actual backup, restored
+data, build cache and recovery copy. Validate capacity on the destination before
+accepting traffic; do not upgrade the original images just to match a newer example.
 
-85 tests passed across project workflow/adapters, runtime/startup processes,
-business and staged assessment, output contracts, Tavily, and model transport.
-Providers were mocked; workflow tests used real H-MEM with temporary copies and
-verified original memory and both pilot namespaces unchanged. Browser tests
-confirmed cancellation sends no provider request. The configured lifecycle
-persisted a human decision and reopened it after backend reconstruction; failed
-attempts retained their limits across restart. Saved evidence tampering and
-fabricated quotations remained rejected.
+The [official managed AWS route](https://github.com/zetaris/getting-started/blob/main/docs/install/managed-aws-cluster-guide.md)
+requires account/IAM approval and infrastructure charges. It supplies separate
+cluster credentials and JDBC access; it is not established as a drop-in replacement
+for Nextwise's current REST SQL contract, catalog and filestore. Restoring the
+original Docker stack is the shortest path without an adapter/data migration.
 
-Synthetic Compose validation passed for private routes/ports, three protected
-service secret mounts, persistent mounts, external restored volumes and excluded
-bootstrap. `git diff --check` passed. Task-file credential pattern checks found
-no matches; no private credentials document was opened. This is offline validation,
-not proof of live SQL, model/provider readiness, a Linux image build or recovery.
+## Only external approvals/dependencies remain
+
+1. Remote host/budget and private operator SSH access.
+2. Valid Zetaris registry access, matching private bundle, and entitlement covering
+   the remote installation and intended duration. The official guide distinguishes
+   the platform licence from the recipes' Apache licence and limits uncontracted
+   evaluation to 30 days. Confirm the actual account entitlement; do not assume
+   hackathon access is perpetual.
+3. Owner-provisioned replacement credentials, preserved installation/encryption
+   identity, and a consistent backup/cutover window. Never initialize source volumes.
+4. For AI only: supported remote Meterless hosting/release, model/provider access,
+   protected replacement tokens, budget and live-request approval.
+
+Linux image build, restored boot, recovery and live model acceptance are future
+destination release checks. They were not performed here and do not call for
+another laptop test campaign. Follow the [remote runbook](../deploy/remote/README.md).

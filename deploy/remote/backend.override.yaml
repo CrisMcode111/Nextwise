@@ -12,16 +12,11 @@ services:
       NEXTWISE_PORT: "8765"
       NEXTWISE_ZETARIS_URL: ${NEXTWISE_ZETARIS_URL:-http://127.0.0.1:8888}
       NEXTWISE_METERLESS_URL: ${NEXTWISE_METERLESS_URL:-http://127.0.0.1:18088}
-      NEXTWISE_REQUIRE_METERLESS: "true"
-      NEXTWISE_DEPENDENCY_TIMEOUT: "15"
-      TAVILY_API_KEY_FILE: /run/secrets/tavily_api_key
-      NEXTWISE_METERLESS_TOKEN_FILE: /run/secrets/meterless_token
-      NEXTWISE_PROJECT_PROVIDERS_ENABLED: ${NEXTWISE_PROJECT_PROVIDERS_ENABLED:-false}
+      NEXTWISE_REQUIRE_METERLESS: "false"
+      NEXTWISE_DEPENDENCY_TIMEOUT: ${NEXTWISE_DEPENDENCY_TIMEOUT:-15}
+      NEXTWISE_PROJECT_PROVIDERS_ENABLED: "false"
       NEXTWISE_PROJECT_SEARCH_LIMIT: ${NEXTWISE_PROJECT_SEARCH_LIMIT:-2}
       NEXTWISE_PROJECT_ASSESSMENT_LIMIT: ${NEXTWISE_PROJECT_ASSESSMENT_LIMIT:-4}
-    secrets:
-      - tavily_api_key
-      - meterless_token
     volumes:
       # The existing TS decision validator resolves original refs under /app/data.
       # Preserve that behavior without changing application code or image contents.
@@ -45,8 +40,3 @@ services:
     healthcheck:
       interval: 120s
       start_period: 90s
-secrets:
-  tavily_api_key:
-    file: ${NEXTWISE_TAVILY_SECRET_FILE:?Set a private existing Tavily secret-file path}
-  meterless_token:
-    file: ${NEXTWISE_METERLESS_SECRET_FILE:?Set a private existing Meterless token-file path}

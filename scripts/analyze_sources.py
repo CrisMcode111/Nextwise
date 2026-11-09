@@ -293,6 +293,7 @@ def request_claims(
     max_tokens: int | None = None, max_response_bytes: int | None = None,
     response_schema: dict[str, Any] | None = None,
     endpoint: str | None = None, model: str | None = None,
+    max_price_usd: float | None = None,
 ) -> dict[str, Any]:
     """Send one client attempt. Schema mode is opt-in, with no format fallback.
 
@@ -311,6 +312,12 @@ def request_claims(
         "max_tokens": max_tokens if max_tokens is not None else MAX_TOKENS,
         "messages": messages,
     }
+    if max_price_usd is not None:
+        if type(max_price_usd) not in (int, float) or not 0 <= max_price_usd < float('inf'):
+            raise ValueError('max_price_usd must be a finite nonnegative number.')
+        # Meterless's hard per-request cap; an empty chain permits no alternate mode.
+        payload['max_price'] = max_price_usd
+        payload['models'] = []
     if json_output:
         payload["chat_template_kwargs"] = {"enable_thinking": False}
         payload["response_format"] = ({"type": "json_schema", "json_schema": {
