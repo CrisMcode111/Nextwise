@@ -361,9 +361,9 @@ def make_handler(state, loader=None):
                      "/projects": ("projects.html", "text/html; charset=utf-8"), "/projects.js": ("projects.js", "text/javascript; charset=utf-8"),
                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                      "/style.css": ("style.css", "text/css; charset=utf-8")}
-            if self.path in paths:
-                file, kind = paths[self.path]
-                self.respond(200, (WEB/file).read_bytes(), kind, cookie=self.path in ("/", "/projects"))
+            if route.path in paths:
+                file, kind = paths[route.path]
+                self.respond(200, (WEB/file).read_bytes(), kind, cookie=route.path in ("/", "/projects"))
             elif self.path == "/api/status":
                 if self.allowed(session=True):
                     self.respond(200, {"authenticated": state.key is not None})

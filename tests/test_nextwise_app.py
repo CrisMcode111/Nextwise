@@ -160,5 +160,17 @@ class HttpTests(unittest.TestCase):
         status,headers,body=self.request('/',method='GET')
         self.assertEqual(status,200);self.assertIn('HttpOnly',headers['Set-Cookie'])
 
+    def test_projects_static_routes_accept_query_strings_in_project_mode(self):
+        self.state.project_only = True
+        for route, filename in (('/projects', 'projects.html'), ('/', 'projects.html'),
+                                ('/projects.js', 'projects.js'), ('/style.css', 'style.css')):
+            with self.subTest(route=route):
+                status, headers, body = self.request(route + '?check=ui', method='GET', cookie=False)
+                self.assertEqual(status, 200)
+                self.assertEqual(body, (app.WEB / filename).read_bytes())
+                if filename == 'projects.html':
+                    self.assertIn('HttpOnly', headers['Set-Cookie'])
+        self.assertEqual(self.request('/not-a-page?check=ui', method='GET')[0], 404)
+
 
 if __name__=="__main__":unittest.main()
