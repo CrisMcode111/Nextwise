@@ -264,9 +264,9 @@ def messages(batch,context):
             'Prefer usable products/services/agents; a library is not a usable service for a nontechnical owner. '
             'Only consider developer tools where the brief explicitly describes development work. '
             'Use project_need_id objective for general business goals; do not force requirements extraction. '
-            'Describe one concrete possible benefit as a conditional, unverified hypothesis, never a promised outcome. '
+            'Only for potential relevance, describe one concrete possible benefit as a conditional, unverified hypothesis, never a promised outcome. '
             'For a poor match choose low relevance, null benefit and a next step that avoids unnecessary adoption. '
-            'For an unknown fit choose uncertain relevance. Give one small, practical evidence-review action, not automatic adoption. '
+            'For an unknown fit choose uncertain relevance and JSON null application_hypothesis. Give one small, practical evidence-review action, not automatic adoption. '
             'No saved preferences or decisions are supplied: do not invent them. This assessment does not record a human decision.')
     return [{'role':'system','content':system},{'role':'user','content':json.dumps({'approved_project_context':reasoning_context(context),
         'untrusted_sources':[p['source'] for p in batch]},ensure_ascii=False)}]

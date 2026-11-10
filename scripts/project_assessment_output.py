@@ -72,11 +72,16 @@ def contract(request):
     fields['missing_information']['description'] = (
         'Include these exact uncertainty statements, plus any other gaps: ' + json.dumps(UNKNOWNS))
     for field in REASONING_FIELDS:
-        fields[field]['description'] = (
+        fields[field]['description'] = (fields[field].get('description', '') + ' ' +
             'No numerical project benefits, targets, baselines or prices, even in words. '
             'Exact team-size, Windows-version and RAM facts from the saved brief may be repeated as constraints only. '
-            'Publisher benchmarks do not establish project performance. '
-            'A non-null hypothesis must start Hypothesis:, remain conditional, and explicitly say unverified.')
+            'Publisher benchmarks do not establish project performance.').strip()
+    fields['application_hypothesis']['description'] = (
+        'Required field. MUST be JSON null for low relevance and uncertain relevance, even if a conditional use is imaginable. '
+        'For potential relevance it MUST be a non-null string starting Hypothesis:, include if/provided/subject to, '
+        'could/may/might, and unverified/untested/unproven/not measured/not established. '
+        'No quantities, including saved team-size, Windows-version or RAM facts, belong in this field. '
+        'No guarantees or will/ensure/prove claims. Do not promote relevance just to include a hypothesis.')
     item['required'] = sorted(fields)
     return schema
 
@@ -101,11 +106,14 @@ def messages(request):
         'Include the observation ID in the evidence IDs, with no duplicates. Never generate quotation text; '
         'the application copies exact saved claims. All other assessment fields retain their original meaning. '
         'project_need must contain the exact project name: ' + request['context']['profile']['name'] + '. '
-        'Any non-null application_hypothesis must start Hypothesis:, include if/provided/subject to, '
+        'application_hypothesis MUST be JSON null for low relevance and uncertain relevance. '
+        'Only potential relevance requires a non-null application_hypothesis; do not promote relevance to include one. '
+        'A potential hypothesis must start Hypothesis:, include if/provided/subject to, '
         'could/may/might, and unverified/untested/unproven/not measured/not established. '
+        'The hypothesis must contain no quantities, including saved constraint facts, and no will/ensure/prove claims. '
         'Do not transfer publisher benchmarks into project baselines, benefits, targets or next steps. '
         'Keep all generated project prose, including project_need, limitations and missing_information, '
-        'unquantified except exact team-size, Windows-version and RAM facts already in the saved brief. '
+        'unquantified except exact team-size, Windows-version and RAM facts already in the saved brief outside the hypothesis. '
         'Repeat whole constraint facts, not bare numbers or changed units. Never reuse them as benefits, '
         'performance claims or estimates. Other quantities belong only in saved quotations. '
         'Applicability, costs and compatibility remain unknown; '
