@@ -1,20 +1,49 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nextwise projects</title><link rel="stylesheet" href="/style.css"><script src="/projects.js" defer></script></head>
-<body><main id="main" class="card" style="max-width:900px;margin:2rem auto">
-<h1>Your Nextwise projects</h1>
-<p>Create a project, review saved evidence, and keep your decisions with their supporting briefing. The original pilot remains separate.</p>
-<p id="status" role="status" aria-live="polite"></p>
-<form id="create-project">
-<label>Project name <input name="name" required maxlength="200"></label>
-<label>Your goal, situation and constraints <textarea name="brief" required minlength="10" maxlength="12000"></textarea></label>
-<label><input type="checkbox" name="reviewed" required> I reviewed this text and removed information I do not want shared with an assessment provider.</label>
-<button class="button" type="submit">Save project</button>
-</form>
-<section><h2>Saved projects</h2><div id="projects"></div></section>
-<section id="workspace" hidden><h2 id="project-name"></h2><p id="project-brief"></p>
-<button id="reopen" class="button quiet">Reload saved history</button>
-<form id="discover"><label>Reviewed public search terms <input name="query" required minlength="10" maxlength="500"></label><button class="button" type="submit">Discover and save evidence</button></form>
-<p id="transport-note"></p><div id="sources"></div><div id="briefings"></div>
-<details><summary>Saved workflow history</summary><pre id="history"></pre></details>
-</section></main></body></html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nextwise | Project workspace</title><link rel="stylesheet" href="/style.css"><script src="/projects.js" defer></script></head>
+<body class="projects-ui">
+<a class="skip" href="#workspace">Skip to project workspace</a>
+<header class="topbar"><a class="brand" href="/projects"><span class="mark" aria-hidden="true">n<span>↗</span></span>nextwise <span class="beta">LOCAL WORKSPACE</span></a><span class="workspace-promise">Evidence first. Your decision.</span></header>
+<main id="main">
+  <section class="intro signature-hero" aria-labelledby="signature-heading">
+    <div class="signature-copy"><p class="eyebrow">CONTEXT. CONNECTION. CLARITY.</p><h1 id="signature-heading">Intelligence<br>in motion.</h1><p class="copy">A considered path from your project to the opportunities worth exploring.</p><p class="signature-footnote">Your project sets the direction.</p></div>
+    <figure class="signature-figure">
+      <canvas id="intelligence-field" role="img" aria-label="The Intelligence Field: a luminous project core within an evolving sculpture of gold filaments. Ambient brand artwork, not live AI activity.">A luminous core within an organic field of champagne-gold filaments.</canvas>
+    </figure>
+  </section>
+  <p id="status" class="workspace-status" role="status" aria-live="polite" aria-atomic="true" data-state="pending">Loading your saved projects...</p>
+  <div class="projects-layout" id="workspace-body">
+    <aside class="project-rail" aria-label="Project selection and creation">
+      <section class="card project-picker" aria-labelledby="saved-projects-heading"><p class="eyebrow">YOUR WORKSPACE</p><h2 id="saved-projects-heading">Saved projects</h2><p class="copy">Pick up where you left off.</p><div id="projects" role="group" aria-label="Choose a saved project"></div><p id="projects-empty" class="copy" hidden>No projects saved yet. Start with your goal below.</p></section>
+      <details class="card create-panel" id="create-panel"><summary>Create a project</summary>
+        <form id="create-project"><p class="copy">Describe your own goal and constraints. Saving a project does not start a search or assessment.</p>
+          <label for="project-input-name">Project name</label><input id="project-input-name" name="name" required maxlength="200" placeholder="Name your project" autocomplete="off">
+          <label for="project-input-brief">Your goal, situation and constraints</label><textarea id="project-input-brief" name="brief" required minlength="10" maxlength="12000" rows="7" placeholder="What are you building or trying to improve?"></textarea>
+          <label class="review-consent"><input type="checkbox" name="reviewed" required><span>I reviewed this text and removed information I do not want shared with an assessment provider.</span></label>
+          <button class="button" type="submit">Save project</button>
+        </form>
+      </details>
+      <p class="rail-note">Projects, evidence and decisions are saved through H-MEM on this machine. A recommendation never makes a decision for you.</p>
+    </aside>
+    <section id="workspace" class="project-workspace" aria-label="Project workspace" tabindex="-1">
+      <div id="workspace-empty" class="card empty-workspace"><p class="eyebrow">A PLACE TO THINK CLEARLY</p><h2>Your next step starts here.</h2><p class="copy">Choose a saved project, or create one with a goal you want to explore.</p></div>
+      <div id="project-content" hidden>
+        <section class="project-overview-card" aria-labelledby="project-name"><header class="project-heading"><div><p class="eyebrow">PROJECT OVERVIEW</p><h2 id="project-name"></h2></div><button id="reopen" class="button quiet" type="button">Reload saved history</button></header><p id="project-overview" class="project-overview-copy"></p>
+        <details class="project-context"><summary>Read the full project brief</summary><p id="project-brief"></p></details>
+        <div id="project-counts" class="project-counts" aria-label="Saved project summary"></div></section>
+        <section class="workspace-section opportunity-section" aria-labelledby="opportunities-heading"><div class="section-header"><div><p class="eyebrow">WORTH YOUR ATTENTION</p><h2 id="opportunities-heading">Your opportunities</h2></div><span id="opportunity-count" class="tag neutral"></span></div><div id="opportunities"></div>
+          <div id="opportunity-empty" class="opportunity-empty" hidden>
+            <div class="opportunity-empty-copy"><span class="empty-eyebrow">A LITTLE SPACE FOR WHAT MATTERS</span><h3>No selected opportunities yet.</h3><p>Nothing currently qualifies to be recommended for this project. An opportunity needs a clear, evidence-backed project connection before it earns a place here.</p><p class="empty-reassurance">Your existing sources, evaluations and decisions remain available below.</p><div class="empty-actions"><button id="review-evidence" class="button quiet" type="button">Review saved evidence</button><button id="review-evaluations" class="text-button" type="button">View previous evaluations</button></div></div>
+          </div>
+        </section>
+        <p class="secondary-heading">YOUR SAVED CONTEXT</p>
+        <section class="secondary-section" aria-labelledby="briefings-heading"><details id="previous-evaluations" class="dashboard-disclosure"><summary><span class="disclosure-title" id="briefings-heading">Previous evaluations</span><span id="briefing-count" class="disclosure-count"></span></summary><div class="disclosure-body"><p class="section-copy">Evaluations that are uncertain, low relevance, superseded, or not yet ready as a current opportunity. Their saved conclusions and your human decisions are preserved.</p><div id="briefings"></div></div></details></section>
+        <section class="secondary-section" aria-labelledby="evidence-heading"><details id="saved-evidence" class="dashboard-disclosure"><summary><span class="disclosure-title" id="evidence-heading">Saved evidence</span><span id="source-count" class="disclosure-count"></span></summary><div class="disclosure-body"><p class="section-copy">Publisher statements are evidence of a claim, not proof of project suitability.</p><p id="transport-note" class="transport-note"></p><div id="sources"></div>
+          <details class="discovery-panel"><summary>Discover additional evidence</summary><form id="discover"><label for="search-query">Reviewed public search terms</label><input id="search-query" name="query" required minlength="10" maxlength="500"><button class="button" type="submit" disabled>Discover and save evidence</button></form><p class="copy">An enabled search requires your confirmation and may consume credits. Nothing runs automatically.</p></details>
+        </div></details></section>
+        <section class="secondary-section" aria-labelledby="history-heading"><details id="project-history" class="history-panel"><summary><span id="history-heading" class="history-title">Project history</span><span id="history-summary" class="history-summary"></span></summary><div class="history-body"><p class="section-copy">Saved actions and human decisions. Failed attempts remain part of the record.</p><ol id="history" class="project-timeline"></ol><details class="technical-details"><summary>Technical workflow records</summary><pre id="history-details"></pre></details></div></details></section>
+      </div>
+    </section>
+  </div>
+</main><footer>nextwise <span>Your evidence. Your next step. Your choice.</span></footer>
+</body></html>

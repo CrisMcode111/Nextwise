@@ -81,7 +81,11 @@ class ProjectWorkflowTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory(prefix='nextwise-project-e2e-')
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name) / 'memory'
-        shutil.copytree(self.original, self.root)
+        # Start with an empty project namespace, retaining the pilot stores
+        # for isolation checks. Private projects and one-off response envelopes
+        # are not fixtures for the synthetic project lifecycle below.
+        shutil.copytree(self.original, self.root,
+                        ignore=shutil.ignore_patterns('projects', 'controlled-reassessments', 'final-controlled-assessment-*'))
         self.before_pilot = {name: hashes(self.root / name) for name in
                              ('nemotron-lightning-requirements-extraction', 'update-discovery')}
         self.addCleanup(self.assert_pilot_unchanged)
@@ -193,8 +197,16 @@ class ProjectWorkflowTests(unittest.TestCase):
             self.assertNotIn('Defer Version 1', json.dumps(options['response_schema']))
             self.assertNotIn('1/4', json.dumps(options['response_schema']))
             self.assertEqual(options['max_response_bytes'], workflow.semantic.MAX_RESPONSE_BYTES)
+            # The transport returns generation claim IDs; the existing adapter
+            # materializes exact quotations before workflow validation.
+            generated = json.loads(mocked_assessment(request))
+            value = generated['assessments'][0]
+            del value['source_observation'], value['evidence']
+            claim_id = request['staged_plan']['claims'][0]['passage_id']
+            value.update(observation_claim_id=claim_id, evidence_claim_ids=[claim_id])
+            value['missing_information'].extend(adapters.output.UNKNOWNS)
             return {'ok': True, 'http_status': 200, 'data': {'choices': [{'finish_reason': 'stop',
-                'message': {'role': 'assistant', 'content': mocked_assessment(request)}}]}}
+                'message': {'role': 'assistant', 'content': json.dumps(generated)}}]}}
         actual_assess = adapters.assess
         def capture(request):
             self.model_calls.append(copy.deepcopy(request))
@@ -332,7 +344,7 @@ const fs=require('fs'), vm=require('vm'), assert=require('node:assert/strict');
 const calls=[], notices=[];
 let approved=false;
 const context=vm.createContext({crypto:{randomUUID:()=>'test-request'},
-  document:{querySelector:()=>({replaceChildren(){}})},
+  document:{querySelector:()=>({replaceChildren(){},setAttribute(){}})},
   window:{confirm:message=>{notices.push(message);return approved;}},
   fetch:async(path, options)=>{
     calls.push({path,options});
