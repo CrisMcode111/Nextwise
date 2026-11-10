@@ -33,9 +33,11 @@ class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs): return None
 
 
-def search(query, key):
+def search(query, key, *, max_results=RESULTS_PER_SEARCH):
+    if type(max_results) is not int or not 1 <= max_results <= RESULTS_PER_SEARCH:
+        raise ValueError('Search result limit exceeds the existing transport bounds.')
     payload = {'query':query, 'topic':'general', 'search_depth':'basic',
-        'max_results':RESULTS_PER_SEARCH, 'auto_parameters':False,
+        'max_results':max_results, 'auto_parameters':False,
         'include_answer':False, 'include_raw_content':False, 'include_images':False,
         'include_usage':True}
     request = Request(ENDPOINT, data=json.dumps(payload).encode('utf-8'), method='POST',
@@ -57,7 +59,9 @@ def search(query, key):
         if not isinstance(result, dict) or not isinstance(result.get('results'), list): raise SearchUnavailable()
         usage = result.get('usage', {}).get('credits')
         if usage is not None and (type(usage) is not int or usage != 1): raise SearchUnavailable()
-        return result['results'][:RESULTS_PER_SEARCH]
+        if max_results != RESULTS_PER_SEARCH and len(result['results']) > max_results:
+            raise SearchUnavailable()
+        return result['results'][:max_results]
     except HTTPError as error:
         print(f'Tavily search HTTP {error.code}; no retry made.', file=sys.stderr, flush=True)
         error.close()

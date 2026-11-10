@@ -406,5 +406,46 @@ assert.match(text(rows[1]), /awaiting your decision/);
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_backend_selection_is_authoritative_and_refreshed_after_actions(self):
+        program = r'''
+const fs=require('node:fs'), vm=require('node:vm'), assert=require('node:assert/strict');
+class Element {
+  constructor(){this.children=[];this.textContent='';}
+  append(n){this.children.push(n);} replaceChildren(){this.children=[];} setAttribute(){}
+}
+const elements=new Map(), calls=[];
+const context=vm.createContext({crypto:{randomUUID:()=>'request-test'},
+  document:{createElement:()=>new Element(),querySelector:s=>{
+    if(!elements.has(s))elements.set(s,new Element());return elements.get(s);
+  }}, fetch:()=>new Promise(()=>{})});
+vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),context);
+vm.runInContext(`
+project={project:{id:'project',name:'Policy project',brief:'Review public policy answers'},version:7,
+  items:{},assessments:[],briefings:[],decisions:[],operations:{},
+  opportunity_selections:[{id:'archived'}],selected_opportunities:[]};render();`,context);
+assert.equal(elements.get('#opportunities').children.length,0);
+vm.runInContext(`project.selected_opportunities=[{id:'current',title:'Saved title',project_need:'Saved need'}];render();`,context);
+assert.equal(elements.get('#opportunities').children.length,1);
+const text=n=>n.textContent+' '+n.children.map(text).join(' ');
+assert.match(text(elements.get('#opportunities')),/Saved need/);
+context.fetch=async(path,options={})=>{calls.push({path,options});return {ok:true,json:async()=>
+  options.method==='POST'?{project:{id:'project'},selected_opportunities:[{id:'must-not-use-post'}]}:
+  {project:{id:'project',name:'Policy project',brief:'Review public policy answers'},version:8,
+   items:{},assessments:[],briefings:[],decisions:[],operations:{},selected_opportunities:[]}};};
+(async()=>{
+  await vm.runInContext("openProject('project')",context);
+  assert.equal(elements.get('#opportunities').children.length,0);
+  vm.runInContext("project.selected_opportunities=[{id:'current'}];render()",context);
+  await vm.runInContext("mutate('brief',{assessment_id:'saved'})",context);
+  assert.equal(elements.get('#opportunities').children.length,0);
+  assert.deepEqual(calls.map(c=>c.options.method||'GET'),['GET','POST','GET']);
+  const body=JSON.parse(calls[1].options.body);
+  assert.equal(body.expected_version,8);assert.equal(body.request_id,'request-test');
+})().catch(e=>{console.error(e);process.exitCode=1;});
+'''
+        result = subprocess.run(['node', '-e', program, str(ROOT/'web/projects.js')],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == '__main__': unittest.main()

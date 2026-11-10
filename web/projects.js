@@ -94,7 +94,7 @@ function renderDecision(brief, row) {
   }
   node('p', 'Your choice is recorded separately. Saving it starts no research, spending, model call or implementation.', panel, 'decision-boundary');
   const latest = project.briefings.filter(b => b.candidate_id === brief.candidate_id).at(-1);
-  if (!project.briefing_current[brief.id] || latest.id !== brief.id) {
+  if (!project.briefing_current?.[brief.id] || latest?.id !== brief.id) {
     node('p', 'Historical briefing. Reassess current evidence before deciding.', panel, 'notice'); return;
   }
   const editor = detail(attached ? 'Amend your decision' : 'Record your decision', panel); editor.open = !attached;
@@ -116,35 +116,106 @@ function renderDecision(brief, row) {
     decisionDrafts.delete(brief.id); render();
   }, 'Saving your decision...', 'Your decision and rationale are saved.'); };
 }
-// Presentation boundary only: consume the existing validated category/current
-// flags. Never classify a source, infer relevance, or create an opportunity.
-function isOpportunityBriefing(brief) {
-  const record = project.assessments.find(a => a.id === brief.assessment_id);
-  const latestBrief = project.briefings.filter(b => b.candidate_id === brief.candidate_id).at(-1);
-  const latestAssessment = project.assessments.filter(a => a.candidate_id === brief.candidate_id).at(-1);
-  return project.briefing_current[brief.id] === true && latestBrief?.id === brief.id
-    && latestAssessment?.id === record?.id && record?.assessment.category === 'potential relevance';
+// The backend owns selection and validity. Historical assessments never promote here.
+function selectedOpportunities() {
+  return (Array.isArray(project.selected_opportunities) ? project.selected_opportunities : [])
+    .filter(item => item && project.opportunity_selection_status?.[item.id]?.current !== false);
 }
-function renderOpportunity(brief) {
+function savedList(value) { return Array.isArray(value) ? value : []; }
+function renderOpportunity(opportunity) {
+  const brief = project.briefings.find(b => b.id === opportunity.briefing_id);
+  const source = project.items[opportunity.candidate_id];
+  const info = opportunity.opportunity_details || {};
+  const fit = info.feasibility || {};
   const row = node('article', '', q('#opportunities'), 'card selected-opportunity');
-  const top = node('div', '', row, 'card-kicker'); badge('Potential relevance', top, 'completed');
-  badge('Domain not recorded', top, 'neutral');
-  node('h3', brief.title, row);
-  const connection = node('section', '', row); node('h4', 'Connection to your project', connection); node('p', brief.why_it_matters, connection);
-  const improvement = node('section', '', row); node('h4', 'Potential improvement', improvement); node('p', brief.potential_value, improvement);
-  const next = node('section', '', row, 'opportunity-next'); node('h4', 'Suggested next action', next); node('p', brief.next_action, next);
-  node('p', 'A plausible application, not a verified benefit. Your decision remains separate.', row, 'availability-note');
-  const decision = project.decisions.filter(d => d.briefing_id === brief.id).at(-1);
-  if (decision) badge('Human decision: ' + decision.choice, row, 'neutral');
-  const full = detail('Evidence, reasoning & your decision', row);
-  renderBriefing(brief, full);
+  const top = node('div', '', row, 'card-kicker'); badge('Selected for review', top, 'completed');
+  badge(info.impact_domain || 'Domain not recorded', top, 'neutral');
+  node('h3', opportunity.title || brief?.title || source?.title || 'Title not recorded', row);
+  const section = (title, text, className = '') => {
+    const part = node('section', '', row, className); node('h4', title, part);
+    node('p', text || 'Not recorded in this saved opportunity.', part); return part;
+  };
+  section('Project need', opportunity.project_need);
+  section('How it could help', info.improvement_mechanism?.explanation);
+  section('Potential value', opportunity.potential_value);
+  const labels = {plausible_for_bounded_review:'Plausible for a bounded review', unknown:'Unknown', incompatible:'Incompatible'};
+  const feasibility = section('Feasibility & resources', fit.rationale);
+  node('p', 'Feasibility: ' + (labels[fit.status] || 'Not recorded'), feasibility, 'fit-status');
+  node('p', 'Resource fit: ' + (labels[fit.resource_fit] || 'Not recorded'), feasibility, 'fit-status');
+  if (fit.resource_rationale) node('p', fit.resource_rationale, feasibility);
+  const uncertainties = node('section', '', row); node('h4', 'Uncertainties & conditions', uncertainties);
+  const gaps = [...new Set([...savedList(opportunity.uncertainty), ...savedList(fit.conditions), ...savedList(fit.blocking_unknowns)])];
+  if (gaps.length) { const list = node('ul', '', uncertainties); for (const text of gaps) node('li', text, list); }
+  else node('p', 'No uncertainty details recorded. This does not establish a verified benefit.', uncertainties);
+  section('Suggested next action', opportunity.next_step, 'opportunity-next');
+  node('p', 'Potential value is an unverified hypothesis. Publisher claims are not verified project outcomes. Your decision remains separate.', row, 'availability-note');
+  const evidence = detail('Saved evidence & source provenance', row);
+  const quotes = savedList(opportunity.supporting_evidence);
+  if (!quotes.length) node('p', 'No supporting quotations recorded on this opportunity.', evidence);
+  for (const quote of quotes) {
+    const item = project.items[quote.source_id || opportunity.candidate_id];
+    node('blockquote', quote.exact_quote, evidence);
+    node('p', 'Saved publisher claim \u00b7 Passage ' + (quote.passage_id || 'not recorded'), evidence, 'source-date');
+    if (item) {
+      sourceLink(item.title || 'Saved publisher source', item.url, evidence);
+      node('p', 'Retrieved ' + dateLabel(item.retrieved_at), evidence, 'source-date');
+      node('pre', JSON.stringify(item, null, 2), detail('Source provenance record', evidence));
+    } else node('p', 'Source provenance unavailable for this saved quotation.', evidence);
+  }
+  if (info.improvement_mechanism?.project_quote) {
+    node('h4', 'Saved project connection', evidence); node('blockquote', info.improvement_mechanism.project_quote, evidence);
+  }
+  for (const quote of savedList(fit.resource_quotes)) node('blockquote', quote, evidence);
+  node('pre', JSON.stringify(opportunity, null, 2), detail('Technical selection record', row));
+  if (brief) renderBriefing(brief, detail('Validated reasoning & your decision', row));
+  else node('p', 'No associated briefing available. Saved human decisions remain in project history.', row, 'availability-note');
+}
+function renderSavedRuns() {
+  const panel = q('#project-runs'); panel.replaceChildren();
+  const labels = {completed:'Completed', failed:'Failed', interrupted:'Interrupted',
+    validation_or_transport_failed:'Validation or transport failed', budget_exhausted:'Budget exhausted',
+    running:'Unfinished saved run', awaiting_reserved_search_outcome:'Awaiting reserved outcome',
+    needs_accounting_review:'Accounting review needed', needs_assessment:'Awaiting assessment',
+    needs_evidence_review:'Evidence review needed', promising:'Evidence ready for review',
+    proposed_for_review:'Strategy proposed for review', needs_semantic_interpretation:'Interpretation needed',
+    needs_project_clarification:'Project clarification needed'};
+  const groups = [['Discovery', project.adaptive_discovery_runs], ['Opportunity assessment', project.opportunity_assessment_runs]];
+  let count = 0;
+  for (const [kind, runs] of groups) for (const run of Object.values(runs || {})) {
+    count++;
+    const outcome = run.outcome || run.strategy?.status;
+    const summary = labels[run.status] || 'Saved status: ' + (run.status || 'not recorded');
+    const record = detail(kind + ' \u00b7 ' + summary + (outcome ? ' \u00b7 ' + (labels[outcome] || outcome) : ''), panel);
+    if (outcome) node('p', labels[outcome] || 'Saved outcome: ' + outcome, record);
+    if (run.status === 'running' || run.status === 'interrupted') node('p', 'This is a saved, unfinished run. No background activity or automatic retry is implied. Reload to check the backend.', record);
+    if (run.strategy?.remaining) {
+      const budget = run.strategy.remaining;
+      node('p', `Remaining allowance: ${budget.queries ?? 'not recorded'} queries \u00b7 ${budget.results ?? 'not recorded'} results \u00b7 ${budget.pages ?? 'not recorded'} pages`, record);
+    }
+    if (Number.isInteger(run.max_assessments)) node('p', `${savedList(run.attempts).length} reserved / ${run.max_assessments} assessment allowance`, record);
+    node('pre', JSON.stringify(run, null, 2), detail('Saved run record', record));
+  }
+  if (!count) node('p', 'No adaptive discovery or opportunity-assessment runs recorded. Earlier actions remain in Project history.', panel, 'availability-note');
+  const exclusions = savedList(project.opportunity_exclusions);
+  if (exclusions.length) {
+    const archive = detail(`Saved exclusion reasons (${exclusions.length})`, q('#briefings'));
+    for (const exclusion of exclusions) {
+      node('h4', project.items[exclusion.candidate_id]?.title || 'Saved evaluation', archive);
+      node('p', exclusion.reason ? exclusion.reason.replaceAll('_', ' ') : 'Reason not recorded', archive);
+      node('pre', JSON.stringify(exclusion, null, 2), detail('Technical exclusion record', archive));
+    }
+  }
 }
 function renderBriefing(brief, parent = q('#briefings')) {
   const row = node('article', '', parent, 'card project-briefing');
   const assessment = project.assessments.find(a => a.id === brief.assessment_id)?.assessment;
-  const current = project.briefing_current[brief.id];
+  const current = project.briefing_current?.[brief.id];
   const top = node('div', '', row, 'card-kicker'); badge(current ? 'Validated evaluation' : 'Historical evaluation', top, 'neutral');
   if (assessment?.category) badge(assessment.category, top, 'neutral');
+  for (const selection of savedList(project.opportunity_selections).filter(item => item.briefing_id === brief.id)) {
+    const state = project.opportunity_selection_status?.[selection.id];
+    if (state?.current === false && state.exclusion_reason) badge(state.exclusion_reason.replaceAll('_', ' '), top, 'neutral');
+  }
   const ai = node('section', '', row, 'ai-recommendation');
   node('p', 'SAVED EVALUATION OUTCOME', ai, 'eyebrow'); node('h4', brief.recommended_choice, ai);
   node('p', 'Provisional guidance, separate from your saved human decision.', ai, 'recommendation-boundary');
@@ -159,15 +230,15 @@ function renderBriefing(brief, parent = q('#briefings')) {
   else node('p', 'No application hypothesis is established by this assessment.', row, 'hypothesis-note');
   const gaps = node('section', '', row, 'project-gaps'); node('h4', 'What remains uncertain', gaps);
   const list = node('ul', '', gaps);
-  for (const text of [...new Set([...brief.risks, ...brief.uncertainty])]) node('li', text, list);
+  for (const text of [...new Set([...savedList(brief.risks), ...savedList(brief.uncertainty)])]) node('li', text, list);
   if (assessment?.investigation_question) {
     node('h4', 'Question to resolve', gaps); node('p', assessment.investigation_question, gaps, 'saved-question');
   }
   const next = node('section', '', row, 'project-next-step'); node('h4', 'Next step to consider', next); node('p', brief.next_action, next);
-  const evidence = detail(`Supporting quotations (${brief.supporting_evidence.length})`, row);
+  const evidence = detail(`Supporting quotations (${savedList(brief.supporting_evidence).length})`, row);
   node('p', 'Exact saved publisher quotations. Textual grounding does not establish truth or suitability.', evidence, 'copy');
   if (brief.evidence_references?.url) sourceLink('Primary publisher source', brief.evidence_references.url, evidence);
-  for (const quote of brief.supporting_evidence) { node('blockquote', quote.exact_quote, evidence); node('p', 'Passage ' + quote.passage_id, evidence, 'source-date'); }
+  for (const quote of savedList(brief.supporting_evidence)) { node('blockquote', quote.exact_quote, evidence); node('p', 'Passage ' + quote.passage_id, evidence, 'source-date'); }
   if (brief.context_evidence_references?.length) {
     node('h4', 'Additional saved context', evidence);
     node('p', 'These pages supplied context. The supporting quotations above come from the primary source.', evidence, 'copy');
@@ -232,8 +303,8 @@ function render() {
       : transports.search ? 'Evidence discovery is available on explicit request. AI assessment is unavailable in this instance.'
         : 'External actions unavailable: search and assessment are disabled. Saved evidence, briefings and human decisions remain available.';
   q('#transport-note').setAttribute('data-state', transports.search || transports.assessment ? 'neutral' : 'unavailable');
-  const opportunities = project.briefings.filter(isOpportunityBriefing);
-  const previous = project.briefings.filter(b => !isOpportunityBriefing(b));
+  const opportunities = selectedOpportunities();
+  const previous = project.briefings.filter(b => !opportunities.some(item => item.briefing_id === b.id));
   const unbriefed = project.assessments.filter(a => !project.briefings.some(b => b.assessment_id === a.id));
   q('#project-counts').replaceChildren();
   for (const [count, singular, plural] of [[opportunities.length,'opportunity','opportunities'],[Object.keys(project.items).length,'saved source','saved sources'],[project.decisions.length,'saved decision','saved decisions']]) {
@@ -241,7 +312,8 @@ function render() {
   }
   q('#source-count').textContent = Object.keys(project.items).length + ' saved';
   q('#opportunity-count').textContent = opportunities.length + ' to explore';
-  q('#briefing-count').textContent = (previous.length + unbriefed.length) + ' saved';
+  const exclusions = savedList(project.opportunity_exclusions).length;
+  q('#briefing-count').textContent = (previous.length + unbriefed.length) + ' saved' + (exclusions ? ' \u00b7 ' + exclusions + ' exclusions' : '');
   q('#opportunities').replaceChildren(); q('#opportunity-empty').hidden = opportunities.length > 0;
   q('#sources').replaceChildren(); q('#briefings').replaceChildren();
   if (!Object.keys(project.items).length) node('p', 'No evidence saved yet. Discovery is available only when enabled and explicitly authorized.', q('#sources'), 'card empty-note');
@@ -250,7 +322,7 @@ function render() {
   for (const brief of opportunities) renderOpportunity(brief);
   for (const brief of previous) renderBriefing(brief);
   for (const record of unbriefed) renderUnbriefedAssessment(record);
-  renderHistory();
+  renderSavedRuns(); renderHistory();
 }
 q('#create-project').onsubmit = event => { event.preventDefault(); action(async () => {
   const form = event.target, result = await api('/api/projects', {request_id:createId, name:form.elements.name.value,

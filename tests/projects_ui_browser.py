@@ -62,6 +62,37 @@ def project_fixture():
         'decisions':[decision], 'operations':operations, 'runs':[]}
 
 
+def selected_fixture():
+    """Backend-shaped selection, never inferred from assessment category."""
+    value = project_fixture()
+    brief = value['briefings'][0]
+    brief['recommended_choice'] = 'Test'
+    brief['potential_value'] = 'Hypothesis: A bounded policy trial could improve answer organization; outcomes are unverified.'
+    value['assessments'][0]['assessment']['category'] = 'potential relevance'
+    value['decisions'] = []
+    details = {'impact_domain':'productivity', 'evidence_quality':'publisher_claims_only',
+        'improvement_mechanism':{'explanation':'Organize answers around saved policy passages.',
+            'project_quote':value['project']['brief'], 'evidence_claim_ids':['synthetic-passage']},
+        'feasibility':{'status':'plausible_for_bounded_review', 'rationale':'A small local review is possible.',
+            'resource_fit':'plausible_for_bounded_review', 'resource_rationale':'Use existing review time.',
+            'resource_quotes':[], 'conditions':['Review accuracy before adoption.'],
+            'blocking_unknowns':['Integration effort is unknown.']}}
+    selection = {'id':'selection-current','candidate_id':'source-1', 'briefing_id':brief['id'],
+        'assessment_id':'synthetic-assessment', 'opportunity_details':details,
+        'project_need':brief['why_it_matters'], 'potential_value':brief['potential_value'],
+        'supporting_evidence':brief['supporting_evidence'], 'uncertainty':brief['uncertainty'],
+        'next_step':brief['next_action'], 'benefit_status':'unverified_hypothesis',
+        'evidence_quality':'publisher_claims_only'}
+    value['selected_opportunities'] = [selection]
+    value['opportunity_selections'] = [selection]
+    value['opportunity_selection_status'] = {'selection-current':{'current':True,'exclusion_reason':None}}
+    value['adaptive_discovery_runs'] = {'discovery-test':{'id':'discovery-test','status':'interrupted',
+        'strategy':{'status':'needs_accounting_review','remaining':{'queries':0,'results':0,'pages':0}}}}
+    value['opportunity_assessment_runs'] = {'assessment-test':{'id':'assessment-test',
+        'status':'budget_exhausted', 'max_assessments':1,'attempts':[{'id':'reserved-test','status':'validated'}]}}
+    return value
+
+
 class ReadOnlyBrowser(Browser):
     def call(self, method, params=None):
         identity = self.send(method, params)
@@ -199,8 +230,24 @@ transports = {search:true,assessment:true}; render();''')
             check('Untrusted source text is rendered as text, not markup', "project=structuredClone(__saved); Object.values(project.items)[0].title='<img src=x onerror=alert(1)>'; render(); document.querySelector('.source-card h3').textContent==='<img src=x onerror=alert(1)>' && document.querySelector('.source-card img')===null")
             check('Stale briefing disables human decision form', "project=structuredClone(__saved); project.briefing_current[project.briefings[0].id]=false; render(); document.querySelector('.project-decision-form')===null && document.querySelector('.human-decision-panel').textContent.includes('Historical briefing')")
             check('Low and uncertain relevance stay out of the opportunity area', "['low relevance','uncertain relevance'].every(category=>{project=structuredClone(__saved);project.assessments[0].assessment.category=category;render();return document.querySelectorAll('#opportunities article').length===0 && document.querySelectorAll('#briefings .project-briefing').length===1;})")
-            check('Future qualifying card maps saved fields without inferring a domain', r'''(()=>{project=structuredClone(__saved); const a=project.assessments[0].assessment, b=project.briefings[0]; a.category='potential relevance'; b.title='SYNTHETIC UI FIXTURE: qualifying capability'; b.why_it_matters='SYNTHETIC UI FIXTURE: a project needs structured outputs.'; b.potential_value='Hypothesis: If this synthetic capability fits the synthetic project, it could help organize output; the benefit is unverified.'; b.next_action='Review the synthetic fixture requirements.'; render(); const card=document.querySelector('#opportunities .selected-opportunity'); return card!==null && document.querySelector('#opportunity-empty').hidden && card.textContent.includes('Domain not recorded') && [...card.querySelectorAll(':scope>section p')].map(n=>n.textContent).join('|')===[b.why_it_matters,b.potential_value,b.next_action].join('|') && card.querySelector('.project-briefing').closest('details')!==null && document.querySelectorAll('#briefings .project-briefing').length===0;})()''')
-            check('Stale and superseded potential evaluations are not opportunities', r'''(()=>{project.briefing_current[project.briefings[0].id]=false;render();const stale=document.querySelectorAll('#opportunities article').length===0;project.briefing_current[project.briefings[0].id]=true;const newer=structuredClone(project.assessments[0]);newer.id='synthetic-newer-assessment';newer.assessment.category='low relevance';project.assessments.push(newer);render();return stale && document.querySelectorAll('#opportunities article').length===0;})()''')
+            check('Legacy potential assessment never promotes without backend selection', "project=structuredClone(__saved);project.assessments[0].assessment.category='potential relevance';render();document.querySelectorAll('#opportunities .selected-opportunity').length===0 && document.querySelectorAll('#briefings .project-briefing').length===1")
+            browser.evaluate('window.__selected = ' + json.dumps(selected_fixture()) + ';project=structuredClone(__selected);render();')
+            check('Backend selection shows its saved title and every explanation field', "(()=>{const c=document.querySelector('#opportunities .selected-opportunity'),s=project.selected_opportunities[0],f=s.opportunity_details.feasibility;return c && [project.briefings[0].title,'productivity',s.project_need,s.opportunity_details.improvement_mechanism.explanation,s.potential_value,f.rationale,f.resource_rationale,...f.conditions,...f.blocking_unknowns,...s.uncertainty,s.next_step].every(t=>c.textContent.includes(t)) && c.textContent.includes('Plausible for a bounded review') && document.querySelectorAll('#briefings .project-briefing').length===0;})()")
+            check('Selection evidence preserves exact quotations and saved source provenance', "(()=>{const c=document.querySelector('#opportunities .selected-opportunity');return c.querySelector('blockquote').textContent===project.selected_opportunities[0].supporting_evidence[0].exact_quote && c.querySelector('a').href===project.items['source-1'].url && c.textContent.includes('unverified hypothesis') && c.textContent.includes('not verified project outcomes') && c.textContent.includes('Source provenance record') && c.querySelector('.project-decision-form select').value==='';})()")
+            check('Interrupted and exhausted statuses show saved progress without active indicators', "(()=>{const p=document.querySelector('#project-runs');return p.textContent.includes('Interrupted') && p.textContent.includes('Budget exhausted') && p.textContent.includes('Accounting review needed') && p.textContent.includes('0 queries') && p.textContent.includes('1 reserved / 1') && !p.querySelector('[role=progressbar],.pending');})()")
+            check('Selected cards fit the mobile viewport', "document.documentElement.scrollWidth<=innerWidth && document.querySelector('#opportunities .selected-opportunity').getBoundingClientRect().right<=innerWidth")
+            for width, height, name in [(1440,1100,'selected-desktop'), (390,844,'selected-mobile')]:
+                browser.call('Emulation.setDeviceMetricsOverride', {'width':width,'height':height,'deviceScaleFactor':1,'mobile':width==390})
+                size = browser.call('Page.getLayoutMetrics')['cssContentSize']
+                data = browser.call('Page.captureScreenshot', {'format':'png','captureBeyondViewport':True,
+                    'clip':{'x':0,'y':0,'width':width,'height':size['height'],'scale':1}})['data']
+                (OUT / (name+'.png')).write_bytes(base64.b64decode(data))
+                check(name+' has no overflow', 'document.documentElement.scrollWidth<=innerWidth')
+            check('Running saved run is unfinished, never shown as live processing', "project.adaptive_discovery_runs['discovery-test'].status='running';render();document.querySelector('#project-runs').textContent.includes('Unfinished saved run') && document.querySelector('#project-runs').textContent.includes('No background activity') && !document.querySelector('#project-runs .pending')")
+            check('Missing optional selection fields remain honest and readable', "project=structuredClone(__selected);delete project.selected_opportunities[0].opportunity_details;delete project.selected_opportunities[0].supporting_evidence;delete project.selected_opportunities[0].uncertainty;project.briefings=[];render();const c=document.querySelector('#opportunities .selected-opportunity');c.textContent.includes('Domain not recorded') && c.textContent.includes('Not recorded') && c.textContent.includes('No associated briefing') && !c.textContent.includes('undefined')")
+            check('Excluded stale and superseded selections remain historical only', "['human_reject_or_defer','stale_or_invalid_assessment','briefing_superseded_or_invalid','uncertain_relevance'].every(reason=>{project=structuredClone(__selected);project.selected_opportunities=[];project.opportunity_selection_status['selection-current']={current:false,exclusion_reason:reason};project.opportunity_exclusions=[{candidate_id:'source-1',reason}];render();return document.querySelectorAll('#opportunities .selected-opportunity').length===0 && document.querySelectorAll('#briefings .project-briefing').length===1 && document.querySelector('#briefings').textContent.includes(reason.replaceAll('_',' '));})")
+            check('Explicit invalid selection status fails closed', "project=structuredClone(__selected);project.opportunity_selection_status['selection-current'].current=false;render();document.querySelectorAll('#opportunities .selected-opportunity').length===0")
+            check('Refresh and successful project action recheck backend selection by GET', r'''(async()=>{project=structuredClone(__selected);render();const calls=[];window.fetch=async(path,options={})=>{calls.push({path,options});return {ok:true,json:async()=>options.method==='POST'?structuredClone(__selected):structuredClone(__saved)};};await openProject(__saved.project.id);const refreshed=!document.querySelector('#opportunities .selected-opportunity');project=structuredClone(__selected);render();await mutate('brief',{assessment_id:'synthetic-assessment'});return refreshed && !document.querySelector('#opportunities .selected-opportunity') && calls.length===3 && calls[0].options.method===undefined && calls[1].options.method==='POST' && calls[2].options.method===undefined;})()''')
             check('Unbriefed assessments remain accessible without becoming opportunities', "project=structuredClone(__saved);project.briefings=[];project.decisions=[];render();document.querySelectorAll('.unbriefed-evaluation').length===1 && document.querySelectorAll('#opportunities article').length===0 && document.querySelector('#briefings').textContent.includes('no briefing is attached')")
             check('Empty saved project has honest empty states', "project=structuredClone(__saved); project.items={}; project.briefings=[]; project.assessments=[]; project.decisions=[]; project.operations={}; render(); document.querySelector('#sources').textContent.includes('No evidence saved yet') && document.querySelector('#briefings').textContent.includes('No previous evaluations') && !document.querySelector('#opportunity-empty').hidden")
             check('History summary accounts for pending reservations without inventing outcomes', "project=structuredClone(__saved); project.operations['synthetic-pending']={action:'assess',status:'started'}; renderHistory(); document.querySelector('#history-summary').textContent.includes('1 pending') && document.querySelector('#history').textContent.includes('Pending')")

@@ -15,9 +15,13 @@ import project_assessment_output as output
 import tavily_discovery as tavily
 
 
-def search(query):
+def search(query, *, max_results=tavily.RESULTS_PER_SEARCH):
+    if type(max_results) is not int or not 1 <= max_results <= tavily.RESULTS_PER_SEARCH:
+        raise ValueError('Search result limit exceeds the existing transport bounds.')
     key = config.secret('TAVILY_API_KEY', required=True)
-    return tavily.search(query, key)
+    if max_results == tavily.RESULTS_PER_SEARCH:
+        return tavily.search(query, key)
+    return tavily.search(query, key, max_results=max_results)
 
 
 def assess(request):
@@ -58,6 +62,10 @@ def assess(request):
             raise ValueError()
     except (KeyError, TypeError, ValueError, AttributeError):
         raise ValueError('Meterless did not return a complete assessment; no result accepted.') from None
+    # V2 is materialized by the workflow after retaining the exact returned
+    # text. Legacy callers retain their existing canonical-string interface.
+    if request.get('opportunity_contract') == 'project-opportunity-v2':
+        return content
     return output.materialize(content, request)
 
 

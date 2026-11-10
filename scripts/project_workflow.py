@@ -57,6 +57,10 @@ class Projects:
         require(semantic.digest(context) == project['context_sha256'], 'Project input failed integrity checks.')
         opportunities.verify(state['briefings'])
         opportunities.verify(state['decisions'])
+        for field in ('opportunity_selections','opportunity_exclusions'):
+            opportunities.verify(state.get(field,[]))
+            require(all(r['project_id']==project_id for r in state.get(field,[])),
+                    'Opportunity record belongs to another project.')
         return state
 
     def list(self):
@@ -83,6 +87,8 @@ class Projects:
                 state['briefing_current'][brief['id']] = True
             except (ValueError, OSError, KeyError):
                 state['briefing_current'][brief['id']] = False
+        from project_selection import present
+        state.update(present(self,store,state))
         return copy.deepcopy(state)
 
     def create(self, body):
@@ -112,8 +118,24 @@ class Projects:
         item = state['items'].get(record['candidate_id'])
         require(item is not None, 'Source not found.')
         request = self.prepare_assessment(store, state, item, record.get('context_candidate_ids', []))
+        if record.get('opportunity_contract'):
+            request['opportunity_contract'] = record['opportunity_contract']
         require(record['input_sha256'] == semantic.digest(request), 'Assessment evidence or context changed.')
         semantic.evaluate_business_response(json_dumps({'assessments': [record['assessment']]}), request)
+        if record.get('opportunity_contract'):
+            import opportunity_assessment as opportunity
+            require(record['opportunity_contract']==opportunity.VERSION,'Unknown opportunity contract.')
+            opportunity.validate(record.get('opportunity_details'),request,record['assessment'])
+            refs=record['output_reference']
+            path=(store.directory/refs['path']).resolve()
+            require(path.is_relative_to((store.directory/'runs').resolve()),'Invalid assessment output path.')
+            raw=path.read_bytes()
+            require(len(raw)<=semantic.MAX_RESPONSE_BYTES and discovery.sha(raw)==refs['sha256'],
+                    'Retained assessment output failed integrity checks.')
+            import project_assessment_output as output
+            replay,details=opportunity.evaluate(output.materialize(raw.decode('utf-8'),request),request)
+            require(replay['assessment']==record['assessment'] and details==record['opportunity_details'],
+                    'Assessment differs from its retained output.')
         return record
 
     def prepare_assessment(self, store, state, item, context_ids):
@@ -143,6 +165,12 @@ class Projects:
         return request
 
     def act(self, project_id, action, body):
+        if action == 'assess_opportunities':
+            from project_selection import run
+            return run(self,project_id,body)
+        if action == 'discover_adaptive':
+            from project_discovery_run import run
+            return run(self, project_id, body)
         require(action in ('discover', 'assess', 'brief', 'decide'), 'Unknown project action.')
         rid = request_id(body)
         store = self.store(project_id)
@@ -164,7 +192,11 @@ class Projects:
             if action in self.external_limits:
                 require(body.get('authorize_external_request') is True,
                         'Explicit approval of this external request is required.')
-                attempts = sum(op['action'] == action for op in state['operations'].values())
+                if action == 'discover':
+                    from project_discovery_run import search_attempts
+                    attempts = search_attempts(state)
+                else:
+                    attempts = sum(op['action'] == action for op in state['operations'].values())
                 require(attempts < self.external_limits[action], 'Project external attempt limit reached.')
             # Reserve before an external attempt. Interrupted or failed requests never retry silently.
             state['operations'][rid] = {'action': action, 'fingerprint': fingerprint, 'status': 'started'}
@@ -172,6 +204,9 @@ class Projects:
             try:
                 getattr(self, '_' + action)(store, state, body, rid)
                 state['operations'][rid]['status'] = 'completed'
+                if state.get('opportunity_selections'):
+                    from project_selection import record_invalidations
+                    record_invalidations(self,store,state)
             except Exception as error:
                 diagnostic = ''
                 if isinstance(error, semantic.AssessmentError):
@@ -236,14 +271,32 @@ class Projects:
         require(item is not None, 'Choose a saved source.')
         context_ids = body.get('context_candidate_ids', [])
         request = self.prepare_assessment(store, state, item, context_ids)
+        extended = body.get('opportunity_contract') == 'project-opportunity-v2'
+        if extended:
+            request['opportunity_contract'] = body['opportunity_contract']
         content = self.assessor(copy.deepcopy(request))
         require(isinstance(content, str) and len(content.encode('utf-8')) <= semantic.MAX_RESPONSE_BYTES,
                 'Invalid assessment response.')
-        result = semantic.evaluate_business_response(content, request)
+        details = None
+        if extended:
+            import project_assessment_output as output
+            import opportunity_assessment as opportunity
+            path = store.directory/'runs'/rid/'assessment-output.json'
+            path.parent.mkdir(parents=True,exist_ok=True)
+            with path.open('xb') as stream:stream.write(content.encode('utf-8'))
+            canonical = output.materialize(content,request)
+            result, details = opportunity.evaluate(canonical,request)
+        else:
+            result = semantic.evaluate_business_response(content, request)
         state['assessments'].append({'id': rid, 'candidate_id': item['id'],
             'context_candidate_ids': list(context_ids),
             'input_sha256': semantic.digest(request), 'assessment': result['assessment'],
             'created_at': semantic.now(), 'validation': 'contract_and_source_quotes_checked'})
+        if extended:
+            state['assessments'][-1].update(opportunity_contract=opportunity.VERSION,
+                opportunity_details=details, output_reference={
+                    'path':str(path.relative_to(store.directory)).replace('\\','/'),
+                    'sha256':discovery.sha(content)})
 
     def _brief(self, store, state, body, rid):
         record = self._assessment(store, state, body.get('assessment_id'))
@@ -262,6 +315,7 @@ class Projects:
             'recommended_choice': choice, 'created_at': semantic.now(),
             'evidence_references': copy.deepcopy(state['items'][candidate_id]),
             'context_evidence_references': [copy.deepcopy(state['items'][i]) for i in record.get('context_candidate_ids', [])],
+            **({'opportunity_details':copy.deepcopy(record['opportunity_details'])} if record.get('opportunity_contract') else {}),
             'label': 'Contract-validated provisional briefing; publisher claims and project benefits remain unverified. Human review required.'}))
 
     def _decide(self, store, state, body, rid):
