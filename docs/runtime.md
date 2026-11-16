@@ -62,6 +62,9 @@ credentials, queries or fragments. HTTPS is appropriate for remote services.
 | `NEXTWISE_NODE` | `node`; executable name or absolute executable path. |
 | `NEXTWISE_DEPENDENCY_TIMEOUT` | `3` seconds per SQL/TCP dependency check; allowed range 1–30. |
 | `NEXTWISE_REQUIRE_METERLESS` | `false`; when true an unreachable gateway makes readiness fail. TCP checks do not prove model/provider authentication. |
+| `NEXTWISE_PROJECT_PROVIDERS_ENABLED` | `false`; legacy master gate for project external providers. |
+| `NEXTWISE_PROJECT_SEARCH_ENABLED` | `true` under the enabled master gate; controls Tavily and public-page transports. |
+| `NEXTWISE_PROJECT_ASSESSMENT_ENABLED` | `true` under the enabled master gate; set explicitly to `false` for search-only isolation. Search-only mode forces project-only startup/routes and one-query adaptive runs. |
 | `NEXTWISE_UNATTENDED` | `false`; `serve_runtime.py` always selects unattended mode. A configured Zetaris key also selects it in the original app entry point. |
 | `TAVILY_API_KEY` / `TAVILY_API_KEY_FILE` | Optional local discovery credential; same exclusive secret-file support. Leave absent to avoid Tavily spending. Not forwarded by the base Compose definition. |
 

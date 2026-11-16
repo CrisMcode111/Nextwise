@@ -42,6 +42,43 @@ Production transports are connected through `project_adapters.configured_service
 They remain off until `NEXTWISE_PROJECT_PROVIDERS_ENABLED=true`. No configuration
 was enabled and no actual credentials were changed during implementation.
 
+The master gate preserves legacy behavior: when enabled, search and assessment
+default to enabled. `NEXTWISE_PROJECT_SEARCH_ENABLED` and
+`NEXTWISE_PROJECT_ASSESSMENT_ENABLED` independently disable their transport. With
+the master gate absent/false, both providers remain disabled regardless of child
+flags. Disabled providers have no wired transport or allowance and need no secret.
+
+For a native search-only runtime, explicitly set the master and search gates to
+`true` and the assessment gate to `false`. This automatically restricts startup,
+health checks and HTTP routes to project mode, even without `--projects`. Pilot
+endpoints are unavailable; project assessment actions and direct calls to the
+disabled assessment adapter fail before credentials or inference. Search-only
+previews and new adaptive runs permit at most one Basic query, five results and
+four public page attempts. Oversized client limits are rejected before journaling.
+Empty/error results cannot trigger another query or model fallback. An older run
+with broader ceilings may be recovered without redispatch but cannot continue in
+search-only mode or have its cumulative ledger reset.
+
+For AI Raw Gourmet's next bounded search, increase only the configured lifetime
+search ceiling from 1 to 2. The earlier consumed reservation remains unchanged;
+changing this ceiling does not itself write project data. These are future native
+configuration steps, not configuration applied by this implementation.
+
+After separate approval, start the native runtime:
+
+```powershell
+python -B scripts/serve_runtime.py --env-file .env.runtime.local-mvp --projects
+```
+
+Reopen the current version, review its local
+`research_plan`, and submit a fresh `discover_adaptive` request with both
+`authorize_external_request: true` and `authorize_adaptive_queries: true`, and
+`limits: {"max_queries":1,"results_per_query":5,"max_source_pages":4}`. Query
+review/clarification never substitutes for transfer/spending consent. Meterless
+and its token are unnecessary for this native path; retain assessment allowances
+and history unchanged. The existing remote provider Compose override bundles
+model secrets and is not the native search-only launch configuration.
+
 For native Python, set protected `TAVILY_API_KEY_FILE` and
 `NEXTWISE_METERLESS_TOKEN_FILE` paths. The files must contain the replacement
 service key and runtime bearer token respectively, one line each. Do not put their

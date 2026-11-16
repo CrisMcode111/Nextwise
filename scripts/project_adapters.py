@@ -25,6 +25,10 @@ def search(query, *, max_results=tavily.RESULTS_PER_SEARCH):
 
 
 def assess(request):
+    # Defense in depth for stale references/direct adapter calls in a disabled
+    # assessment runtime. No contract, credential, retry or fallback is reached.
+    if not config.boolean('NEXTWISE_PROJECT_ASSESSMENT_ENABLED', True):
+        raise config.ConfigError('Project assessment is disabled.')
     # Prepare the fail-closed generation contract before resolving credentials.
     messages = output.messages(request)
     response_schema = output.contract(request)
@@ -69,12 +73,25 @@ def assess(request):
     return output.materialize(content, request)
 
 
-def configured_services():
+def provider_modes():
+    """Legacy master gate stays off by default; child gates are independent."""
     if not config.boolean('NEXTWISE_PROJECT_PROVIDERS_ENABLED'):
+        return False, False
+    return (config.boolean('NEXTWISE_PROJECT_SEARCH_ENABLED', True),
+            config.boolean('NEXTWISE_PROJECT_ASSESSMENT_ENABLED', True))
+
+
+def configured_services():
+    search_enabled, assessment_enabled = provider_modes()
+    if not search_enabled and not assessment_enabled:
         return {}
-    search_enabled = config.boolean('NEXTWISE_PROJECT_SEARCH_ENABLED', True)
+    limits = {}
+    if search_enabled:
+        limits['discover'] = config.integer('NEXTWISE_PROJECT_SEARCH_LIMIT', 2, maximum=100)
+    if assessment_enabled:
+        limits['assess'] = config.integer('NEXTWISE_PROJECT_ASSESSMENT_LIMIT', 4, maximum=100)
     return {'searcher': search if search_enabled else None,
-            'fetcher': tavily.public_page if search_enabled else None, 'assessor': assess,
-            'external_limits': {
-                'discover': config.integer('NEXTWISE_PROJECT_SEARCH_LIMIT', 2, maximum=100),
-                'assess': config.integer('NEXTWISE_PROJECT_ASSESSMENT_LIMIT', 4, maximum=100)}}
+            'fetcher': tavily.public_page if search_enabled else None,
+            'assessor': assess if assessment_enabled else None,
+            'search_only': search_enabled and not assessment_enabled,
+            'external_limits': limits}

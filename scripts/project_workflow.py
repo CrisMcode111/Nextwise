@@ -32,7 +32,12 @@ def request_id(body):
 
 
 class Projects:
-    def __init__(self, memory_root, *, searcher=None, fetcher=None, assessor=None, external_limits=None):
+    def __init__(self, memory_root, *, searcher=None, fetcher=None, assessor=None, external_limits=None,
+                 search_only=False):
+        require(type(search_only) is bool, 'Invalid search-only policy.')
+        require(not search_only or (assessor is None and 'assess' not in (external_limits or {})),
+                'Search-only mode cannot configure an assessment transport or allowance.')
+        self.search_only = search_only
         self.directory = Path(memory_root).resolve() / 'projects'
         self.searcher, self.fetcher, self.assessor = searcher, fetcher, assessor
         self.external_limits = dict(external_limits or {})
@@ -165,6 +170,8 @@ class Projects:
         return request
 
     def act(self, project_id, action, body):
+        require(not self.search_only or action not in ('assess','assess_opportunities'),
+                'Assessment actions are disabled in search-only mode.')
         if action == 'research_plan':
             # Local preview: no lock, journal, allowance, credential or transport.
             from project_understanding import prepare_research
@@ -176,6 +183,10 @@ class Projects:
             limits = body.get('limits', {})
             require(isinstance(limits,dict) and set(limits)<=
                     {'max_queries','results_per_query','max_source_pages'}, 'Invalid discovery limits.')
+            if self.search_only:
+                require(type(limits.get('max_queries',1)) is int and limits.get('max_queries',1)==1,
+                        'Search-only discovery permits one query per run.')
+                limits = {'max_queries':1, **limits}
             return prepare_research(state, **{k:v for k,v in body.items() if k not in ('expected_version','limits')}, **limits)
         if action == 'assess_opportunities':
             from project_selection import run

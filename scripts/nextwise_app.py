@@ -178,11 +178,17 @@ class State:
         self.cookie = secrets.token_urlsafe(32)
         self.memory_root = Path(memory_root or memory.DEFAULT_MEMORY_ROOT).resolve()
         from project_workflow import Projects
+        from project_adapters import provider_modes
+        search_only = provider_modes() == (True, False)
         if project_services is None:
             from project_adapters import configured_services
             project_services = configured_services()
+        if search_only:
+            # A configured runtime restriction also applies to injected wiring.
+            project_services = {**project_services, 'assessor':None, 'search_only':True,
+                'external_limits':{k:v for k,v in project_services.get('external_limits',{}).items() if k!='assess'}}
         self.projects = Projects(self.memory_root, **project_services)
-        self.project_only = False
+        self.project_only = self.projects.search_only
         self.context = None
         self.evidence_warning = False
         self.discovery = discovery.Store(self.memory_root)
@@ -570,12 +576,14 @@ def main(argv=None):
     parser.add_argument('--projects', action='store_true')
     args = parser.parse_args(argv)
     try:
+        from project_adapters import provider_modes
+        project_only = args.projects or provider_modes() == (True, False)
         config = runtime_config.settings()
-        key = '' if args.projects else runtime_config.secret('NEXTWISE_ZETARIS_API_KEY')
-        unattended = args.unattended or args.projects or runtime_config.boolean('NEXTWISE_UNATTENDED') or bool(key)
+        key = '' if project_only else runtime_config.secret('NEXTWISE_ZETARIS_API_KEY')
+        unattended = args.unattended or project_only or runtime_config.boolean('NEXTWISE_UNATTENDED') or bool(key)
         if unattended:
             from runtime_health import check_dependencies
-            report = (check_dependencies(config, project_only=True) if args.projects else check_dependencies(config, key=key))
+            report = (check_dependencies(config, project_only=True) if project_only else check_dependencies(config, key=key))
             if not report['ready']:
                 print(json.dumps(report), file=sys.stderr, flush=True)
                 return 1
@@ -585,7 +593,7 @@ def main(argv=None):
         print(str(error), file=sys.stderr, flush=True)
         return 1
     state = State(api_key=key)
-    state.project_only = args.projects
+    state.project_only = project_only or state.project_only
     key = None
     try:
         server = LocalHTTPServer((config.host, config.port), make_handler(state))

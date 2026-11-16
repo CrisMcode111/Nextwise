@@ -196,6 +196,11 @@ def run(projects, project_id, body):
             if any(r['attempt_id'] not in settled for r in job['strategy']['reservations']):
                 _recover(projects,store,state,job)
                 return copy.deepcopy(state)  # Recovery never dispatches in the same request.
+            if projects.search_only:
+                require(job['strategy']['allowance']['queries']<=1
+                        and job['strategy']['allowance']['results']<=5
+                        and job['strategy']['allowance']['pages']<=4,
+                        'Existing run exceeds search-only bounds; its ledger cannot be reset.')
             # A process may stop after confirmed feedback but before reserving
             # its next query. Only a new authorized request continues that gap.
             for operation in state['operations'].values():
@@ -211,7 +216,11 @@ def run(projects, project_id, body):
             limits = body.get('limits',{})
             require(isinstance(limits,dict) and set(limits)<=
                     {'max_queries','results_per_query','max_source_pages'},'Invalid discovery limits.')
-            limits = {'max_queries':min(planning.tavily.MAX_SEARCHES,remaining),**limits}
+            default_queries = 1 if projects.search_only else min(planning.tavily.MAX_SEARCHES,remaining)
+            limits = {'max_queries':default_queries,**limits}
+            if projects.search_only:
+                require(type(limits['max_queries']) is int and limits['max_queries']==1,
+                        'Search-only discovery permits one query per run.')
             require(type(limits['max_queries']) is int and limits['max_queries']<=remaining,
                     'Requested search allowance exceeds the project remainder.')
             from project_understanding import prepare_research
