@@ -35,11 +35,19 @@ OUTCOME_CONTEXT = re.compile(
     r'estimat\w*|forecast\w*|baseline\w*|target\w*)\b', re.I)
 
 
-def quantified_outcome(text, brief):
+def quantified_outcome(text, brief, *, field=None):
     """Exempt whole saved constraint facts, not their reusable number tokens."""
     if not QUANTIFIED.search(text):
         return False
-    if OUTCOME_CONTEXT.search(text):
+    outcome_text = text
+    if field == 'investigation_question' and text.rstrip().endswith('?'):
+        # Qualitative cost uncertainty in a question does not turn separate,
+        # exact saved environment constraints into a numerical cost estimate.
+        # Keep the original text for quantity checking below; other fields and
+        # every other outcome/estimate term retain the conservative guard.
+        outcome_text = re.sub(r'\b(?:unknown|unverified|unjustified)\s+costs?\b',
+                              '', text, flags=re.I)
+    if OUTCOME_CONTEXT.search(outcome_text):
         return True
     for match in BRIEF_CONSTRAINT.finditer(brief):
         fact = match.group()
@@ -107,8 +115,10 @@ def messages(request):
         '\nPROJECT OUTPUT CONTRACT: The response schema supplied with this request supersedes '
         'earlier instructions to generate source_observation or evidence quotation objects. '
         'Instead return observation_claim_id and evidence_claim_ids using ONLY primary bank passage_id values. '
-        'Include the observation ID in the evidence IDs, with no duplicates. Never generate quotation text; '
-        'the application copies exact saved claims. All other assessment fields retain their original meaning. '
+        'Include the observation ID in the evidence IDs, with no duplicates. For external publisher quotations, '
+        'return claim IDs only; the application copies exact saved claims. '
+        'Project-brief quotation fields in opportunity_details must instead copy exact saved project text '
+        'as specified by OPPORTUNITY V2. All other assessment fields retain their original meaning. '
         'project_need must contain the exact project name: ' + request['context']['profile']['name'] + '. '
         'application_hypothesis MUST be JSON null for low relevance and uncertain relevance. '
         'Only potential relevance requires a non-null application_hypothesis; do not promote relevance to include one. '
@@ -151,7 +161,7 @@ def materialize(content, request):
     brief = request['context']['profile']['objective']
     for field in REASONING_FIELDS:
         text = value.get(field)
-        if isinstance(text, str) and quantified_outcome(text, brief):
+        if isinstance(text, str) and quantified_outcome(text, brief, field=field):
             raise semantic.AssessmentError('generation_quantified_outcome', field,
                 'Only exact saved constraint facts may be quantified; no assessment accepted.')
     for field in ('limitations', 'missing_information'):

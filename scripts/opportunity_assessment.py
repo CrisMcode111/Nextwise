@@ -19,19 +19,39 @@ def schema(request):
             'evidence_quality':{'type':'string','enum':['publisher_claims_only']},
             'improvement_mechanism':{'type':'object','additionalProperties':False,
                 'required':['explanation','project_quote','evidence_claim_ids'],
-                'properties':{'explanation':text,'project_quote':text,
+                'properties':{'explanation':text,'project_quote':{**text,'description':
+                    'Copy an exact contiguous quotation ONLY from approved_project_context.profile.objective '
+                    '(the saved project brief, identified by approved_project_context.provenance.brief_sha256). '
+                    'It must express the project need or constraint connected to this mechanism. '
+                    'Never use publisher text, extracted_publisher_claims, untrusted_sources, '
+                    'supporting_source_context, a paraphrase or an AI interpretation as project_quote.'},
                     'evidence_claim_ids':{'type':'array','minItems':1,'maxItems':3,
+                        'description':'External publisher evidence ONLY: select primary extracted_publisher_claims.claims '
+                            'passage_id values also selected in the assessment evidence_claim_ids. '
+                            'These IDs do not identify project-brief quotations.',
                         'items':{'type':'string','enum':[c['passage_id'] for c in request['staged_plan']['claims']]}}}},
             'feasibility':{'type':'object','additionalProperties':False,
                 'required':['status','rationale','resource_fit','resource_rationale','resource_quotes','conditions','blocking_unknowns'],
                 'properties':{'status':{'enum':list(FIT)},'rationale':text,
                     'resource_fit':{'enum':list(FIT)},'resource_rationale':text,
-                    'resource_quotes':texts,'conditions':{**texts,'minItems':1},'blocking_unknowns':texts}}}}
+                    'resource_quotes':{**texts,'description':'Copy exact resource statements ONLY from '
+                        'approved_project_context.profile.objective, never from external publisher evidence. '
+                        'If no suitable saved project resource statement exists, use an empty array and unknown resource fit.'},
+                    'conditions':{**texts,'minItems':1},'blocking_unknowns':texts}}}}
 
 
 def instructions():
     return (' OPPORTUNITY V2: Also return opportunity_details. Explain a concrete improvement mechanism '
-        'with exact project_quote and supporting primary-bank evidence_claim_ids. Assess constraints, resources '
+        'with exact project_quote and supporting primary-bank evidence_claim_ids. '
+        'EVIDENCE ORIGINS: approved_project_context.profile.objective is the saved project brief; '
+        'approved_project_context.provenance.brief_sha256 identifies that brief. '
+        'Copy project_quote verbatim ONLY from this brief, choosing the project need or constraint connected to the mechanism. '
+        'untrusted_sources and extracted_publisher_claims are external publisher evidence, with their own source_id and passage_id; '
+        'supporting_source_context, if supplied, is also external evidence, not project testimony. '
+        'Use primary publisher passage IDs for observation_claim_id and evidence_claim_ids, never as project_quote. '
+        'Do not paraphrase, manufacture, silently replace or relabel quotations across these origins. '
+        'If no exact project quotation supports a connection, do not invent one or force positive relevance. '
+        'Assess constraints, resources '
         'and practical review effort, not just topical similarity. Copy resource_quotes exactly from explicit '
         'team, budget, staffing, hardware or other resource statements in the saved brief; do not invent resources. '
         'Resource fit must remain unknown when no explicit resource basis is available. '
