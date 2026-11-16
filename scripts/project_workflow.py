@@ -165,6 +165,18 @@ class Projects:
         return request
 
     def act(self, project_id, action, body):
+        if action == 'research_plan':
+            # Local preview: no lock, journal, allowance, credential or transport.
+            from project_understanding import prepare_research
+            state = self.read(project_id)
+            require(type(body.get('expected_version')) is int and body['expected_version']==state['version'],
+                    'Project changed; reopen its latest version.')
+            allowed = {'expected_version', 'research_focus', 'clarifications', 'language', 'semantic_topics', 'limits'}
+            require(set(body) <= allowed, 'Research preview does not accept external authorization or action fields.')
+            limits = body.get('limits', {})
+            require(isinstance(limits,dict) and set(limits)<=
+                    {'max_queries','results_per_query','max_source_pages'}, 'Invalid discovery limits.')
+            return prepare_research(state, **{k:v for k,v in body.items() if k not in ('expected_version','limits')}, **limits)
         if action == 'assess_opportunities':
             from project_selection import run
             return run(self,project_id,body)

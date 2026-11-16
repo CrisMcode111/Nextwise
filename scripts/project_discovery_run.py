@@ -189,6 +189,8 @@ def run(projects, project_id, body):
         if run_id is not None:
             require(run_id in jobs,'Adaptive run not found.')
             require('limits' not in body,'Resuming cannot replace the original cumulative ceilings.')
+            require(not set(body).intersection({'research_focus','clarifications','language','semantic_topics'}),
+                    'Resume the existing research scope; focus changes require a separate preview, not a reset.')
             job = jobs[run_id]
             settled = {r['attempt_id'] for r in job['strategy']['feedback']}
             if any(r['attempt_id'] not in settled for r in job['strategy']['reservations']):
@@ -212,7 +214,11 @@ def run(projects, project_id, body):
             limits = {'max_queries':min(planning.tavily.MAX_SEARCHES,remaining),**limits}
             require(type(limits['max_queries']) is int and limits['max_queries']<=remaining,
                     'Requested search allowance exceeds the project remainder.')
-            plan = planning.plan_discovery(state,**limits)
+            from project_understanding import prepare_research
+            plan = prepare_research(state, **limits, **{k:body[k] for k in
+                ('research_focus','clarifications','language','semantic_topics') if k in body})
+            require(not plan['understanding']['clarification_questions'] and bool(plan['queries']),
+                    'Review project clarification and research plan before authorizing discovery.')
             strategy = planning.create_strategy(projects.read(project_id),plan,allowance={
                 'queries':plan['limits']['max_queries'],'results':plan['limits']['max_search_results'],
                 'pages':plan['limits']['max_source_pages']})

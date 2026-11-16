@@ -328,7 +328,8 @@ STRATEGY_POLICY = 'adaptive-search-strategy-v1'
 
 def _scope(state):
     return _digest({k:state['project'][k] for k in
-                    ('id','brief','goals','constraints','resources','language') if k in state['project']})
+                    ('id','brief','goals','constraints','resources','language','needs','problems',
+                     'uncertainties','priorities','research_focus') if k in state['project']})
 
 
 def _seal_strategy(strategy):
@@ -613,7 +614,13 @@ def adapt_strategy(state, strategy, *, feedback=(), category_proposals=()):
         # Preserve native reviewed topics and re-rank English suggestions against
         # the latest human decisions without creating a new accounting scope.
         reviewed = [t for t in base['queries']+base['queued_topics'] if t.get('interpretation')=='caller_reviewed']
-        if base['language_context']['english_rules_available']:
+        if base.get('understanding_policy'):
+            from project_understanding import prepare_research
+            fresh = prepare_research(state, **base['research_context'],
+                max_queries=base['limits']['max_queries'], results_per_query=base['limits']['results_per_query'],
+                max_source_pages=base['limits']['max_source_pages'])
+            topics = fresh['queries']+fresh['queued_topics'] if not fresh['understanding']['clarification_questions'] else []
+        elif base['language_context']['english_rules_available']:
             fresh = plan_discovery(state, language='en', max_queries=base['limits']['max_queries'],
                 results_per_query=base['limits']['results_per_query'],max_source_pages=base['limits']['max_source_pages'])
             topics = reviewed+fresh['queries']+fresh['queued_topics']
@@ -635,6 +642,9 @@ def adapt_strategy(state, strategy, *, feedback=(), category_proposals=()):
                 proposal = {'direction':topic['domain'],'query':query,'source_categories':categories,
                     'basis':topic['basis'],'reason':reason,'requires_query_review':True,
                     'execution_authorized':False}
+                for field in ('research_question','research_targets','hypothesis','public_query_basis'):
+                    if field in topic:
+                        proposal[field] = copy.deepcopy(topic[field])
                 proposal['proposal_id'] = _digest(proposal)
                 if not any(p['query'].casefold()==query.casefold() for p in result['proposals']):
                     result['proposals'].append(proposal)

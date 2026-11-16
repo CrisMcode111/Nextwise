@@ -1,5 +1,8 @@
 # Project workflow V1
 
+Phase 2F adds a local research preview and clarification backend; see
+[project understanding](project-understanding.md) for its contract and offline limits.
+
 The existing Python backend now exposes a separate project workspace at `/projects`.
 Start it without requiring a pilot, Zetaris credentials, or an existing memory store:
 
