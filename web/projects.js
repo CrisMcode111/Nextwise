@@ -250,6 +250,31 @@ function renderBriefing(brief, parent = q('#briefings')) {
     created_at:brief.created_at, current, assessment_validation:project.assessments.find(a => a.id === brief.assessment_id)?.validation}, null, 2), observation);
   renderDecision(brief, row);
 }
+function renderPreliminaryPreviews() {
+  const previews = savedList(project.preliminary_previews);
+  q('#preliminary-section').hidden = previews.length === 0;
+  q('#preliminary-previews').replaceChildren();
+  for (const preview of previews) {
+    const card = node('article', '', q('#preliminary-previews'), 'card preliminary-preview');
+    badge(preview.label, card, 'neutral');
+    node('h3', preview.source_title, card);
+    sourceLink(preview.source_url, preview.source_url, card);
+    node('h4', 'Potential project area', card); node('p', preview.project_area, card);
+    node('h4', 'Why this may matter', card); node('p', preview.why_relevant, card);
+    node('h4', 'Possible improvement — only if a real gap exists', card); node('p', preview.possible_improvement, card);
+    node('h4', 'Next investigation action', card); node('p', preview.next_action, card);
+    node('h4', 'What remains unverified', card);
+    const unknowns = node('ul', '', card);
+    for (const unknown of savedList(preview.unverified)) node('li', unknown, unknowns);
+    const evidence = detail('Saved project and publisher evidence', card);
+    node('p', 'Saved project statement', evidence); node('blockquote', preview.project_basis.exact_quote, evidence);
+    node('p', 'External publisher claim — not independently verified', evidence);
+    node('blockquote', preview.publisher_evidence.exact_quote, evidence);
+    node('p', preview.basis, evidence, 'copy');
+    node('pre', JSON.stringify({project_basis:preview.project_basis, publisher_evidence:preview.publisher_evidence,
+      source_provenance:preview.source_provenance}, null, 2), evidence);
+  }
+}
 function renderUnbriefedAssessment(record) {
   const value = record.assessment;
   const row = node('article', '', q('#briefings'), 'card unbriefed-evaluation');
@@ -322,7 +347,7 @@ function render() {
   for (const brief of opportunities) renderOpportunity(brief);
   for (const brief of previous) renderBriefing(brief);
   for (const record of unbriefed) renderUnbriefedAssessment(record);
-  renderSavedRuns(); renderHistory();
+  renderPreliminaryPreviews(); renderSavedRuns(); renderHistory();
 }
 q('#create-project').onsubmit = event => { event.preventDefault(); action(async () => {
   const form = event.target, result = await api('/api/projects', {request_id:createId, name:form.elements.name.value,
@@ -339,7 +364,15 @@ function openSavedSection(id) {
 }
 q('#review-evidence').onclick = () => openSavedSection('#saved-evidence');
 q('#review-evaluations').onclick = () => openSavedSection('#previous-evaluations');
-action(async () => { await listProjects(); if (savedProjects.length === 1) await openProject(savedProjects[0].id); });
+action(async () => {
+  await listProjects();
+  const requested = new URL(window.location.href).searchParams.get('project');
+  if (savedProjects.some(p => p.id === requested)) await openProject(requested);
+  else if (savedProjects.length === 1) await openProject(savedProjects[0].id);
+  if (window.location.hash === '#preliminary-section' && !q('#preliminary-section').hidden) {
+    q('#preliminary-section').scrollIntoView({block:'start', behavior:'instant'});
+  }
+});
 // Ambient sculpture: no project data, requests, or application-state dependencies.
 (() => {
   const canvas = document.querySelector('#intelligence-field');

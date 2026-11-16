@@ -94,6 +94,8 @@ class Projects:
                 state['briefing_current'][brief['id']] = False
         from project_selection import present
         state.update(present(self,store,state))
+        from project_preliminary import previews
+        state['preliminary_previews'] = previews(self,store,state)
         return copy.deepcopy(state)
 
     def create(self, body):
