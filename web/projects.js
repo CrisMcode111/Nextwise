@@ -2,6 +2,8 @@
 const q = selector => document.querySelector(selector);
 let project = null, transports = {}, busy = false, savedProjects = [];
 let createId = crypto.randomUUID();
+const contextLabels = {capabilities:'Existing capabilities', work_in_progress:'Work in progress', limitations:'Known limitations and blockers', priorities:'Current objectives and priorities', resources:'Current resources', constraints:'Current constraints'};
+let contextProject = null, contextDraft = null;
 const decisionDrafts = new Map();
 function node(tag, text, parent, className = '') {
   const n = document.createElement(tag); n.textContent = text; n.className = className; parent.append(n); return n;
@@ -62,7 +64,9 @@ function renderSource(item) {
   const row = node('article', '', q('#sources'), 'card source-card');
   const top = node('div', '', row, 'card-kicker'); badge('Saved source', top, 'completed');
   const latest = project.assessments.filter(a => a.candidate_id === item.id).at(-1);
-  badge(latest ? 'Saved validated assessment' : 'Not yet validated', top, latest ? 'completed' : 'neutral');
+  const currentContext = project.context_revisions?.at(-1)?.id || null;
+  const assessmentCurrent = latest && (latest.context_revision_id || null) === currentContext;
+  badge(latest ? (assessmentCurrent ? 'Saved validated assessment' : 'Historical assessment — context changed') : 'Not yet validated', top, assessmentCurrent ? 'completed' : 'neutral');
   node('h3', item.title, row); sourceLink('Open publisher source', item.url, row);
   node('p', 'Saved ' + dateLabel(item.retrieved_at), row, 'source-date');
   const controls = node('div', '', row, 'card-actions');
@@ -70,7 +74,7 @@ function renderSource(item) {
   assess.onclick = () => action(() => mutate('assess', {candidate_id:item.id,
     context_candidate_ids:Object.keys(project.items).filter(id => id !== item.id).sort()}), 'Requesting an authorized assessment...', 'Assessment validated and saved.');
   if (!transports.assessment) node('p', 'Assessment unavailable in this instance. Saved records remain readable.', row, 'availability-note');
-  if (latest) {
+  if (latest && assessmentCurrent) {
     const brief = node('button', 'Prepare validated briefing', controls, 'button quiet'); brief.type = 'button';
     brief.onclick = () => action(() => mutate('brief', {assessment_id:latest.id}), 'Preparing briefing from saved assessment...', 'Validated briefing saved.');
   }
@@ -279,6 +283,8 @@ function renderUnbriefedAssessment(record) {
   const value = record.assessment;
   const row = node('article', '', q('#briefings'), 'card unbriefed-evaluation');
   badge(value.category, row, 'neutral');
+  if ((record.context_revision_id || null) !== (project.context_revisions?.at(-1)?.id || null))
+    badge('Historical assessment — context changed', row, 'neutral');
   node('h3', project.items[record.candidate_id]?.title || 'Saved assessment', row);
   node('p', 'Assessment saved; no briefing is attached to this version.', row, 'copy');
   node('h4', 'Project connection', row); node('p', value.project_need, row, 'copy');
@@ -319,6 +325,16 @@ function renderHistory() {
 function render() {
   q('#workspace-empty').hidden = true; q('#project-content').hidden = false;
   q('#project-name').textContent = project.project.name; q('#project-brief').textContent = project.project.brief;
+  if (contextProject !== project.project.id) {
+    contextProject = project.project.id; contextDraft = null;
+    const fields = project.context_revisions?.at(-1)?.fields || {};
+    q('#context-fields').replaceChildren(); q('#context-review').hidden = true; q('#context-form').hidden = false;
+    for (const [key, label] of Object.entries(contextLabels)) {
+      const l = node('label', label, q('#context-fields')); l.htmlFor = 'context-' + key;
+      const input = node('textarea', '', q('#context-fields')); input.id = 'context-' + key;
+      input.rows = 2; input.maxLength = 1500; input.value = fields[key] || '';
+    }
+  }
   q('#project-overview').textContent = project.project.brief.length > 220
     ? project.project.brief.slice(0, 220).replace(/\s+\S*$/, '') + '\u2026' : project.project.brief;
   q('#discover button').disabled = !transports.search;
@@ -349,6 +365,20 @@ function render() {
   for (const record of unbriefed) renderUnbriefedAssessment(record);
   renderPreliminaryPreviews(); renderSavedRuns(); renderHistory();
 }
+q('#context-form').onsubmit = event => {
+  event.preventDefault(); contextDraft = Object.fromEntries(Object.keys(contextLabels).map(k => [k, q('#context-' + k).value]));
+  if (!Object.values(contextDraft).some(v => v.trim())) { status('Enter at least one context statement.', 'failed'); return; }
+  q('#context-review-fields').replaceChildren();
+  for (const [key, label] of Object.entries(contextLabels)) {
+    node('strong', label, q('#context-review-fields')); node('p', contextDraft[key] || 'Unknown / not stated', q('#context-review-fields'));
+  }
+  q('#context-form').hidden = true; q('#context-review').hidden = false;
+};
+q('#context-edit').onclick = () => { q('#context-form').hidden = false; q('#context-review').hidden = true; };
+q('#context-save').onclick = () => action(async () => {
+  await mutate('update_context', {fields:contextDraft, confirmed:true});
+  contextProject = null; render();
+}, 'Saving confirmed context...', 'Context saved. Earlier assessments remain in history.');
 q('#create-project').onsubmit = event => { event.preventDefault(); action(async () => {
   const form = event.target, result = await api('/api/projects', {request_id:createId, name:form.elements.name.value,
     brief:form.elements.brief.value, reviewed_sanitized:form.elements.reviewed.checked});

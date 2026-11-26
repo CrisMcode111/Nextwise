@@ -85,6 +85,25 @@ class SelectionIntegrationTests(unittest.TestCase):
 
     def reasons(self,saved):return [r['reason'] for r in saved.get('opportunity_exclusions',[])]
 
+    def test_context_revision_invalidates_selection_and_reassesses_with_attribution(self):
+        from project_context import FIELDS
+        saved = self.act()
+        old = copy.deepcopy(saved['assessments'][0])
+        fields = dict.fromkeys(FIELDS, '')
+        fields['capabilities'] = 'The clinic already answers opening hours questions.'
+        fields['limitations'] = 'Appointment policy coverage is incomplete.'
+        changed = self.projects.act(self.pid, 'update_context', {'request_id':str(uuid.uuid4()),
+            'expected_version':saved['version'], 'confirmed':True, 'fields':fields})
+        view = self.projects.read(self.pid)
+        self.assertEqual(view['selected_opportunities'], [])
+        self.assertEqual(view['opportunity_selection_status'][saved['opportunity_selections'][0]['id']]['exclusion_reason'], 'project_context_changed')
+        self.assertEqual(self.projects._assessment(self.projects.store(self.pid), view, old['id'], current=False), old)
+        new = self.act()
+        self.assertEqual(len(self.calls), 2)
+        self.assertEqual(new['assessments'][-1]['context_revision_id'], changed['context_revisions'][-1]['id'])
+        self.assertEqual(len(new['selected_opportunities']), 1)
+        self.assertEqual(self.projects._assessment(self.projects.store(self.pid), new, old['id'], current=False), old)
+
     def test_relevant_opportunity_generates_briefing_and_reopens_with_exact_quotes(self):
         body=self.body(); saved=self.act(body)
         self.assertEqual(len(saved['selected_opportunities']),1); self.assertEqual(len(saved['briefings']),1)

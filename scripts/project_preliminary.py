@@ -16,7 +16,7 @@ def previews(projects, store, state):
     if not subject or not understanding['language_context']['english_rules_available']:
         return []
     facts = [f for f in understanding['confirmed_facts']
-             if f['field'] == 'project.brief' and set(f['kinds']) & {'goals', 'needs', 'problems'}
+             if f['field'] in ('project.brief', 'project.priorities') and set(f['kinds']) & {'goals', 'needs', 'problems', 'priorities'}
              and re.search(r'\b(?:constraints?|preferences?|requirements?|restrictions?)\b', f['text'], re.I)
              and not re.search(r'\b(?:do not|avoid|exclude)\b', f['text'], re.I)]
     if not facts:
@@ -60,7 +60,8 @@ def previews(projects, store, state):
                     'API compatibility, integration effort, pricing, licensing and privacy implications.',
                     'No performance or user benefit has been established.'],
                 'project_basis': {'field': facts[0]['field'], 'exact_quote': facts[0]['text'],
-                                  'context_sha256': state['project']['context_sha256']},
+                                  'context_sha256': facts[0].get('context_revision_sha256', state['project']['context_sha256']),
+                                  'context_revision_id': facts[0].get('context_revision_id')},
                 'publisher_evidence': {k: claim[k] for k in ('source_id', 'passage_id', 'exact_quote')},
                 'source_provenance': {k: item.get(k) for k in
                     ('snapshot_path', 'raw_sha256', 'content_sha256', 'retrieved_at')},

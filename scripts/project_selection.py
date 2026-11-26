@@ -25,6 +25,10 @@ def _append(state, field, candidate_id, **values):
 def _reason(projects, store, state, record):
     cid=record['candidate_id']
     if planning._blocked(state,cid):return 'human_reject_or_defer'
+    from project_context import resolve
+    revision = resolve(state)
+    if record.get('context_revision_id') != (revision['id'] if revision else None):
+        return 'project_context_changed'
     try:current=projects._assessment(store,state,record['id'])
     except (ValueError,OSError,KeyError,TypeError):return 'stale_or_invalid_assessment'
     if current['assessment']['category']!='potential relevance':
@@ -185,10 +189,10 @@ def run(projects,project_id,body):
                 current=next((a for a in reversed(state['assessments']) if a['candidate_id']==cid),None)
                 if current:
                     reason=_reason(projects,store,state,current)
-                    if reason and reason!='historical_contract_missing_opportunity_details':
+                    if reason and reason not in ('historical_contract_missing_opportunity_details', 'project_context_changed'):
                         _append(state,'opportunity_exclusions',cid,reason=reason,run_id=rid,assessment_id=current['id'])
                         _save(store,state); continue
-                    if current.get('opportunity_contract')==contract.VERSION:
+                    if not reason and current.get('opportunity_contract')==contract.VERSION:
                         _select(projects,store,state,current,job); _save(store,state); continue
                 try:
                     request=projects.prepare_assessment(store,state,item,[])

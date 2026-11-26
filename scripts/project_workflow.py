@@ -13,6 +13,7 @@ import opportunity_workflow as opportunities
 import semantic_discovery as semantic
 import tavily_discovery as tavily
 import update_discovery as discovery
+import project_context
 
 
 class WorkflowError(ValueError):
@@ -60,6 +61,7 @@ class Projects:
         context = semantic.business_context(project['brief'], name=project['name'],
                     input_kind=project['input_kind'], sanitized=True)
         require(semantic.digest(context) == project['context_sha256'], 'Project input failed integrity checks.')
+        project_context.resolve(state)
         opportunities.verify(state['briefings'])
         opportunities.verify(state['decisions'])
         for field in ('opportunity_selections','opportunity_exclusions'):
@@ -117,14 +119,24 @@ class Projects:
                 'items': {}, 'runs': [], 'assessments': [], 'briefings': [], 'decisions': [], 'operations': {}}
             return store.save(state)
 
-    def _assessment(self, store, state, assessment_id):
+    def _assessment(self, store, state, assessment_id, *, current=True):
         record = next((r for r in state['assessments'] if r['id'] == assessment_id), None)
         require(record is not None, 'Validated assessment not found.')
         latest = next(r for r in reversed(state['assessments']) if r['candidate_id'] == record['candidate_id'])
-        require(latest['id'] == record['id'], 'A newer assessment exists; prepare a current briefing.')
+        if current:
+            require(latest['id'] == record['id'], 'A newer assessment exists; prepare a current briefing.')
+            revision = project_context.resolve(state)
+            require(record.get('context_revision_id') == (revision['id'] if revision else None),
+                    'Assessment used an earlier project context.')
         item = state['items'].get(record['candidate_id'])
         require(item is not None, 'Source not found.')
-        request = self.prepare_assessment(store, state, item, record.get('context_candidate_ids', []))
+        require(('context_revision_id' in record) == ('context_revision_sha256' in record),
+                'Incomplete assessment context reference.')
+        referenced = project_context.resolve(state, record.get('context_revision_id'), current=False)
+        require(not referenced or record.get('context_revision_sha256') == referenced['record_sha256'],
+                'Assessment context reference failed integrity checks.')
+        request = self.prepare_assessment(store, state, item, record.get('context_candidate_ids', []),
+                                          revision_id=record.get('context_revision_id'), historical=True)
         if record.get('opportunity_contract'):
             request['opportunity_contract'] = record['opportunity_contract']
         require(record['input_sha256'] == semantic.digest(request), 'Assessment evidence or context changed.')
@@ -145,15 +157,23 @@ class Projects:
                     'Assessment differs from its retained output.')
         return record
 
-    def prepare_assessment(self, store, state, item, context_ids):
+    def prepare_assessment(self, store, state, item, context_ids, *, revision_id=None, historical=False):
         require(isinstance(context_ids, list) and len(context_ids) <= 3
                 and all(isinstance(i, str) and i != item['id'] and i in state['items'] for i in context_ids)
                 and len(set(context_ids)) == len(context_ids), 'Choose distinct saved context sources.')
         p = state['project']
+        revision = project_context.resolve(state, revision_id, current=not historical)
+        brief = project_context.assessment_brief(state, revision)
         def prepare(source):
-            return semantic.prepare_business_assessment(store, source, p['brief'], name=p['name'],
+            return semantic.prepare_business_assessment(store, source, brief, name=p['name'],
                         input_kind=p['input_kind'], sanitized=True)
         request = prepare(item)
+        if revision:
+            request['messages'][0]['content'] += (
+                '\nThe confirmed project context describes existing capabilities, work, limitations and priorities. '
+                'Do not describe an existing capability as a gap or a new opportunity without a supported incremental improvement. '
+                'A stated limitation is a user-reported limitation, not independent proof. '
+                'Missing coverage is unknown, not a confirmed gap. Distinguish improvement hypotheses from confirmed statements.')
         if context_ids:
             contexts = [prepare(state['items'][i]) for i in context_ids]
             request['supporting_sources'] = [{'source': c['prepared']['source'],
@@ -196,7 +216,7 @@ class Projects:
         if action == 'discover_adaptive':
             from project_discovery_run import run
             return run(self, project_id, body)
-        require(action in ('discover', 'assess', 'brief', 'decide'), 'Unknown project action.')
+        require(action in ('discover', 'assess', 'brief', 'decide', 'update_context'), 'Unknown project action.')
         rid = request_id(body)
         store = self.store(project_id)
         require((store.directory / 'state.json').is_file(), 'Project not found.')
@@ -291,6 +311,24 @@ class Projects:
             run['candidate_ids'].append(candidate_id)
         state['runs'].append(run)
 
+    def _update_context(self, store, state, body, rid):
+        fields = body.get('fields')
+        require(body.get('confirmed') is True and isinstance(fields, dict)
+                and set(fields) == set(project_context.FIELDS)
+                and all(isinstance(v, str) and len(v) <= 1500
+                        and not any(ord(c) < 32 and c not in '\n\r\t' for c in v)
+                        for v in fields.values()), 'Review and confirm valid context fields.')
+        require(any(v.strip() for v in fields.values()), 'Supply at least one context statement.')
+        previous = project_context.resolve(state)
+        record = {'id': rid, 'project_id': state['project']['id'],
+                  'version': len(state.get('context_revisions', [])) + 1,
+                  'previous_sha256': previous['record_sha256'] if previous else state['project']['context_sha256'],
+                  'fields': copy.deepcopy(fields), 'created_at': semantic.now(),
+                  'provenance': 'confirmed_local_user'}
+        record['record_sha256'] = semantic.digest(record)
+        require(len(project_context.assessment_brief(state, record)) <= 12000, 'Context exceeds assessment limit.')
+        state.setdefault('context_revisions', []).append(record)
+
     def _assess(self, store, state, body, rid):
         item = state['items'].get(body.get('candidate_id'))
         require(item is not None, 'Choose a saved source.')
@@ -317,6 +355,10 @@ class Projects:
             'context_candidate_ids': list(context_ids),
             'input_sha256': semantic.digest(request), 'assessment': result['assessment'],
             'created_at': semantic.now(), 'validation': 'contract_and_source_quotes_checked'})
+        revision = project_context.resolve(state)
+        if revision:
+            state['assessments'][-1]['context_revision_id'] = revision['id']
+            state['assessments'][-1]['context_revision_sha256'] = revision['record_sha256']
         if extended:
             state['assessments'][-1].update(opportunity_contract=opportunity.VERSION,
                 opportunity_details=details, output_reference={

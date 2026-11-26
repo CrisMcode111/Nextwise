@@ -154,11 +154,22 @@ def plan_discovery(state, *, max_queries=tavily.MAX_SEARCHES,
                     constraint = field.endswith(('constraints', 'resources')) or bool(
                         re.match(r'\s*(?:constraints?|resources?|budget|team size|environment)\s*:', clause, re.I))
                     goal = field.endswith('goals') or bool(re.match(r'\s*(?:goals?|objectives?)\s*:', clause, re.I))
+                    attribution = ({'context_revision_id':project['context_revision_id'],
+                                    'context_revision_sha256':project['context_revision_sha256']}
+                                   if project.get('context_revision_id') and field in
+                                   ('project.constraints', 'project.resources') and
+                                   state['context_revisions'][-1]['fields'][field.split('.')[1]] else {})
                     basis.append({'field':field, 'text':clause.strip(), 'matched_terms':matches,
-                                  'weight':1 if constraint else 4 if goal else 3})
+                                  'weight':1 if constraint else 4 if goal else 3, **attribution})
         if not basis:
             continue
-        seed = max(basis, key=lambda b: (b['weight'], len(b['matched_terms'])))
+        # Revision text is private context, not a source of public query words.
+        # It remains in the reviewed basis and constraint checks.
+        safe_basis = [b for b in basis if not (project.get('context_revision_id')
+                      and b['field'] in ('project.constraints', 'project.resources'))]
+        if not safe_basis:
+            continue
+        seed = max(safe_basis, key=lambda b: (b['weight'], len(b['matched_terms'])))
         words = _terms(seed['text'], project.get('name', ''))
         if not words:
             continue
@@ -327,9 +338,11 @@ STRATEGY_POLICY = 'adaptive-search-strategy-v1'
 
 
 def _scope(state):
+    from project_context import planning_state
+    state = planning_state(state)
     return _digest({k:state['project'][k] for k in
                     ('id','brief','goals','constraints','resources','language','needs','problems',
-                     'uncertainties','priorities','research_focus') if k in state['project']})
+                     'uncertainties','priorities','research_focus','context_revision_sha256') if k in state['project']})
 
 
 def _seal_strategy(strategy):

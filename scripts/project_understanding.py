@@ -94,6 +94,8 @@ def understand(state, *, research_focus='general', clarifications=None, language
     They authorize neither model interpretation nor external research.
     """
     from project_opportunities import _text, _language_context, _digest, _heads
+    from project_context import planning_state
+    state = planning_state(state)
     if not isinstance(research_focus, str) or research_focus not in FOCUSES:
         raise ValueError('Choose a supported research focus.')
     clarifications = {} if clarifications is None else clarifications
@@ -103,14 +105,18 @@ def understand(state, *, research_focus='general', clarifications=None, language
         raise ValueError('Clarifications must be bounded subject/outcome/audience answers.')
     project = state['project']
     facts = []
-    for field in ('brief', 'goals', 'needs', 'problems', 'constraints', 'resources', 'uncertainties', 'priorities'):
+    for field in ('brief', 'goals', 'needs', 'problems', 'constraints', 'resources', 'uncertainties', 'priorities', 'capabilities', 'work_in_progress', 'limitations'):
         if field in project:
             for clause in _clauses(_text(project[field])):
                 kinds = [k for k, pattern in ROLE_RULES.items() if re.search(pattern, clause, re.I)]
                 if field != 'brief': kinds = list(dict.fromkeys([field]+kinds))
                 facts.append({'text': clause, 'field': 'project.'+field, 'kinds': kinds or ['description'],
                               'classification_status': 'rule_interpretation',
-                              'provenance': 'saved_user_statement', 'independently_verified': False})
+                              'provenance': 'saved_user_statement', 'independently_verified': False,
+                              **({'context_revision_id': project['context_revision_id'],
+                                  'context_revision_sha256': project['context_revision_sha256']}
+                                 if field in ('capabilities', 'work_in_progress', 'limitations', 'priorities', 'resources', 'constraints')
+                                 and project.get('context_revision_id') and state['context_revisions'][-1]['fields'][field] else {})})
     for key, value in clarifications.items():
         facts.append({'text': value.strip(), 'field': 'clarifications.'+key,
                       'kinds': ['goals' if key == 'outcome' else 'description'],
@@ -206,6 +212,16 @@ def enrich_plan(state, plan, *, research_focus='general', clarifications=None, l
         if basis and not any(t['domain'] == domain for t in topics):
             topics.append({'domain': domain, 'score': 40, 'priority': 'high', 'source_categories': list(categories),
                            'basis': basis, 'decision_gap_references': [], 'query': ''})
+    for topic in topics:
+        pattern = DOMAINS.get(topic['domain'], (None,))[0]
+        priority_basis = [f for f in understanding['confirmed_facts']
+                          if f['field'] == 'project.priorities' and f.get('context_revision_id')
+                          and pattern and re.search(pattern, f['text'], re.I)
+                          and not re.search(r'\b(do not|avoid|exclude)\b', f['text'], re.I)]
+        if priority_basis:
+            topic['score'] += 50
+            topic['priority'] = 'high'
+            topic['basis'].extend(f for f in priority_basis if f not in topic['basis'])
     subject = understanding['subject']
     focus = FOCUSES[research_focus]
     excluded_focus = any(re.search(r'\b(do not|avoid|exclude|not interested in)\b', f['text'], re.I)
@@ -288,12 +304,14 @@ def prepare_research(state, *, research_focus=None, clarifications=None,
     (including native-language queries) are validated by the Phase 2 planner.
     """
     from project_opportunities import plan_discovery, _digest
+    from project_context import planning_state
+    state = planning_state(state)
     if research_focus is None:
         research_focus = state['project'].get('research_focus', 'general')
         if research_focus == 'general':
             # Explicit saved priorities can select a focus; mentions alone cannot.
             match = re.search(r'\b(?:priority|focus)\s*:\s*(marketing|sales|technology|product development|funding|operations)\b',
-                              state['project']['brief'], re.I)
+                              state['project'].get('priorities', '') or state['project']['brief'], re.I)
             if match: research_focus = match[1].lower()
     context = understand(state,research_focus=research_focus,clarifications=clarifications,language=language)
     effective_language = language or ('en' if context['language_context']['english_rules_available'] else None)
