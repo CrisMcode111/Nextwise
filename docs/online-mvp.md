@@ -31,11 +31,19 @@ and [Tavily credits](https://docs.tavily.com/documentation/api-credits).
 The UI accepts pasted text, browser-extracted TXT or text-based PDF, and public
 GitHub repository URLs. Repository metadata and README excerpts are retrieved
 from the fixed `api.github.com` host and must be reviewed as untrusted text. It
-stores project text and choices in browser local storage. It sends the submitted
-text to OpenAI and model-generated public queries to Tavily. Search excerpts
+stores project text, recent recommendations and choices in browser local storage.
+It sends the submitted text and up to ten recent recommendations and decisions
+to OpenAI and model-generated public queries to Tavily. The model is instructed
+not to include private context in search queries; that instruction is not a
+guaranteed privacy filter. Search excerpts
 are untrusted data. Returned quotations are checked against Tavily extracts;
-they have not been independently checked against publisher pages. Dates are
-always labelled unverified. Model outputs and suitability are hypotheses,
+they have not been independently checked against publisher pages. Publication
+dates are attributed to Tavily metadata and are not independently verified;
+publication date does not establish innovation date. Two searches target the
+last 90 days and a third permits established technologies. The model judges
+novelty, cross-domain transfer and comparative value; classification is not
+proof, and a dismissed URL is conservatively suppressed even if it changes.
+Model outputs and suitability are hypotheses,
 not independently validated benefits. No recommendation is substituted when
 providers fail or when no source quotation passes validation.
 
@@ -44,3 +52,9 @@ still needs an independently bounded DNS resolver and security review. The
 offline fixture tests do not establish model quality, provider compatibility,
 deployment security or suitability for live spending. Real validation remains
 subject to explicit owner approval of provider calls.
+
+For a separate comparison bundle, run `python -c "import sys; sys.path.insert(0,
+'scripts'); import build_online_mvp; build_online_mvp.build('.nextwise-online-improved')"`.
+This does not update the existing preview. Compare against saved prior results;
+provider outputs are nondeterministic and a real comparison requires explicit
+authorization and incurs provider usage.

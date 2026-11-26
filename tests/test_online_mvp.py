@@ -51,8 +51,10 @@ class OnlineTests(unittest.TestCase):
         def provider(url,token,body,timeout):
             if 'tavily.com' in url:
                 calls.append('search');self.assertEqual(body['search_depth'],'basic')
+                self.assertIn('start_date',body);self.assertTrue(body['include_published_date'])
                 return {'results':[{'url':'https://example.com/source','title':'Synthetic source','content':QUOTE}]}
             calls.append('model')
+            self.assertEqual(body['max_output_tokens'],2048)
             schema=body['text']['format']['schema']
             if schema is self.api.online.PLAN:
                 value={'understanding':'Clinic needs better appointment scheduling.','clarifications':[],
@@ -61,7 +63,9 @@ class OnlineTests(unittest.TestCase):
                 value={'recommendations':[{'innovation':'Synthetic scheduling innovation','project_area':'Bookings',
                 'improvement':'Review appointment reminders','relevance':'Could support clinic booking',
                 'feasibility':'Unknown','cost':'Unknown','effort':'Unknown','uncertainty':'Not tested',
-                'next_action':'Review an example','source_id':'1','source_quote':QUOTE}]}
+                'next_action':'Review an example','source_id':'1','source_quote':QUOTE,
+                'novelty':'A synthetic new release','application':'Compare reminders','comparison':'Directly addresses scheduling',
+                'classification':'concrete_ai_development'}]}
             return {'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':json.dumps(value)}]}]}
         with patch.dict('os.environ',{'NEXTWISE_ACCESS_TOKEN':'x'*32,'OPENAI_API_KEY':'test','TAVILY_API_KEY':'test'}), \
              patch.object(self.api.online,'post_json',side_effect=provider):
@@ -83,6 +87,40 @@ class OnlineTests(unittest.TestCase):
         result=self.api.online.discover('A clinic needs better appointment scheduling.',model=model,
             search=lambda q,t:{'results':[{'url':'https://example.com/source','content':QUOTE}]})
         self.assertEqual(result['recommendations'],[]);self.assertEqual(len(calls),2)
+
+    def test_quality_screen_history_and_reported_dates(self):
+        online=self.api.online
+        project='A museum already uses image recognition and seeks better cataloguing.'
+        history=[{'innovation':'Old visual indexing','source_url':'https://example.com/old','decision':'dismiss'}]
+        prompts=[]
+        def item(kind,source,innovation):
+            return {'innovation':innovation,'project_area':'Cataloguing','improvement':'Test incremental indexing',
+                'relevance':'May improve cataloguing','feasibility':'Requires evaluation','cost':'Unknown',
+                'effort':'Small comparison','uncertainty':'Transfer not demonstrated','next_action':'Compare a small sample',
+                'source_id':source,'source_quote':QUOTE,'novelty':'A named research method',
+                'application':'Proposed transfer from medical imaging','comparison':'Directly addresses cataloguing',
+                'classification':kind}
+        def model(prompt,schema,timeout):
+            prompts.append(prompt)
+            if schema is online.PLAN: return {'understanding':'Museum cataloguing','clarifications':[],
+                'queries':['recent AI visual indexing methods']}
+            return {'recommendations':[item('generic_advice','1','Use AI'),
+                item('existing_capability','2','Image recognition'),
+                item('concrete_ai_development','3','Synthetic medical model') ]}
+        sources=[{'url':'https://example.com/'+str(i),'content':QUOTE,'published_date':'2025-11-17'} for i in range(1,4)]
+        result=online.discover(project,history=history,model=model,search=lambda q,t:{'results':sources})
+        self.assertEqual([x['innovation'] for x in result['recommendations']],['Synthetic medical model'])
+        self.assertEqual(result['recommendations'][0]['publication_date'],'2025-11-17')
+        self.assertEqual(result['recommendations'][0]['date_status'],'search_provider_reported')
+        self.assertIn('medical imaging',result['recommendations'][0]['application'])
+        self.assertIn('Old visual indexing',prompts[0]);self.assertIn('meaningful change',prompts[1])
+        self.assertIsNone(online.parse_date('not a date')); self.assertIsNone(online.parse_date('2999-01-01'))
+        def dismissed(prompt,schema,timeout):
+            if schema is online.PLAN:return {'understanding':'Museum','clarifications':[],'queries':['recent AI visual indexing methods']}
+            return {'recommendations':[item('concrete_ai_development','1','Renamed old idea')]}
+        result=online.discover(project,history=history,model=dismissed,
+            search=lambda q,t:{'results':[{'url':'https://example.com/old','content':QUOTE,'published_date':'invented'}]})
+        self.assertEqual(result['recommendations'],[])
 
     def test_limits_clarification_and_no_automatic_retry(self):
         calls=[]

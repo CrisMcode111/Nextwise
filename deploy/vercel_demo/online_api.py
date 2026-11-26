@@ -5,6 +5,7 @@ import os
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 import sys
+from datetime import date,timedelta
 from urllib.parse import urlsplit,parse_qs
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'lib'))
@@ -51,12 +52,18 @@ class handler(BaseHTTPRequestHandler):
             length=int(self.headers.get('Content-Length','0'))
             if not 0<length<=20000 or self.headers.get('Content-Type','').split(';')[0]!='application/json': raise ValueError()
             data=json.loads(self.rfile.read(length).decode('utf-8'))
-            if not isinstance(data,dict) or set(data)!={'project'}: raise ValueError()
+            if not isinstance(data,dict) or not {'project'}<=set(data) or set(data)-{'project','history'}: raise ValueError()
             def model(prompt,schema,timeout): return online.openai(prompt,schema,openai_key,timeout)
+            search_count=0
             def search(query,timeout):
+                nonlocal search_count
+                search_count+=1
+                options={'query':query,'search_depth':'basic','max_results':5,'auto_parameters':False,
+                         'include_answer':False,'include_raw_content':False,'include_published_date':True}
+                # Reserve one query for established but material technologies.
+                if search_count<=2: options['start_date']=(date.today()-timedelta(days=90)).isoformat()
                 return online.post_json('https://api.tavily.com/search',tavily_key,
-                    {'query':query,'search_depth':'basic','max_results':5,'auto_parameters':False,
-                     'include_answer':False,'include_raw_content':False},timeout)
-            self.respond(200,online.discover(data['project'],model=model,search=search))
+                    options,timeout)
+            self.respond(200,online.discover(data['project'],history=data.get('history'),model=model,search=search))
         except Exception:
             self.respond(503,{'message':'Discovery could not complete. No recommendations were substituted; try again only when ready.'})

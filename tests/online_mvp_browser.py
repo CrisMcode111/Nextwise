@@ -34,7 +34,9 @@ with tempfile.TemporaryDirectory(prefix='nextwise-online-browser-',ignore_cleanu
             value={'recommendations':[{'innovation':'Synthetic appointment tool','project_area':'Bookings',
                 'improvement':'Review appointment reminders','relevance':'May help the clinic',
                 'feasibility':'Unknown','cost':'Unknown','effort':'Unknown','uncertainty':'Not tested',
-                'next_action':'Review a sample','source_id':'1','source_quote':QUOTE}]}
+                'next_action':'Review a sample','source_id':'1','source_quote':QUOTE,
+                'novelty':'A synthetic new release','application':'Compare reminders','comparison':'Directly addresses scheduling',
+                'classification':'concrete_ai_development'}]}
         return {'status':'completed','output':[{'content':[{'type':'output_text','text':json.dumps(value)}]}]}
     class Handler(api.handler):
         def do_GET(self):
