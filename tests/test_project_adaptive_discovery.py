@@ -63,6 +63,86 @@ class AdaptiveDiscoveryIntegrationTests(unittest.TestCase):
     def job(self,saved):
         return next(iter(saved['adaptive_discovery_runs'].values()))
 
+    def test_reviewed_plan_is_bound_to_query_and_updated_context(self):
+        from project_context import FIELDS
+        fields=dict.fromkeys(FIELDS, '')
+        fields['constraints']='The clinic has a limited budget.'
+        state=self.projects.act(self.pid,'update_context',{'request_id':str(uuid.uuid4()),
+            'expected_version':self.saved['version'],'fields':fields,'confirmed':True})
+        limits={'max_queries':1,'results_per_query':5,'max_source_pages':4}
+        inputs={'research_focus':'general','clarifications':{},'limits':limits}
+        preview=self.projects.act(self.pid,'research_plan',{'expected_version':state['version'],**inputs})
+        body=self.body(**inputs,reviewed_plan_sha256='0'*64)
+        with self.assertRaises(workflow.WorkflowError): self.act(body)
+        self.assertEqual(self.search_calls,[])
+        body=self.body(**inputs,reviewed_plan_sha256=preview['review_sha256'])
+        saved=self.act(body)
+        self.assertEqual(self.search_calls[0][0],preview['queries'][0]['query'])
+        self.assertEqual(len(self.search_calls),1)
+        self.assertEqual(len(saved['items']),1)
+
+    def test_successive_reviewed_sessions_share_lifetime_allowance(self):
+        from project_context import FIELDS
+        limits={'max_queries':1,'results_per_query':5,'max_source_pages':4}
+        first_inputs={'research_focus':'operations','clarifications':{},'limits':limits}
+        first_plan=self.projects.act(self.pid,'research_plan',{'expected_version':self.saved['version'],**first_inputs})
+        first_body=self.body(**first_inputs,reviewed_plan_sha256=first_plan['review_sha256'])
+        first=self.act(first_body)
+        first_job=copy.deepcopy(first['adaptive_discovery_runs'][first_body['request_id']])
+        first_items=copy.deepcopy(first['items'])
+        fields=dict.fromkeys(FIELDS,''); fields['priorities']='Priority: marketing; increase customer visits.'
+        updated=self.projects.act(self.pid,'update_context',{'request_id':str(uuid.uuid4()),
+            'expected_version':first['version'],'confirmed':True,'fields':fields})
+        second_inputs={'research_focus':'marketing','clarifications':{'audience':'Local families',
+            'outcome':'Increase customer visits'},'limits':limits}
+        second_plan=self.projects.act(self.pid,'research_plan',{'expected_version':updated['version'],**second_inputs})
+        self.assertNotEqual(first_plan['queries'][0]['query'],second_plan['queries'][0]['query'])
+        with self.assertRaises(workflow.WorkflowError): self.act(self.body(**second_inputs))
+        self.assertEqual(len(self.search_calls),1)
+        second_body=self.body(**second_inputs,reviewed_plan_sha256=second_plan['review_sha256'])
+        second=self.act(second_body)
+        self.assertEqual(len(self.search_calls),2)
+        self.assertEqual(self.search_calls[-1][0],second_plan['queries'][0]['query'])
+        self.assertEqual(second['adaptive_discovery_runs'][first_body['request_id']],first_job)
+        self.assertEqual(len(second['adaptive_discovery_runs']),2)
+        self.assertEqual(runner.search_attempts(second),2)
+        self.assertEqual(second['items'],first_items)
+        self.assertEqual(self.act(first_body),second)
+        self.assertEqual(self.act(second_body),second)
+        with self.assertRaises(workflow.WorkflowError): self.act(self.body(**second_inputs))
+        self.assertEqual(len(self.search_calls),2)
+
+    def test_unresolved_run_requires_recovery_even_after_context_change(self):
+        from project_context import FIELDS
+        self.search_effect=lambda *args: (_ for _ in ()).throw(KeyboardInterrupt())
+        original=self.body(limits={'max_queries':1,'results_per_query':5,'max_source_pages':4})
+        with self.assertRaises(KeyboardInterrupt): self.act(original)
+        saved=self.projects.read(self.pid)
+        fields=dict.fromkeys(FIELDS,''); fields['priorities']='Priority: marketing.'
+        changed=self.projects.act(self.pid,'update_context',{'request_id':str(uuid.uuid4()),
+            'expected_version':saved['version'],'confirmed':True,'fields':fields})
+        with self.assertRaises(workflow.WorkflowError): self.act(self.body(limits={'max_queries':1}))
+        with self.assertRaises(workflow.WorkflowError):
+            self.projects.act(self.pid, 'discover', {'request_id':str(uuid.uuid4()),
+                'expected_version':changed['version'], 'authorize_external_request':True,
+                'query':'public clinic scheduling documentation'})
+        self.assertEqual(len(self.search_calls),1)
+        recovery=self.body(run_id=original['request_id'],recover_only=True)
+        disabled=workflow.Projects(self.root)
+        recovered=disabled.act(self.pid,'discover_adaptive',recovery)
+        self.assertEqual(recovered['adaptive_discovery_runs'][original['request_id']]['status'],'interrupted')
+        self.assertEqual(disabled.act(self.pid,'discover_adaptive',recovery),recovered)
+        self.assertEqual(len(self.search_calls),1)
+        self.assertEqual(runner.recovery_required(recovered),[])
+        self.search_effect=None
+        inputs={'research_focus':'operations','clarifications':{},
+                'limits':{'max_queries':1,'results_per_query':5,'max_source_pages':4}}
+        plan=self.projects.act(self.pid,'research_plan',{'expected_version':recovered['version'],**inputs})
+        completed=self.act(self.body(**inputs,reviewed_plan_sha256=plan['review_sha256']))
+        self.assertEqual(len(self.search_calls),2)
+        self.assertEqual(runner.search_attempts(completed),2)
+        self.assertEqual(len(completed['adaptive_discovery_runs']),2)
+
     def test_success_persists_evidence_and_reopens_without_assessment_or_selection(self):
         def verify_search(query,limit):
             disk=self.projects.store(self.pid).read(); job=self.job(disk)

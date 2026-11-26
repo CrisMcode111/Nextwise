@@ -13,6 +13,18 @@ class UnderstandingTests(OfflineTests):
     def plan(self, saved=None, **options):
         return understanding.prepare_research(saved or state(), **options)
 
+    def test_prior_search_is_deprioritized_without_forbidding_a_revisit(self):
+        saved = state()
+        first = self.plan(saved, max_queries=1)
+        previous = first['queries'][0]['query']
+        saved['adaptive_discovery_runs'] = {'old':{'strategy':{'reservations':[{'query':previous}]}}}
+        again = self.plan(saved, max_queries=1)
+        topics = again['queries'] + again['queued_topics']
+        matched = next(t for t in topics if t['query'] == previous)
+        self.assertTrue(matched['previously_searched'])
+        if len(topics) > 1:
+            self.assertNotEqual(again['queries'][0]['query'], previous)
+
     def test_recipe_goal_is_specific_without_unnecessary_questions(self):
         result = self.plan()
         self.assertEqual(result['understanding']['clarification_questions'], [])

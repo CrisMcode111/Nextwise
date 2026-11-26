@@ -98,6 +98,12 @@ class Projects:
         state.update(present(self,store,state))
         from project_preliminary import previews
         state['preliminary_previews'] = previews(self,store,state)
+        from project_discovery_run import search_attempts, recovery_required
+        state['provider_availability'] = {
+            'search_remaining': max(0, self.external_limits.get('discover', 0) - search_attempts(state)),
+            'discovery_recovery_required': recovery_required(state),
+            'assessment_remaining': max(0, self.external_limits.get('assess', 0) -
+                sum(op.get('action') == 'assess' for op in state['operations'].values()))}
         return copy.deepcopy(state)
 
     def create(self, body):
@@ -209,7 +215,9 @@ class Projects:
                 require(type(limits.get('max_queries',1)) is int and limits.get('max_queries',1)==1,
                         'Search-only discovery permits one query per run.')
                 limits = {'max_queries':1, **limits}
-            return prepare_research(state, **{k:v for k,v in body.items() if k not in ('expected_version','limits')}, **limits)
+            plan = prepare_research(state, **{k:v for k,v in body.items() if k not in ('expected_version','limits')}, **limits)
+            plan['review_sha256'] = semantic.digest(plan)
+            return plan
         if action == 'assess_opportunities':
             from project_selection import run
             return run(self,project_id,body)
@@ -231,6 +239,8 @@ class Projects:
             require(type(body.get('expected_version')) is int and body['expected_version'] == state['version'],
                     'Project changed; reopen its latest version.')
             if action == 'discover':
+                from project_discovery_run import recovery_required
+                require(not recovery_required(state), 'Recover the unfinished adaptive run before discovery.')
                 require(callable(self.searcher) and callable(self.fetcher), 'Search and page transports are not enabled.')
             if action == 'assess':
                 require(callable(self.assessor), 'Assessment transport is not enabled.')

@@ -320,6 +320,19 @@ def prepare_research(state, *, research_focus=None, clarifications=None,
                           semantic_topics=semantic_topics)
     result = enrich_plan(state, plan, research_focus=research_focus,
                          clarifications=clarifications, language=language)
+    # Deprioritize already searched wording while keeping it available for an
+    # explicitly reviewed revisit when there are no new directions.
+    tried = {r['query'].casefold() for job in state.get('adaptive_discovery_runs', {}).values()
+             for r in job.get('strategy', {}).get('reservations', []) if isinstance(r.get('query'), str)}
+    if tried:
+        topics = result['queries'] + result['queued_topics']
+        for topic in topics:
+            if topic.get('query', '').casefold() in tried:
+                topic['previously_searched'] = True
+                topic['score'] -= 1000
+        topics.sort(key=lambda t: (-t['score'], t['domain']))
+        count = result['limits']['max_queries']
+        result['queries'], result['queued_topics'] = topics[:count], topics[count:]
     result['language_context'] = {**result['understanding']['language_context'],
         'semantic_interpretation': 'caller_reviewed_topics' if semantic_topics else 'not_provided'}
     if semantic_topics and result['queries']:

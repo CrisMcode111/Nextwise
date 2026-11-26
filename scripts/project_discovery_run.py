@@ -17,6 +17,19 @@ def search_attempts(state):
                         for r in state.get('adaptive_discovery_runs', {}).values())
 
 
+def recovery_required(state):
+    """Find unfinished journals or reservations, including legacy runs."""
+    result = []
+    for run_id, job in state.get('adaptive_discovery_runs', {}).items():
+        settled = {f['attempt_id'] for f in job['strategy'].get('feedback', [])}
+        pending = any(r['attempt_id'] not in settled for r in job['strategy'].get('reservations', []))
+        started = any(op.get('adaptive_run_id') == run_id and op.get('status') == 'started'
+                      for op in state.get('operations', {}).values())
+        if pending or started:
+            result.append(run_id)
+    return result
+
+
 def _save(store, state):
     # Keep references stable while the existing save increments the version and
     # confirms a real H-MEM readback. Any failure stops before another dispatch.
@@ -52,8 +65,17 @@ def _recover(projects, store, state, job):
             attempt['stage'] = 'interrupted_unconfirmed'
             reports.append(_feedback(attempt, unknown=True, status='interrupted'))
             state['operations'][aid]['status'] = 'failed'
-    job['strategy'] = planning.adapt_strategy(projects.read(state['project']['id']),
-                                              job['strategy'], feedback=reports)
+    context_state = projects.read(state['project']['id'])
+    # A later confirmed context must not prevent closing an older reservation.
+    # Find the verified revision whose scope was used by this sealed strategy.
+    revisions = context_state.get('context_revisions', [])
+    for count in range(len(revisions), -1, -1):
+        candidate = copy.deepcopy(context_state)
+        candidate['context_revisions'] = revisions[:count]
+        if planning._scope(candidate) == job['strategy']['context_sha256']:
+            context_state = candidate
+            break
+    job['strategy'] = planning.adapt_strategy(context_state, job['strategy'], feedback=reports)
     job['status'] = 'interrupted'
     job['note'] = 'No interrupted search/page was redispatched; unconfirmed reservations remain consumed.'
     for operation in state['operations'].values():
@@ -184,8 +206,20 @@ def run(projects, project_id, body):
             raise workflow.WorkflowError('Prior adaptive attempt failed; inspect its persisted ledger.')
         require(type(body.get('expected_version')) is int and body['expected_version']==state['version'],
                 'Project changed; reopen its latest version.')
-        _gate(projects,state,body)
         run_id = body.get('run_id')
+        pending = recovery_required(state)
+        if body.get('recover_only') is True:
+            require(body.get('authorize_external_request') is True and body.get('authorize_adaptive_queries') is True,
+                    'Explicit recovery authorization is required.')
+            require(run_id in pending, 'No unfinished adaptive run to recover.')
+            _recover(projects, store, state, jobs[run_id])
+            state['operations'][rid] = {'action':'discover_adaptive', 'fingerprint':fingerprint,
+                'status':'completed', 'adaptive_run_id':run_id, 'recovery_only':True}
+            _save(store, state)
+            return copy.deepcopy(state)
+        require(not pending or (run_id is not None and pending == [run_id]),
+                'An unfinished adaptive run must be recovered before another session.')
+        _gate(projects,state,body)
         if run_id is not None:
             require(run_id in jobs,'Adaptive run not found.')
             require('limits' not in body,'Resuming cannot replace the original cumulative ceilings.')
@@ -210,7 +244,7 @@ def run(projects, project_id, body):
             job['strategy'] = planning.adapt_strategy(projects.read(project_id),job['strategy'])
             require(job['strategy']['status']=='proposed_for_review','No remaining bounded search proposal.')
         else:
-            require(not jobs,'Continue the existing cumulative adaptive run; do not reset its ledger.')
+            require(not pending, 'An unfinished adaptive run must be recovered before another session.')
             remaining = projects.external_limits['discover']-search_attempts(state)
             require(remaining>0,'Project cumulative search limit reached.')
             limits = body.get('limits',{})
@@ -228,9 +262,18 @@ def run(projects, project_id, body):
                 ('research_focus','clarifications','language','semantic_topics') if k in body})
             require(not plan['understanding']['clarification_questions'] and bool(plan['queries']),
                     'Review project clarification and research plan before authorizing discovery.')
+            reviewed = body.get('reviewed_plan_sha256')
+            if jobs:
+                require(reviewed is not None, 'Review the new research plan before starting another session.')
+            if reviewed is not None:
+                require(limits['max_queries'] == 1 and reviewed == workflow.semantic.digest(plan),
+                        'Research plan changed; review it again before discovery.')
             strategy = planning.create_strategy(projects.read(project_id),plan,allowance={
                 'queries':plan['limits']['max_queries'],'results':plan['limits']['max_search_results'],
                 'pages':plan['limits']['max_source_pages']})
+            if reviewed is not None:
+                require(strategy['proposals'] and strategy['proposals'][0]['query'] == plan['queries'][0]['query'],
+                        'Search proposal differs from the reviewed query.')
             job = {'id':rid,'created_at':workflow.semantic.now(),'strategy':strategy,'attempts':{},
                    'authorizations':[], 'status':'running'}
             state.setdefault('adaptive_discovery_runs',{})[rid] = job

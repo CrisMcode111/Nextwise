@@ -394,8 +394,10 @@ def create_strategy(state, plan, *, allowance):
         raise ValueError('Allowance must fit the existing bounded plan.')
     expected = _digest({'inputs':[(i['field'],i['text']) for i in plan['project_context']],
                         'decision_heads':_heads(state)})
-    actual_inputs = [(f'project.{k}',_text(state['project'][k])) for k in
-                     ('brief','goals','constraints','resources') if k in state['project']]
+    from project_context import planning_state
+    effective = planning_state(state)['project']
+    actual_inputs = [(f'project.{k}',_text(effective[k])) for k in
+                     ('brief','goals','constraints','resources') if k in effective]
     if expected != plan.get('basis_sha256') or actual_inputs != [
             (i['field'],i['text']) for i in plan['project_context']]:
         raise ValueError('Plan context or decision history is stale.')

@@ -4,6 +4,7 @@ let project = null, transports = {}, busy = false, savedProjects = [];
 let createId = crypto.randomUUID();
 const contextLabels = {capabilities:'Existing capabilities', work_in_progress:'Work in progress', limitations:'Known limitations and blockers', priorities:'Current objectives and priorities', resources:'Current resources', constraints:'Current constraints'};
 let contextProject = null, contextDraft = null;
+let researchPreview = null, researchInputs = null, researchVersion = null, researchProject = null;
 const decisionDrafts = new Map();
 function node(tag, text, parent, className = '') {
   const n = document.createElement(tag); n.textContent = text; n.className = className; parent.append(n); return n;
@@ -191,7 +192,8 @@ function renderSavedRuns() {
     const summary = labels[run.status] || 'Saved status: ' + (run.status || 'not recorded');
     const record = detail(kind + ' \u00b7 ' + summary + (outcome ? ' \u00b7 ' + (labels[outcome] || outcome) : ''), panel);
     if (outcome) node('p', labels[outcome] || 'Saved outcome: ' + outcome, record);
-    if (run.status === 'running' || run.status === 'interrupted') node('p', 'This is a saved, unfinished run. No background activity or automatic retry is implied. Reload to check the backend.', record);
+    if (run.status === 'running') node('p', 'This is a saved, unfinished run. No background activity or automatic retry is implied. Reload to check the backend.', record);
+    if (run.status === 'interrupted') node('p', 'This run was interrupted. Its reservations remain consumed; no search was retried automatically.', record);
     if (run.strategy?.remaining) {
       const budget = run.strategy.remaining;
       node('p', `Remaining allowance: ${budget.queries ?? 'not recorded'} queries \u00b7 ${budget.results ?? 'not recorded'} results \u00b7 ${budget.pages ?? 'not recorded'} pages`, record);
@@ -325,6 +327,11 @@ function renderHistory() {
 function render() {
   q('#workspace-empty').hidden = true; q('#project-content').hidden = false;
   q('#project-name').textContent = project.project.name; q('#project-brief').textContent = project.project.brief;
+  if (researchProject !== project.project.id || (researchVersion !== null && researchVersion !== project.version)) {
+    researchPreview = null; researchInputs = null; researchVersion = null; researchProject = project.project.id;
+    q('#research-output').replaceChildren();
+  }
+  renderAssessmentControls();
   if (contextProject !== project.project.id) {
     contextProject = project.project.id; contextDraft = null;
     const fields = project.context_revisions?.at(-1)?.fields || {};
@@ -365,6 +372,75 @@ function render() {
   for (const record of unbriefed) renderUnbriefedAssessment(record);
   renderPreliminaryPreviews(); renderSavedRuns(); renderHistory();
 }
+function renderAssessmentControls() {
+  const panel = q('#assessment-controls'); panel.replaceChildren();
+  for (const runId of project.provider_availability?.discovery_recovery_required || []) {
+    node('p', 'An earlier search has unfinished accounting. Recover it before starting another session.', panel);
+    const recover=node('button', 'Recover interrupted session', panel, 'button quiet'); recover.type='button';
+    recover.onclick=()=>action(async()=>{
+      if (!window.confirm('Recover the interrupted session’s saved accounting? No search or retry will be sent.')) return false;
+      await mutate('discover_adaptive', {run_id:runId, recover_only:true, authorize_external_request:true, authorize_adaptive_queries:true});
+    }, 'Recovering saved accounting...', 'Recovery recorded; no search was sent.');
+  }
+  const count = Object.keys(project.items).length, remaining = project.provider_availability?.assessment_remaining || 0;
+  node('h3', 'Assess saved evidence', panel);
+  node('p', `${count} saved sources. ${transports.assessment ? remaining + ' assessment attempts remaining.' : 'Assessment provider disabled.'}`, panel);
+  if (!count || !transports.assessment || !remaining) return;
+  const label = node('label', 'Maximum assessment attempts', panel); label.htmlFor = 'assessment-limit';
+  const limit = node('select', '', panel); limit.id = 'assessment-limit';
+  for (let i=1; i<=Math.min(4, remaining, count); i++) { const option=node('option', String(i), limit); option.value=String(i); }
+  node('p', 'If authorized, the assessment provider receives the original brief, current confirmed context, and saved publisher evidence for eligible sources. Existing decisions and backend eligibility rules remain in force.', panel);
+  const button = node('button', 'Review and authorize assessment', panel, 'button quiet'); button.type='button';
+  button.onclick = () => action(async () => {
+    if (!window.confirm(`Send project context and saved publisher evidence for up to ${limit.value} assessments? This can consume provider credits.`)) return false;
+    try { await mutate('assess_opportunities', {max_assessments:Number(limit.value), authorize_external_request:true, authorize_opportunity_assessments:true}); }
+    catch (error) { await openProject(project.project.id); throw new Error('Assessment was not accepted or its outcome is unconfirmed. Review saved run status; this does not establish irrelevance. No automatic retry was made.'); }
+  }, 'Assessing saved evidence...', 'Assessment finished. Review selected opportunities and saved exclusions.');
+}
+async function previewResearch(clarifications = {}) {
+  const inputs = {research_focus:q('#research-focus').value, clarifications, limits:{max_queries:1, results_per_query:5, max_source_pages:4}};
+  const version = project.version, id = project.project.id;
+  const plan = await api(`/api/projects/${id}/research_plan`, {expected_version:version, ...inputs});
+  researchPreview = plan; researchInputs = inputs; researchVersion = version; researchProject = id;
+  const panel=q('#research-output'); panel.replaceChildren();
+  node('h3', 'Project understanding', panel);
+  node('p', 'Saved statements and your answers are attributed to you; interpretations are provisional.', panel);
+  const facts=node('ul', '', panel);
+  for (const fact of plan.understanding.confirmed_facts) node('li', `${fact.field}: ${fact.text}`, facts);
+  for (const interpretation of plan.understanding.interpretations) if (interpretation.value) node('p', `Possible project subject: ${interpretation.value}`, panel);
+  const questions=plan.understanding.clarification_questions;
+  if (questions.length) {
+    const form=node('form', '', panel); node('h3', 'Clarify the research', form);
+    for (const question of questions) {
+      if (!['subject','outcome','audience'].includes(question.id)) { node('p', question.question, form); continue; }
+      const label=node('label', question.question, form); label.htmlFor='clarify-'+question.id;
+      const input=node('textarea', '', form); input.id='clarify-'+question.id; input.rows=2; input.maxLength=2000; input.value=clarifications[question.id] || ''; input.required=true;
+    }
+    const submit=node('button', 'Update local plan', form, 'button quiet'); submit.type='submit';
+    form.onsubmit=e=>{e.preventDefault(); const answers={...clarifications}; for (const input of form.querySelectorAll('textarea')) answers[input.id.slice(8)]=input.value; action(()=>previewResearch(answers), 'Updating local plan...', 'Research plan updated.');};
+  }
+  node('h3', 'Proposed public research', panel);
+  if (!plan.queries.length) node('p', 'No query is ready. Answer any questions above, select a research focus, or revise the project context.', panel);
+  for (const topic of plan.queries) { node('p', topic.query, panel, 'copy'); node('p', 'Sources to prioritize: '+topic.source_categories.join(', ').replaceAll('_',' '), panel); if (topic.previously_searched) node('p', 'This query was previously searched; approve only if a revisit is useful.', panel); }
+  node('p', 'Bound: one search, up to five results and four source pages. Queries are public; review the wording before approving.', panel);
+  const remaining=project.provider_availability?.search_remaining || 0;
+  node('p', transports.search ? `${remaining} search attempts remaining.` : 'Search provider disabled.', panel);
+  if (plan.status !== 'ready_for_review' || !plan.queries.length || !transports.search || !remaining) return;
+  const pending = project.provider_availability?.discovery_recovery_required || [];
+  if (pending.length) {
+    node('p', 'An earlier search has an unfinished reservation. Recover its saved accounting before starting another session.', panel);
+    return;
+  }
+  const run=node('button', 'Approve reviewed search', panel, 'button'); run.type='button';
+  run.onclick=()=>action(async()=>{
+    if (project.version !== researchVersion || project.project.id !== researchProject) throw new Error('Project changed; review a new plan.');
+    if (!window.confirm(`Send this reviewed public query to the search provider?\n\n${plan.queries[0].query}\n\nMaximum: one search, five results and four page fetches.`)) return false;
+    try { await mutate('discover_adaptive', {...researchInputs, reviewed_plan_sha256:plan.review_sha256, authorize_external_request:true, authorize_adaptive_queries:true}); }
+    catch(error) { await openProject(project.project.id); throw error; }
+  }, 'Searching reviewed public sources...', 'Discovery finished. Review saved sources and assessment options.');
+}
+q('#research-form').onsubmit = e => { e.preventDefault(); action(()=>previewResearch(), 'Preparing local research plan...', 'Research plan ready for review.'); };
+q('#research-focus').onchange = () => { researchPreview=null; researchVersion=null; q('#research-output').replaceChildren(); };
 q('#context-form').onsubmit = event => {
   event.preventDefault(); contextDraft = Object.fromEntries(Object.keys(contextLabels).map(k => [k, q('#context-' + k).value]));
   if (!Object.values(contextDraft).some(v => v.trim())) { status('Enter at least one context statement.', 'failed'); return; }
